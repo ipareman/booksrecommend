@@ -39,9 +39,7 @@
     </select>
   </div>
 
-  {# ── PRESET-ЧИПЫ ──────────────────────────────────────────────────────────
-       Каждый чип — обычная ссылка с предзаполненным querystring (фолбэк без JS),
-       плюс hx-get для плавной замены через HTMX. Один клик — готовый набор фильтров. #}
+  {# ── PRESET-ЧИПЫ ──────────────────────────────────────────────────────────  Каждый чип — обычная ссылка с предзаполненным querystring (фолбэк без JS),  плюс hx-get для плавной замены через HTMX. Один клик — готовый набор фильтров. #}
   <div class="preset-chips" hx-push-url="true" style="margin-bottom:18px">
     <a href="{% url 'catalog' %}"
        class="preset-chip {% if not has_filters and not f.ordering and not active_preset %}preset-chip--active{% endif %}"

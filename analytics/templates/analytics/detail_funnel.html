@@ -1,0 +1,175 @@
+{% extends "analytics/_detail_base.html" %}
+
+{% block title %}Воронка · Аналитика{% endblock %}
+{% block crumb %}Воронка{% endblock %}
+{% block page_title %}Воронка вовлечённости{% endblock %}
+
+{% block filters %}
+<form method="get" class="an-filters">
+  <label>
+    Период (дней)
+    <select name="days" onchange="this.form.submit()">
+      <option value="7"   {% if d.days == 7   %}selected{% endif %}>7</option>
+      <option value="14"  {% if d.days == 14  %}selected{% endif %}>14</option>
+      <option value="30"  {% if d.days == 30  %}selected{% endif %}>30</option>
+      <option value="60"  {% if d.days == 60  %}selected{% endif %}>60</option>
+      <option value="90"  {% if d.days == 90  %}selected{% endif %}>90</option>
+      <option value="180" {% if d.days == 180 %}selected{% endif %}>180</option>
+      <option value="365" {% if d.days == 365 %}selected{% endif %}>365</option>
+    </select>
+  </label>
+  <button type="submit" class="btn btn-primary btn-sm">Обновить</button>
+</form>
+{% endblock %}
+
+{% block detail_content %}
+
+<div class="an-kpi-row">
+  <div class="an-kpi">
+    <div class="lbl">Общая конверсия</div>
+    <div class="val">{{ d.conversion_end }}%</div>
+    <div class="sub">от «создали список» до «оставили отзыв»</div>
+  </div>
+  <div class="an-kpi">
+    <div class="lbl">На старте</div>
+    <div class="val">{{ d.total }}</div>
+    <div class="sub">пользователей за {{ d.days }} дней</div>
+  </div>
+  <div class="an-kpi">
+    <div class="lbl">Дошли до конца</div>
+    <div class="val">{{ d.steps.3.n }}</div>
+    <div class="sub">оставили отзыв / рецензию</div>
+  </div>
+  <div class="an-kpi">
+    <div class="lbl">Потеряно на переходах</div>
+    <div class="val">{{ d.total_lost }}</div>
+    <div class="sub">не дошли до отзыва</div>
+  </div>
+</div>
+
+<div class="an-card">
+  <h3>Шаги воронки</h3>
+  <div class="chart-box"><canvas id="funnelChart"></canvas></div>
+
+  <table class="an-tbl" style="margin-top:16px">
+    <thead>
+      <tr>
+        <th>Шаг</th>
+        <th class="num">Пользователей</th>
+        <th class="num">% от старта</th>
+        <th class="num">% от пред.</th>
+        <th class="num">Потеряно</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in d.steps %}
+      <tr>
+        <td>{{ forloop.counter }}. {{ s.label }}</td>
+        <td class="num"><b>{{ s.n }}</b></td>
+        <td class="num">{{ s.pct_base|floatformat:1 }}%</td>
+        <td class="num">
+          {% if forloop.first %}—{% else %}{{ s.pct_prev|floatformat:1 }}%{% endif %}
+        </td>
+        <td class="num" style="color:{% if s.drop > 0 %}#b32020{% else %}var(--muted){% endif %}">
+          {% if forloop.first %}—{% else %}{{ s.drop }}{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="an-card">
+  <h3>Сегменты пользователей</h3>
+  <div class="chart-box chart-box--sm"><canvas id="segmentsChart"></canvas></div>
+
+  <table class="an-tbl" style="margin-top:12px">
+    <tbody>
+      <tr>
+        <td>Только создали список, не читали</td>
+        <td class="num"><b>{{ d.segments.only_list }}</b></td>
+      </tr>
+      <tr>
+        <td>Начали читать, но не дочитали</td>
+        <td class="num"><b>{{ d.segments.only_reading }}</b></td>
+      </tr>
+      <tr>
+        <td>Дочитали, но не оставили отзыв</td>
+        <td class="num"><b>{{ d.segments.read_no_review }}</b></td>
+      </tr>
+      <tr>
+        <td>Полный цикл (список → отзыв)</td>
+        <td class="num"><b style="color:#0a7a42">{{ d.segments.full_loop }}</b></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script id="funnel-data" type="application/json">
+{
+  "labels":     [{% for s in d.steps %}"{{ s.label|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+  "values":     [{% for s in d.steps %}{{ s.n }}{% if not forloop.last %},{% endif %}{% endfor %}],
+  "seg_labels": ["Только список","Начали читать","Дочитали без отзыва","Полный цикл"],
+  "seg_values": [{{ d.segments.only_list }},{{ d.segments.only_reading }},{{ d.segments.read_no_review }},{{ d.segments.full_loop }}]
+}
+</script>
+
+{% endblock %}
+
+{% block chart_scripts %}
+<script>
+(function(){
+  var cs = getComputedStyle(document.documentElement);
+  var ink    = (cs.getPropertyValue('--ink')    || '#111').trim();
+  var border = (cs.getPropertyValue('--border') || '#e6dfca').trim();
+  var muted  = (cs.getPropertyValue('--muted')  || '#7a6f55').trim();
+
+  var payload = JSON.parse(document.getElementById('funnel-data').textContent);
+
+  new Chart(document.getElementById('funnelChart'), {
+    type: 'bar',
+    data: {
+      labels: payload.labels,
+      datasets: [{
+        label: 'Пользователей',
+        data: payload.values,
+        backgroundColor: ink,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display:false } },
+      scales: {
+        x: { beginAtZero: true,
+             grid: { color: border, drawBorder:false },
+             ticks: { color: muted, font:{size:11}, precision:0 } },
+        y: { grid: { display:false },
+             ticks: { color: ink, font:{size:13} } }
+      }
+    }
+  });
+
+  var palette = ['#c97a2b','#e5a552','#b8914b','#0a7a42'];
+  new Chart(document.getElementById('segmentsChart'), {
+    type: 'doughnut',
+    data: {
+      labels: payload.seg_labels,
+      datasets: [{
+        data: payload.seg_values,
+        backgroundColor: palette,
+        borderColor: '#fff',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels:{ color: ink, font:{size:12} } } }
+    }
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+<div class="book-row fade-up" onclick="window.location='{% url 'book_detail' book.id %}'">
+  <span class="book-row__num">{{ index }}.</span>
+  <div class="book-row__body">
+    <div class="book-row__title">{{ book.title }}</div>
+    <div class="book-row__meta">
+      <span class="book-row__author">
+        {% for a in book.authors.all %}
+          <a href="{% url 'author_detail' a.id %}"
+             class="lnk-muted" onclick="event.stopPropagation()">{{ a.name }}</a>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+        {% if book.publication_year %}<span style="color:var(--ghost)"> · {{ book.publication_year }}</span>{% endif %}
+      </span>
+      {% if book.avg_rating %}<span class="book-row__stars">★ {{ book.avg_rating }}</span>{% endif %}
+      <span class="book-row__genres">
+        {% for g in book.genres.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </span>
+    </div>
+  </div>
+  <div class="book-row__side">
+    {% if book.avg_price %}<span class="book-row__price">≈ {{ book.avg_price }} ₽</span>{% endif %}
+  </div>
+</div>

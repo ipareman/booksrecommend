@@ -1,0 +1,19 @@
+{% if query %}
+<div>
+  <div class="section-head" style="margin-bottom:12px">
+    <span class="section-title" style="font-size:16px">«{{ query }}»</span>
+    <span class="section-meta">{{ results|length }} результатов</span>
+  </div>
+  <hr class="divider" style="margin-bottom:12px">
+  {% if results %}
+    {% for book in results %}
+      {% with index=forloop.counter %} {% include "core/_book_row.html" %} {% endwith %}
+    {% endfor %}
+  {% else %}
+    <p class="empty">Ничего не найдено — попробуйте другой запрос</p>
+  {% endif %}
+  <div style="margin-top:14px">
+    <a href="{% url 'home' %}" class="lnk-muted" style="font-size:13px">← Сбросить поиск</a>
+  </div>
+</div>
+{% endif %}

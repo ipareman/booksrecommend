@@ -1,0 +1,40 @@
+{% if books %}
+<div class="edition-search-results">
+  {% for b in books %}
+  {% with in_current=b.edition_group_id|stringformat:"s" %}
+  <div class="edition-suggest" id="search-{{ b.pk }}">
+    <div class="edition-suggest__info">
+      <div style="font-weight:500;font-size:14px">
+        {{ b.title }}
+        {% if b.edition_group_id and b.edition_group_id != edition_pk %}
+          <span class="edition-picker__badge" style="margin-left:6px">в группе «{{ b.edition_group.name }}»</span>
+        {% elif b.edition_group_id == edition_pk %}
+          <span class="edition-picker__badge edition-picker__badge--on" style="margin-left:6px">уже в этой группе</span>
+        {% endif %}
+      </div>
+      <div style="font-size:12px;color:var(--muted)">
+        {% for a in b.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        {% if b.publisher %} · {{ b.publisher.name }}{% endif %}
+        {% if b.publication_year %} · {{ b.publication_year }}{% endif %}
+      </div>
+    </div>
+    {% if b.edition_group_id == edition_pk %}
+      <span class="btn btn-ghost btn-sm" style="opacity:.5;cursor:default">✓</span>
+    {% else %}
+      <button type="button" class="btn btn-secondary btn-sm"
+              hx-post="{% url 'edition_add_book' edition_pk %}"
+              hx-vals='{"book_id": "{{ b.pk }}"}'
+              hx-target="#edition-books-list"
+              hx-swap="beforeend"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-on::after-request="this.closest('.edition-suggest').remove()">
+        {% if b.edition_group_id %}→ Переместить{% else %}+ Добавить{% endif %}
+      </button>
+    {% endif %}
+  </div>
+  {% endwith %}
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty" style="font-size:12px">Ничего не найдено</p>
+{% endif %}

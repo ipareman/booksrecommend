@@ -1,0 +1,21 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Строка</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-box" style="text-align:center">
+    <div style="font-size:72px;font-family:'Mltsvfont';color:var(--border);margin-bottom:12px">404</div>
+    <h1 style="font-size:20px;margin-bottom:8px">Страница не найдена</h1>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:28px">
+      Возможно, она была удалена или вы перешли по неверной ссылке.
+    </p>
+    <a href="/" class="btn btn-primary">На главную</a>
+  </div>
+</div>
+</body>
+</html>

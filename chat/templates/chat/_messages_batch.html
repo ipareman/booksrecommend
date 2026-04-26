@@ -1,0 +1,12 @@
+{% for msg in messages %}
+  <div class="chat-msg {% if msg.user == user %}chat-msg--own{% endif %}">
+    {% if msg.user != user %}
+      <a href="{% url 'user_profile_public' msg.user.username %}" class="chat-msg__author lnk">{{ msg.user.username }}</a>
+    {% endif %}
+    {% if msg.body %}<span class="chat-msg__body">{{ msg.body }}</span>{% endif %}
+    {% if msg.attached_book %}
+      {% include "ai_chat/_book_card.html" with book=msg.attached_book reason="" %}
+    {% endif %}
+    <span class="chat-msg__time">{{ msg.created_at|date:"H:i" }}</span>
+  </div>
+{% endfor %}

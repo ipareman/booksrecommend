@@ -1,0 +1,221 @@
+{# Результаты журнала модерации. Переиспользуется как HTMX-partial. #}
+<div id="moderation-results">
+
+  <div class="an-kpi-row">
+    <div class="an-kpi">
+      <div class="lbl">Всего действий</div>
+      <div class="val">{{ d.total }}</div>
+      <div class="sub">по фильтрам за {{ d.days }} дней</div>
+    </div>
+    <div class="an-kpi">
+      <div class="lbl">В среднем в день</div>
+      <div class="val">{% widthratio d.total d.days 1 %}</div>
+    </div>
+    <div class="an-kpi">
+      <div class="lbl">Страница</div>
+      <div class="val">{{ d.page }} / {{ d.pages|default:"1" }}</div>
+    </div>
+    <div class="an-kpi">
+      <div class="lbl">Активных модераторов</div>
+      <div class="val">{{ d.top_mods|length }}</div>
+    </div>
+  </div>
+
+  <div class="an-card">
+    <h3>Динамика действий</h3>
+    <div class="chart-box"><canvas id="modChart"></canvas></div>
+  </div>
+
+  {% if d.by_action %}
+  <div class="an-card">
+    <h3>По типу действия</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center">
+      <div class="chart-box chart-box--sm"><canvas id="modPieChart"></canvas></div>
+      <div>
+        <table class="an-tbl">
+          <tbody>
+          {% for action, n in d.by_action.items %}
+            <tr>
+              <td>{{ action }}</td>
+              <td class="num"><b>{{ n }}</b></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if d.top_mods %}
+  <div class="an-card">
+    <h3>Топ-модераторов</h3>
+    <table class="an-tbl">
+      <thead>
+        <tr>
+          <th>Модератор</th>
+          <th class="num">Действий</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in d.top_mods %}
+        <tr>
+          <td>{{ m.moderator__username }}</td>
+          <td class="num"><b>{{ m.n }}</b></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="an-card">
+    <h3>Журнал</h3>
+    {% if d.rows %}
+    <table class="an-tbl">
+      <thead>
+        <tr>
+          <th>Когда</th>
+          <th>Модератор</th>
+          <th>Действие</th>
+          <th>Объект</th>
+          <th>Заметка</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in d.rows %}
+        <tr>
+          <td style="white-space:nowrap;color:var(--muted);font-size:12px">
+            {{ log.created_at|date:"d.m.Y H:i" }}
+          </td>
+          <td>
+            {% if log.moderator %}{{ log.moderator.username }}{% else %}—{% endif %}
+          </td>
+          <td>
+            <span style="display:inline-block;padding:2px 8px;border-radius:10px;
+                         background:var(--surface);border:1px solid var(--border);
+                         font-size:11px">
+              {{ log.get_action_display }}
+            </span>
+          </td>
+          <td style="font-size:12px">
+            <span style="color:var(--ghost)">{{ log.target_type }}#{{ log.target_id }}</span>
+            {% if log.target_repr %}
+              <div>{{ log.target_repr|truncatechars:70 }}</div>
+            {% endif %}
+          </td>
+          <td style="font-size:12px;color:var(--muted)">{{ log.note|default:"—"|truncatechars:80 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if d.pages > 1 %}
+    <div style="display:flex;justify-content:center;gap:6px;margin-top:18px;align-items:center">
+      {% if d.page > 1 %}
+        <a class="btn btn-ghost btn-sm"
+           href="?days={{ d.days }}&action={{ d.action }}&moderator={{ d.moderator|urlencode }}&q={{ d.q|urlencode }}&page={{ d.page|add:"-1" }}">← Назад</a>
+      {% endif %}
+      <span style="font-size:13px;color:var(--muted)">
+        Страница {{ d.page }} из {{ d.pages }}
+      </span>
+      {% if d.page < d.pages %}
+        <a class="btn btn-ghost btn-sm"
+           href="?days={{ d.days }}&action={{ d.action }}&moderator={{ d.moderator|urlencode }}&q={{ d.q|urlencode }}&page={{ d.page|add:"1" }}">Вперёд →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <p style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center">
+      По фильтрам ничего не нашлось.
+    </p>
+    {% endif %}
+  </div>
+
+  {{ d.labels|json_script:"mod-labels" }}
+  {{ d.daily_total|json_script:"mod-values" }}
+
+  <script id="mod-actions-data" type="application/json">
+  {
+    "labels": [{% for a, n in d.by_action.items %}"{{ a|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+    "values": [{% for a, n in d.by_action.items %}{{ n }}{% if not forloop.last %},{% endif %}{% endfor %}]
+  }
+  </script>
+
+  {# Инициализация графиков — выполняется как при первом рендере, так и при HTMX-swap. #}
+  <script>
+  (function initModCharts(){
+    if (!window.Chart) { setTimeout(initModCharts, 30); return; }
+
+    var cs = getComputedStyle(document.documentElement);
+    var ink    = (cs.getPropertyValue('--ink')    || '#111').trim();
+    var border = (cs.getPropertyValue('--border') || '#e6dfca').trim();
+    var muted  = (cs.getPropertyValue('--muted')  || '#7a6f55').trim();
+
+    function readJSON(id){
+      var el = document.getElementById(id);
+      return el ? JSON.parse(el.textContent) : [];
+    }
+
+    var modCanvas = document.getElementById('modChart');
+    if (modCanvas) {
+      var prev = Chart.getChart(modCanvas);
+      if (prev) prev.destroy();
+      new Chart(modCanvas, {
+        type: 'bar',
+        data: {
+          labels: readJSON('mod-labels'),
+          datasets: [{
+            label: 'Действий',
+            data:  readJSON('mod-values'),
+            backgroundColor: ink,
+            borderRadius: 3,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display:false } },
+          scales: {
+            x: { grid: { display:false },
+                 ticks: { color: muted, font:{size:11}, maxRotation:45, autoSkip:true, maxTicksLimit:15 } },
+            y: { beginAtZero:true,
+                 grid: { color: border, drawBorder:false },
+                 ticks: { color: muted, font:{size:11}, precision:0 } }
+          }
+        }
+      });
+    }
+
+    var pieCanvas = document.getElementById('modPieChart');
+    var actionsData = document.getElementById('mod-actions-data');
+    if (pieCanvas && actionsData) {
+      var payload = JSON.parse(actionsData.textContent);
+      if (payload.labels && payload.labels.length) {
+        var prevPie = Chart.getChart(pieCanvas);
+        if (prevPie) prevPie.destroy();
+        var palette = ['#0a7a42','#b32020','#c97a2b','#e5a552','#3b6fa5','#8b5a3c','#6b7c93','#a9a093'];
+        new Chart(pieCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: payload.labels,
+            datasets: [{
+              data: payload.values,
+              backgroundColor: palette,
+              borderColor: '#fff',
+              borderWidth: 2,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'right', labels:{ color: ink, font:{size:12}, boxWidth:12 } } }
+          }
+        });
+      }
+    }
+  })();
+  </script>
+
+</div>

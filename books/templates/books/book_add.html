@@ -1,0 +1,246 @@
+{% extends "core/base.html" %}
+{% block title %}{% if copy_from %}Копирование книги{% else %}Добавить книгу{% endif %} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:700px"
+     x-data="{
+       /* ── авторы ── */
+       authorSearch: '',
+       selectedAuthors: {{ selected_author_ids|default:'[]' }},
+       showNewAuthor: false,
+       newAuthorName: '',
+       newAuthorsList: [],
+
+       /* ── жанры ── */
+       genreSearch: '',
+       selectedGenres: {{ selected_genre_ids|default:'[]' }},
+       showNewGenre: false,
+       newGenreName: '',
+       newGenresList: [],
+
+       /* ── издательство ── */
+       publisherSearch: '{{ form_data.publisher_name|default:''|escapejs }}',
+       publisherOpen: false,
+       selectedPublisherId: {{ selected_publisher_id|default:'null' }},
+
+       /* ── серия ── */
+       seriesSearch: '{{ form_data.series_name|default:''|escapejs }}',
+       seriesOpen: false,
+       selectedSeriesId: {{ selected_series_id|default:'null' }},
+
+       _post(url, data) {
+         const fd = new FormData();
+         for (const [k, v] of Object.entries(data)) fd.append(k, v);
+         fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+         return fetch(url, {method:'POST', body:fd}).then(r => r.json());
+       },
+       createAuthor() {
+         const name = this.newAuthorName.trim(); if (!name) return;
+         this._post('{% url 'author_create_inline' %}', {name}).then(d => {
+           if (d.error) return;
+           if (!this.selectedAuthors.includes(d.id)) {
+             this.selectedAuthors.push(d.id);
+             if (d.created) this.newAuthorsList.push({id: d.id, name: d.name});
+           }
+           this.newAuthorName = ''; this.showNewAuthor = false;
+         });
+       },
+       createGenre() {
+         const name = this.newGenreName.trim(); if (!name) return;
+         this._post('{% url 'genre_create_inline' %}', {name}).then(d => {
+           if (d.error) return;
+           if (!this.selectedGenres.includes(d.id)) {
+             this.selectedGenres.push(d.id);
+             if (d.created) this.newGenresList.push({id: d.id, name: d.name});
+           }
+           this.newGenreName = ''; this.showNewGenre = false;
+         });
+       },
+       createPublisher() {
+         const name = this.publisherSearch.trim(); if (!name) return;
+         this._post('{% url 'publisher_create_inline' %}', {name}).then(d => {
+           this.selectedPublisherId = d.id; this.publisherSearch = d.name; this.publisherOpen = false;
+         });
+       },
+       createSeries() {
+         const name = this.seriesSearch.trim(); if (!name) return;
+         this._post('{% url 'series_create_inline' %}', {name}).then(d => {
+           this.selectedSeriesId = d.id; this.seriesSearch = d.name; this.seriesOpen = false;
+         });
+       }
+     }">
+
+  <div style="margin-bottom:24px">
+    <a href="{% url 'admin_panel' %}" class="lnk-muted" style="font-size:12px">← Панель администратора</a>
+    <h1 style="font-size:22px;margin-top:8px">
+      {% if copy_from %}Добавить копированием: «{{ copy_from.title }}»{% else %}Добавить книгу{% endif %}
+    </h1>
+  </div>
+
+  {% if error %}
+  <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;
+              padding:12px 16px;margin-bottom:20px;font-size:13px;color:#991b1b">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" action="{% url 'book_add' %}">
+    {% csrf_token %}
+
+    {# ── Основные поля ─────────────────────────────────────────── #}
+    <div class="form-grid-2col" style="gap:16px;margin-bottom:20px">
+
+      <div style="grid-column:1/-1">
+        <label class="form-label">Название *</label>
+        <input class="form-input" type="text" name="title" required
+               value="{{ form_data.title|default:'' }}" placeholder="Название книги">
+      </div>
+
+      <div style="grid-column:1/-1">
+        <label class="form-label">ISBN</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="form-input" type="text" name="isbn" style="flex:1"
+                 value="{{ form_data.isbn|default:'' }}" placeholder="978-..."
+                 hx-get="{% url 'isbn_lookup' %}"
+                 hx-trigger="change, keyup changed delay:800ms"
+                 hx-target="#isbn-preview"
+                 hx-include="[name=isbn]"
+                 hx-indicator="#isbn-spinner">
+          <span id="isbn-spinner" class="htmx-indicator" style="font-size:12px;color:var(--muted)">Поиск...</span>
+        </div>
+        <div id="isbn-preview"></div>
+      </div>
+
+      <div>
+        <label class="form-label">Год публикации</label>
+        <input class="form-input" type="number" name="publication_year"
+               value="{{ form_data.publication_year|default:'' }}" placeholder="2024" max="2100">
+      </div>
+
+      <div>
+        <label class="form-label">Страниц</label>
+        <input class="form-input" type="number" name="pages"
+               value="{{ form_data.pages|default:'' }}" placeholder="350" min="1">
+      </div>
+
+      <div>
+        <label class="form-label">Язык</label>
+        <select class="form-input" name="language">
+          <option value="">— Выбрать —</option>
+          {% for lang in all_languages %}
+          <option value="{{ lang.pk }}" {% if form_data.language_id == lang.pk %}selected{% endif %}>{{ lang.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {# ── Издательство (autocomplete) ─────────────────────────── #}
+      <div>
+        <label class="form-label">Издательство</label>
+        <input type="hidden" name="publisher_id"   :value="selectedPublisherId || ''">
+        <input type="hidden" name="publisher_name" :value="selectedPublisherId ? '' : publisherSearch.trim()">
+        <template x-if="selectedPublisherId">
+          <div style="display:flex;align-items:center;height:38px">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+                         background:var(--accent);color:#fff;border-radius:999px;font-size:12px">
+              <span x-text="publisherSearch"></span>
+              <button type="button" @click="selectedPublisherId=null;publisherSearch=''"
+                      style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px;line-height:1;padding:0">×</button>
+            </span>
+          </div>
+        </template>
+        <div x-show="!selectedPublisherId" style="position:relative">
+          <input class="form-input" type="text" x-model="publisherSearch"
+                 @focus="publisherOpen=true" @blur="setTimeout(()=>publisherOpen=false,150)"
+                 placeholder="Поиск или новое название...">
+          <div x-show="publisherOpen" x-cloak
+               style="position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:100;
+                      background:var(--bg);border:1px solid var(--border);border-radius:8px;
+                      max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.1)">
+            {% for pub in all_publishers %}
+            <div data-name="{{ pub.name|lower }}"
+                 x-show="!publisherSearch || $el.dataset.name.includes(publisherSearch.toLowerCase())"
+                 @mousedown.prevent="selectedPublisherId={{ pub.pk }};publisherSearch='{{ pub.name|escapejs }}';publisherOpen=false"
+                 style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)"
+                 @mouseenter="$el.style.background='var(--surface)'" @mouseleave="$el.style.background=''">
+              {{ pub.name }}
+            </div>
+            {% endfor %}
+            <div x-show="publisherSearch.trim().length > 0" @mousedown.prevent="createPublisher()"
+                 style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--accent);
+                        border-top:1px solid var(--border);font-style:italic"
+                 @mouseenter="$el.style.background='var(--surface)'" @mouseleave="$el.style.background=''">
+              + Создать «<span x-text="publisherSearch.trim()"></span>»
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── Серия (autocomplete) ─────────────────────────────────── #}
+      <div>
+        <label class="form-label">Серия</label>
+        <input type="hidden" name="series_id"   :value="selectedSeriesId || ''">
+        <input type="hidden" name="series_name" :value="selectedSeriesId ? '' : seriesSearch.trim()">
+        <template x-if="selectedSeriesId">
+          <div style="display:flex;align-items:center;height:38px">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+                         background:var(--accent);color:#fff;border-radius:999px;font-size:12px">
+              <span x-text="seriesSearch"></span>
+              <button type="button" @click="selectedSeriesId=null;seriesSearch=''"
+                      style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px;line-height:1;padding:0">×</button>
+            </span>
+          </div>
+        </template>
+        <div x-show="!selectedSeriesId" style="position:relative">
+          <input class="form-input" type="text" x-model="seriesSearch"
+                 @focus="seriesOpen=true" @blur="setTimeout(()=>seriesOpen=false,150)"
+                 placeholder="Поиск или новое название...">
+          <div x-show="seriesOpen" x-cloak
+               style="position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:100;
+                      background:var(--bg);border:1px solid var(--border);border-radius:8px;
+                      max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.1)">
+            {% for ser in all_series %}
+            <div data-name="{{ ser.name|lower }}"
+                 x-show="!seriesSearch || $el.dataset.name.includes(seriesSearch.toLowerCase())"
+                 @mousedown.prevent="selectedSeriesId={{ ser.pk }};seriesSearch='{{ ser.name|escapejs }}';seriesOpen=false"
+                 style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)"
+                 @mouseenter="$el.style.background='var(--surface)'" @mouseleave="$el.style.background=''">
+              {{ ser.name }}
+            </div>
+            {% endfor %}
+            <div x-show="seriesSearch.trim().length > 0" @mousedown.prevent="createSeries()"
+                 style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--accent);
+                        border-top:1px solid var(--border);font-style:italic"
+                 @mouseenter="$el.style.background='var(--surface)'" @mouseleave="$el.style.background=''">
+              + Создать «<span x-text="seriesSearch.trim()"></span>»
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <label class="form-label">Описание</label>
+        <textarea class="form-input" name="description" rows="5"
+                  placeholder="Аннотация книги...">{{ form_data.description|default:'' }}</textarea>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <label class="form-label">Обложка</label>
+        <input type="file" name="cover_image" accept="image/*" style="font-size:13px;color:var(--muted)">
+      </div>
+
+    </div>{# /grid #}
+
+    {% with widget_type="authors" label="Авторы" search_placeholder="Поиск автора..." new_placeholder="Имя нового автора" new_btn_label="+ Новый автор" create_fn="createAuthor" search_model="authorSearch" selected_model="selectedAuthors" new_name_model="newAuthorName" show_new_model="showNewAuthor" new_list_model="newAuthorsList" items=all_authors %}{% include "books/_multi_select_widget.html" %}{% endwith %}
+
+    {% with widget_type="genres" label="Жанры" search_placeholder="Поиск жанра..." new_placeholder="Название нового жанра" new_btn_label="+ Новый жанр" create_fn="createGenre" search_model="genreSearch" selected_model="selectedGenres" new_name_model="newGenreName" show_new_model="showNewGenre" new_list_model="newGenresList" items=all_genres %}{% include "books/_multi_select_widget.html" %}{% endwith %}
+
+    <div style="display:flex;gap:12px;padding-top:4px">
+      <button type="submit" class="btn btn-primary">
+        {% if copy_from %}Сохранить копию{% else %}Добавить книгу{% endif %}
+      </button>
+      <a href="{% url 'admin_panel' %}" class="btn btn-secondary">Отмена</a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

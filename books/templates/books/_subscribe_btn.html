@@ -1,0 +1,15 @@
+<div id="subscribe-btn-{{ author.id }}">
+  {% if user.is_authenticated %}
+    <button class="btn {% if is_subscribed %}btn-primary{% else %}btn-secondary{% endif %} btn-sm"
+            hx-post="{% url 'author_subscribe' author.id %}"
+            hx-target="#subscribe-btn-{{ author.id }}"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+      {% if is_subscribed %}✓ Вы подписаны{% else %}Подписаться{% endif %}
+    </button>
+  {% else %}
+    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-secondary btn-sm">
+      Подписаться
+    </a>
+  {% endif %}
+</div>

@@ -1,0 +1,53 @@
+<div style="padding-top:8px">
+
+  {# ── Карточки с цифрами ──────────────────────────────────────────────────── #}
+  <div class="stats-grid">
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:20px 16px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ total_books }}</div>
+      <div style="font-size:12px;color:var(--ghost);margin-top:4px">книг в списках</div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:20px 16px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ total_pages }}</div>
+      <div style="font-size:12px;color:var(--ghost);margin-top:4px">страниц прочитано</div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:20px 16px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:var(--accent)">
+        {% if avg_rating_given %}{{ avg_rating_given|floatformat:1 }}{% else %}—{% endif %}
+      </div>
+      <div style="font-size:12px;color:var(--ghost);margin-top:4px">средняя оценка</div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:20px 16px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ my_reviews|length }}</div>
+      <div style="font-size:12px;color:var(--ghost);margin-top:4px">отзывов написано</div>
+    </div>
+
+  </div>
+
+  {# ── Топ жанров ──────────────────────────────────────────────────────────── #}
+  {% if top_genres %}
+  <div style="margin-bottom:24px">
+    <p style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--ghost);
+              text-transform:uppercase;letter-spacing:.05em">Любимые жанры</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      {% for g in top_genres %}
+      <a href="{% url 'catalog' %}?genre={{ g.pk }}" class="tag" style="font-size:13px;padding:5px 12px">
+        {{ g.name }}
+        <span style="color:var(--ghost);font-size:11px;margin-left:4px">{{ g.cnt }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Подсказка если данных мало ──────────────────────────────────────────── #}
+  {% if total_books == 0 and total_pages == 0 %}
+  <p style="font-size:13px;color:var(--ghost);text-align:center;padding:24px 0">
+    Добавляйте книги в списки и отслеживайте прогресс чтения — здесь появится ваша статистика.
+  </p>
+  {% endif %}
+
+</div>

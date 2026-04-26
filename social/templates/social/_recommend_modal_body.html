@@ -1,0 +1,28 @@
+{% if friends %}
+<form hx-post="{% url 'recommend_book' book.pk %}"
+      hx-target="#recommend-result-{{ book.pk }}"
+      hx-swap="innerHTML"
+      hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+
+  <p style="font-size:14px;margin-bottom:12px">Рекомендовать <strong>{{ book.title }}</strong>:</p>
+
+  <div style="max-height:200px;overflow-y:auto;margin-bottom:12px">
+    {% for friend in friends %}
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:14px">
+      <input type="checkbox" name="friend_ids" value="{{ friend.pk }}">
+      {{ friend.username }}
+    </label>
+    {% endfor %}
+  </div>
+
+  <textarea name="message" class="form-input" rows="2"
+            placeholder="Личная записка (необязательно)"
+            style="width:100%;margin-bottom:12px"></textarea>
+
+  <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
+</form>
+{% else %}
+<p style="font-size:14px;color:var(--muted)">
+  У вас пока нет друзей. <a href="{% url 'friend_list' %}" class="lnk">Найти друзей</a>
+</p>
+{% endif %}

@@ -1,0 +1,236 @@
+{% extends "core/base.html" %}
+{% block title %}Каталог — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px" x-data="{ filtersOpen: false }">
+
+  <div class="section-head">
+    <h1 class="section-title">Каталог</h1>
+    <span class="section-meta">{{ total }} книг</span>
+    {% if user.is_staff %}
+    <a href="{% url 'book_add' %}" class="btn btn-primary btn-sm">+ Создать книгу</a>
+    {% endif %}
+  </div>
+
+  {# ── ПОИСК + СОРТИРОВКА ──────────────────────────────────────────────────── #}
+  {# hx-push-url="true" наследуется ко всем hx-get внутри — URL обновляется при #}
+  {# каждом запросе, фильтры можно шарить ссылкой и сохранять рефрешем. #}
+  <div hx-push-url="true"
+       style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px">
+      <input class="form-input" type="text" name="search" form="filter-form"
+             placeholder="Поиск по названию, автору, жанру, описанию..."
+             value="{{ f.search|default:'' }}"
+             hx-get="{% url 'catalog' %}"
+             hx-trigger="input changed delay:400ms"
+             hx-target="#book-list"
+             hx-include="#filter-form"
+             hx-swap="innerHTML">
+    </div>
+    <select class="form-input form-select" style="width:auto" name="ordering" form="filter-form"
+            hx-get="{% url 'catalog' %}" hx-trigger="change"
+            hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+      <option value="-avg_rating"       {% if f.ordering == '-avg_rating'       %}selected{% endif %}>По рейтингу</option>
+      <option value="-rating_count"     {% if f.ordering == '-rating_count'     %}selected{% endif %}>По популярности</option>
+      <option value="-publication_year" {% if f.ordering == '-publication_year' %}selected{% endif %}>Новее</option>
+      <option value="publication_year"  {% if f.ordering == 'publication_year'  %}selected{% endif %}>Старше</option>
+      <option value="avg_price"         {% if f.ordering == 'avg_price'         %}selected{% endif %}>Дешевле</option>
+      <option value="-avg_price"        {% if f.ordering == '-avg_price'        %}selected{% endif %}>Дороже</option>
+    </select>
+  </div>
+
+  {# ── PRESET-ЧИПЫ ──────────────────────────────────────────────────────────
+       Каждый чип — обычная ссылка с предзаполненным querystring (фолбэк без JS),
+       плюс hx-get для плавной замены через HTMX. Один клик — готовый набор фильтров. #}
+  <div class="preset-chips" hx-push-url="true" style="margin-bottom:18px">
+    <a href="{% url 'catalog' %}"
+       class="preset-chip {% if not has_filters and not f.ordering and not active_preset %}preset-chip--active{% endif %}"
+       hx-get="{% url 'catalog' %}" hx-target="#book-list" hx-swap="innerHTML">
+      Все
+    </a>
+    {% for p in presets %}
+      <a href="{% url 'catalog' %}?{% for k, v in p.params.items %}{{ k }}={{ v }}{% if not forloop.last %}&{% endif %}{% endfor %}"
+         class="preset-chip {% if active_preset == p.slug %}preset-chip--active{% endif %}"
+         hx-get="{% url 'catalog' %}?{% for k, v in p.params.items %}{{ k }}={{ v }}{% if not forloop.last %}&{% endif %}{% endfor %}"
+         hx-target="#book-list" hx-swap="innerHTML">
+        {{ p.label }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <button class="filter-toggle-btn" @click="filtersOpen = !filtersOpen">
+    Фильтры <span x-text="filtersOpen ? '&#9650;' : '&#9660;'"></span>
+  </button>
+
+  <div class="catalog-layout">
+
+    {# ── ФИЛЬТРЫ ──────────────────────────────────────────────────────────────── #}
+    <aside class="catalog-sidebar" :class="{ 'catalog-sidebar--open': filtersOpen }">
+      {# hx-push-url="true" на форме — URL обновляется при любом изменении фильтра. #}
+      <form id="filter-form" method="get" action="{% url 'catalog' %}" hx-push-url="true">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Фильтры</span>
+          {% if has_filters %}
+            <a href="{% url 'catalog' %}" class="lnk-muted" style="font-size:11px">Сбросить</a>
+          {% endif %}
+        </div>
+
+        {# ---- ЖАНРЫ (мультиселект) ----------------------------------------- #}
+        {% if all_genres %}
+        <div style="margin-bottom:18px">
+          <p class="filter-label">Жанр</p>
+          <div style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:5px">
+            {% for genre in all_genres %}
+            <label class="form-check">
+              <input type="checkbox" name="genre" value="{{ genre.id }}"
+                     {% if genre.id|stringformat:"s" in selected_genres %}checked{% endif %}
+                     hx-get="{% url 'catalog' %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+              {{ genre.name }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# ---- АВТОРЫ (мультиселект) ----------------------------------------- #}
+        {% if all_authors %}
+        <div style="margin-bottom:18px">
+          <p class="filter-label">Автор</p>
+          <input type="text" class="form-input" style="font-size:12px;padding:5px 8px;margin-bottom:6px"
+                 placeholder="Поиск автора..."
+                 oninput="this.nextElementSibling.querySelectorAll('label').forEach(l=>
+                   l.style.display=l.textContent.toLowerCase().includes(this.value.toLowerCase())?'flex':'none')">
+          <div style="max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:5px">
+            {% for author in all_authors %}
+            <label class="form-check">
+              <input type="checkbox" name="author" value="{{ author.id }}"
+                     {% if author.id|stringformat:"s" in selected_authors %}checked{% endif %}
+                     hx-get="{% url 'catalog' %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+              {{ author.name }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# ---- ЯЗЫК (мультиселект) ------------------------------------------- #}
+        {% if all_languages %}
+        <div style="margin-bottom:18px">
+          <p class="filter-label">Язык</p>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            {% for lang in all_languages %}
+            <label class="form-check">
+              <input type="checkbox" name="language" value="{{ lang.id }}"
+                     {% if lang.id|stringformat:"s" in selected_languages %}checked{% endif %}
+                     hx-get="{% url 'catalog' %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+              {{ lang.name }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# ---- ГОД ПУБЛИКАЦИИ (диапазон) ------------------------------------- #}
+        <div style="margin-bottom:18px">
+          <p class="filter-label">Год публикации</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <input class="form-input" type="number" name="year_from"
+                   style="font-size:12px;padding:5px 8px"
+                   placeholder="{{ agg.min_year|default:'от' }}"
+                   value="{{ f.year_from|default:'' }}"
+                   hx-get="{% url 'catalog' %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+            <input class="form-input" type="number" name="year_to"
+                   style="font-size:12px;padding:5px 8px"
+                   placeholder="{{ agg.max_year|default:'до' }}"
+                   value="{{ f.year_to|default:'' }}"
+                   hx-get="{% url 'catalog' %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+          </div>
+        </div>
+
+        {# ---- СТРАНИЦ (диапазон) --------------------------------------------- #}
+        <div style="margin-bottom:18px">
+          <p class="filter-label">Страниц</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <input class="form-input" type="number" name="pages_from"
+                   style="font-size:12px;padding:5px 8px"
+                   placeholder="{{ agg.min_pages|default:'от' }}"
+                   value="{{ f.pages_from|default:'' }}"
+                   hx-get="{% url 'catalog' %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+            <input class="form-input" type="number" name="pages_to"
+                   style="font-size:12px;padding:5px 8px"
+                   placeholder="{{ agg.max_pages|default:'до' }}"
+                   value="{{ f.pages_to|default:'' }}"
+                   hx-get="{% url 'catalog' %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+          </div>
+        </div>
+
+        {# ---- СРЕДНЯЯ ЦЕНА (диапазон) ---------------------------------------- #}
+        <div style="margin-bottom:18px">
+          <p class="filter-label">Средняя цена, ₽</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <input class="form-input" type="number" name="price_from"
+                   style="font-size:12px;padding:5px 8px"
+                   placeholder="{{ agg.min_price|default:'от' }}"
+                   value="{{ f.price_from|default:'' }}"
+                   hx-get="{% url 'catalog' %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+            <input class="form-input" type="number" name="price_to"
+                   style="font-size:12px;padding:5px 8px"
+                   placeholder="{{ agg.max_price|default:'до' }}"
+                   value="{{ f.price_to|default:'' }}"
+                   hx-get="{% url 'catalog' %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+          </div>
+        </div>
+
+        {# ---- РЕЙТИНГ (слайдер) ---------------------------------------------- #}
+        <div style="margin-bottom:8px">
+          <p class="filter-label">
+            Рейтинг ≥ <span id="rl-val">{{ f.rating_min|default:"—" }}</span>
+          </p>
+          <input type="range" name="rating_min" min="0" max="5" step="0.5"
+                 value="{{ f.rating_min|default:'0' }}"
+                 style="width:100%;accent-color:var(--ink)"
+                 oninput="document.getElementById('rl-val').textContent=+this.value||'—'"
+                 hx-get="{% url 'catalog' %}" hx-trigger="change"
+                 hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+        </div>
+
+        {# ---- НАСТРОЕНИЕ ----------------------------------------------------- #}
+        {% if all_moods %}
+        <div style="margin-bottom:8px">
+          <p class="filter-label">Настроение</p>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            {% for mood in all_moods %}
+            <label style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;
+                         border:1px solid var(--border);border-radius:999px;font-size:11px;
+                         cursor:pointer;{% if mood.pk|stringformat:'d' in selected_moods %}background:var(--accent);color:#fff;border-color:var(--accent){% endif %}">
+              <input type="checkbox" name="mood" value="{{ mood.pk }}"
+                     {% if mood.pk|stringformat:'d' in selected_moods %}checked{% endif %}
+                     style="display:none"
+                     hx-get="{% url 'catalog' %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+              {{ mood.icon }} {{ mood.name }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+      </form>
+    </aside>
+
+    <div id="book-list">
+      {% include "books/_book_list.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

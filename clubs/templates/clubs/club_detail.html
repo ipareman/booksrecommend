@@ -1,0 +1,132 @@
+{% extends "core/base.html" %}
+{% block title %}{{ club.name }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px">
+  <div class="club-hero">
+    <div style="flex:1;min-width:0">
+      <a href="{% url 'clubs_list' %}" class="lnk-muted" style="font-size:13px">&larr; Клубы</a>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <h1 style="font-size:24px">{{ club.name }}</h1>
+        {% if club.is_public %}
+          <span class="club-chip">Открытый клуб</span>
+        {% else %}
+          <span class="club-chip club-chip--ink">Приватный клуб</span>
+        {% endif %}
+      </div>
+      {% if club.description %}
+        <p style="font-size:14px;color:var(--muted);margin-top:8px;max-width:680px">{{ club.description }}</p>
+      {% endif %}
+      <div class="club-hero__meta">
+        <span>{{ memberships|length }} участников</span>
+        <span>Лимит: {{ club.max_members }}</span>
+        <span>Создан {{ club.created_at|date:"d.m.Y" }}</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      {% if membership %}
+        {% if membership.role == "owner" %}
+          <form method="post" action="{% url 'club_delete' club.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-ghost btn-sm" onclick="return confirm('Удалить клуб?')">Удалить</button>
+          </form>
+        {% elif membership.role == "admin" or membership.role == "member" %}
+          <form method="post" action="{% url 'club_leave' club.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-secondary btn-sm">Покинуть</button>
+          </form>
+        {% endif %}
+      {% elif user.is_authenticated and club.is_public %}
+        <form method="post" action="{% url 'club_join' club.pk %}">
+          {% csrf_token %}
+          <button class="btn btn-primary btn-sm">Вступить</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+      {% if membership and invite_url %}
+  <div class="club-panel" style="margin-top:18px">
+    <div class="section-head" style="margin-bottom:10px">
+      <div>
+        <div class="section-title" style="font-size:16px">Ссылка-приглашение</div>
+        <div class="section-meta">Подходит для приватных и открытых клубов. Можно перевыпустить в любой момент.</div>
+      </div>
+      <form method="post" action="{% url 'club_rotate_invite' club.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-ghost btn-sm">Перевыпустить</button>
+      </form>
+    </div>
+    <div class="club-inline-form">
+      <input class="form-input" type="text" readonly value="{{ invite_url }}">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="navigator.clipboard.writeText(this.previousElementSibling.value)">Скопировать</button>
+    </div>
+  </div>
+  {% endif %}
+
+  <div x-data="{ tab: '{% if membership and chat_room %}chat{% else %}books{% endif %}' }" style="margin-top:24px">
+    <div class="tabs">
+      {% if membership and chat_room %}
+        <button class="tab" :class="{'tab--active': tab==='chat'}" @click="tab='chat'">Чат</button>
+      {% endif %}
+      <button class="tab" :class="{'tab--active': tab==='books'}" @click="tab='books'">Книги</button>
+      <button class="tab" :class="{'tab--active': tab==='members'}" @click="tab='members'">Участники ({{ memberships|length }})</button>
+    </div>
+
+    {% if membership and chat_room %}
+    <div x-show="tab==='chat'" x-cloak class="club-tab-stack">
+      {% include "chat/_chat_widget.html" with room=chat_room club=club membership=membership polls=polls my_poll_votes=my_poll_votes chat_messages=chat_messages_for_widget mention_candidates_json=mention_candidates_json allowed_emoji_json=allowed_emoji_json %}
+    </div>
+    {% endif %}
+
+    <div x-show="tab==='books'" x-cloak>
+      <div id="club-books-list">
+        {% include "clubs/_club_books_list.html" %}
+      </div>
+
+      {% if is_manager %}
+      <div class="club-panel" style="margin-top:22px">
+        <div class="section-head" style="margin-bottom:12px">
+          <div>
+            <div class="section-title" style="font-size:16px">Добавить книгу в цикл</div>
+            <div class="section-meta">Можно сразу задать окно чтения и отметить книгу текущей.</div>
+          </div>
+        </div>
+        <input class="form-input" type="text" placeholder="Поиск книги..."
+               hx-get="{% url 'club_search_books' club.pk %}"
+               hx-trigger="input changed delay:300ms"
+               hx-target="#club-book-search"
+               hx-swap="innerHTML"
+               name="q" autocomplete="off"
+               style="max-width:360px;margin-bottom:10px">
+        <div id="club-book-search"
+             hx-get="{% url 'club_search_books' club.pk %}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+          <span class="spinner"></span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div x-show="tab==='members'" x-cloak class="club-panel">
+      {% for ms in memberships %}
+      <div class="club-member-row">
+        <a href="{% url 'user_profile_public' ms.user.username %}" class="lnk"
+           style="font-size:14px;font-weight:500;flex:1">{{ ms.user.username }}</a>
+        <span class="badge {% if ms.role == 'owner' %}badge-admin{% endif %}" style="font-size:11px">{{ ms.get_role_display }}</span>
+        <span style="font-size:11px;color:var(--ghost)">{{ ms.joined_at|date:"d.m.Y" }}</span>
+        {% if ms.user_id in removable_member_ids %}
+        <form method="post" action="{% url 'club_remove_member' club.pk ms.user_id %}">
+          {% csrf_token %}
+          <button class="btn btn-ghost btn-sm" style="color:var(--err)"
+                  onclick="return confirm('Удалить участника из клуба?')">Выгнать</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

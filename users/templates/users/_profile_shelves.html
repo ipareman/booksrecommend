@@ -1,0 +1,42 @@
+{# Мини-полки: «только что закончил», коллекции #}
+<div class="pp-shelves">
+  {% if recent_finished %}
+  <div class="pp-shelves__block">
+    <div class="pp-section-label">Недавно закончил</div>
+    <div class="pp-mini-shelf">
+      {% for item in recent_finished %}
+      <a href="{% url 'book_detail' item.book.pk %}" class="pp-mini-book"
+         title="{{ item.book.title }} · {{ item.finished_at|date:'d.m.Y' }}">
+        {% if item.book.cover_image %}
+          <img src="{{ item.book.cover_image.url }}" alt="" loading="lazy">
+        {% else %}
+          <div class="pp-mini-book__empty">{{ item.book.title|truncatechars:18 }}</div>
+        {% endif %}
+        <div class="pp-mini-book__caption">{{ item.finished_at|date:"d.m" }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if public_collections %}
+  <div class="pp-shelves__block">
+    <div class="pp-section-label">
+      Публичные подборки
+      <span class="pp-section-label__side">{{ public_collections|length }}</span>
+    </div>
+    <div class="pp-collections-grid">
+      {% for col in public_collections %}
+      <a href="{% url 'collection_detail' col.pk %}" class="pp-collection-card">
+        {% if col.cover_image %}
+          <img src="{{ col.cover_image.url }}" alt="" class="pp-collection-card__cover" loading="lazy">
+        {% else %}
+          <div class="pp-collection-card__cover pp-collection-card__cover--empty"></div>
+        {% endif %}
+        <div class="pp-collection-card__title">{{ col.title }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>

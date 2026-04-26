@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% block title %}Приглашение в клуб — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:48px;max-width:620px;margin:0 auto">
+  <div class="club-panel">
+    <div style="font-size:12px;color:var(--ghost);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Приглашение</div>
+    <h1 style="font-size:24px;margin-bottom:8px">{{ club.name }}</h1>
+    {% if club.description %}
+      <p style="font-size:14px;color:var(--muted);margin-bottom:18px">{{ club.description }}</p>
+    {% endif %}
+    <div class="club-hero__meta" style="margin-bottom:20px">
+      <span>{% if club.is_public %}Открытый{% else %}Приватный{% endif %} клуб</span>
+      <span>{{ club.member_count }} участников</span>
+      <span>Лимит {{ club.max_members }}</span>
+    </div>
+
+    {% if user.is_authenticated %}
+      <form method="post">
+        {% csrf_token %}
+        <button class="btn btn-primary" type="submit">Вступить в клуб</button>
+      </form>
+    {% else %}
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Чтобы принять приглашение, нужно войти в аккаунт.</p>
+      <a class="btn btn-primary" href="{% url 'login' %}?next={{ request.path|urlencode }}">Войти и вступить</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

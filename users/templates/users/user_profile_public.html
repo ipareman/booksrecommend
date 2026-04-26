@@ -1,0 +1,313 @@
+{% extends "core/base.html" %}
+{% block title %}{{ target_user.username }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page pp-page">
+
+  {# ── Шапка + «сейчас читает» ────────────────────────────────────────────── #}
+  {% include "users/_profile_header.html" %}
+
+  {# ── Числа-якоря ────────────────────────────────────────────────────────── #}
+  {% include "users/_profile_stats_strip.html" %}
+
+  {# ── Ссылка на полную ленту активности ──────────────────────────────────── #}
+  <div style="display:flex;justify-content:flex-end;margin:-4px 0 20px">
+    <a href="{% url 'user_activity_public' target_user.username %}"
+       class="lnk"
+       style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;
+              border:1px solid var(--border);border-radius:99px;font-size:13px;
+              text-decoration:none;color:var(--ink,#222);background:var(--surface,#fff)">
+      📜 Вся активность и комментарии →
+    </a>
+  </div>
+
+  {# ── Достижения (если получены) ────────────────────────────────────────── #}
+  {% if target_achievements_earned %}
+  <div class="pp-achievements">
+    <div class="pp-section-label">
+      Достижения
+      <span class="pp-section-label__side">
+        {{ target_achievements_earned|length }}/{{ target_achievements_total }}
+      </span>
+    </div>
+    <div class="pp-achievements__grid">
+      {% for a in target_achievements_earned %}
+      <div class="pp-ach-badge" title="{{ a.name }} · получено {{ a.earned_at|date:'d.m.Y' }}">
+        <div class="pp-ach-badge__icon">{{ a.icon }}</div>
+        <div class="pp-ach-badge__name">{{ a.name|truncatechars:24 }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Вкус: жанры / авторы / настроения / общие книги ────────────────────── #}
+  {% include "users/_profile_taste.html" %}
+
+  {# ── Полки: недавно закончил, коллекции ─────────────────────────────────── #}
+  {% include "users/_profile_shelves.html" %}
+
+  {# ── Визуализации: хитмап, палитра жанров, гистограмма оценок ───────────── #}
+  {% include "users/_profile_viz.html" %}
+
+  {# ── Социальное: друзья / клубы / подписки ─────────────────────────────── #}
+  {% include "users/_profile_social.html" %}
+
+  {# ── Списки пользователя (только для админа) ────────────────────────────── #}
+  {% if target_lists %}
+    <hr class="divider" style="margin-bottom:16px">
+    <div style="margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div class="pp-section-label" style="margin:0">Списки</div>
+        {% if can_see_sentiment and not is_own_profile %}
+          <span class="pp-admin-badge" title="Списки и тональность видны только администраторам">
+            admin-view
+          </span>
+        {% endif %}
+      </div>
+
+      <div x-data="{ active: {{ target_lists.0.id }} }">
+        <div class="list-tabs-row" style="display:flex;gap:8px;margin-bottom:16px;
+                                          align-items:center;flex-wrap:wrap">
+          {% for ul in target_lists %}
+          <button type="button"
+                  class="list-tab"
+                  :class="{ 'list-tab--active': active === {{ ul.id }} }"
+                  @click="active = {{ ul.id }}">
+            <span class="list-tab__name">{{ ul.name }}</span>
+            <span class="list-tab__count">{{ ul.books.count }}</span>
+          </button>
+          {% endfor %}
+        </div>
+
+        {% for ul in target_lists %}
+        <div x-show="active === {{ ul.id }}" x-cloak>
+          <div style="display:flex;align-items:center;gap:10px;
+                      margin-bottom:14px;flex-wrap:wrap">
+            <h3 style="font-size:16px;margin:0">{{ ul.name }}</h3>
+
+            {% if ul.is_default %}
+              <span class="badge badge-default">По умолчанию</span>
+            {% endif %}
+
+            {% if can_see_sentiment %}
+              {% if ul.sentiment_tag == "positive" %}
+                <span style="font-size:11px;background:#dcfce7;color:#166534;
+                             padding:2px 8px;border-radius:999px" title="positive">👍 положительный</span>
+              {% elif ul.sentiment_tag == "negative" %}
+                <span style="font-size:11px;background:#fee2e2;color:#991b1b;
+                             padding:2px 8px;border-radius:999px" title="negative">👎 негативный</span>
+              {% elif ul.sentiment_tag == "wishlist" %}
+                <span style="font-size:11px;background:#eff6ff;color:#1d4ed8;
+                             padding:2px 8px;border-radius:999px" title="wishlist">📖 wishlist</span>
+              {% elif ul.sentiment_tag == "neutral" %}
+                <span style="font-size:11px;background:var(--bg-2);color:var(--ghost);
+                             padding:2px 8px;border-radius:999px;border:1px solid var(--border)" title="neutral">· нейтральный</span>
+              {% endif %}
+            {% endif %}
+
+            <span style="font-size:12px;color:var(--ghost)">
+              {{ ul.books.count }} книг
+            </span>
+          </div>
+
+          {% if ul.books.all %}
+            {% for book in ul.books.all %}
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 0;
+                        border-bottom:1px solid var(--border)">
+              <a href="{% url 'book_detail' book.id %}" class="lnk"
+                 style="font-size:13px;font-weight:500;flex:1">{{ book.title }}</a>
+              <span style="font-size:12px;color:var(--muted)">
+                {% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+              </span>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="empty">Список пуст</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# ── Рекомендации ───────────────────────────────────────────────────────── #}
+  <hr class="divider" style="margin-bottom:16px">
+  <div style="margin-bottom:24px" x-data="{ rectab: 'ai' }">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <div class="pp-section-label" style="margin:0">Рекомендации</div>
+      {% if can_see_reasons and not is_own_profile %}
+        <span class="pp-admin-badge" title="Пункты-объяснения видны только администраторам">
+          admin-view
+        </span>
+      {% endif %}
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button type="button" class="list-tab"
+              :class="{ 'list-tab--active': rectab === 'ai' }"
+              @click="rectab = 'ai'">
+        <span class="list-tab__name">AI-рекомендации</span>
+        <span class="list-tab__count">{{ ai_recs|length }}</span>
+      </button>
+      <button type="button" class="list-tab"
+              :class="{ 'list-tab--active': rectab === 'reg' }"
+              @click="rectab = 'reg'">
+        <span class="list-tab__name">Обычные</span>
+        <span class="list-tab__count">{{ regular_recs|length }}</span>
+      </button>
+    </div>
+
+    <div x-show="rectab === 'ai'" x-cloak>
+      {% if ai_recs %}
+        <p style="font-size:12px;color:var(--ghost);margin:0 0 12px">
+          ✨ Подобраны ИИ на основе списков и предпочтений пользователя
+        </p>
+        {% for item in ai_recs %}
+        <div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+              <a href="{% url 'book_detail' item.book.pk %}" class="lnk"
+                 style="font-weight:600;font-size:14px">{{ item.book.title }}</a>
+              <span style="font-size:12px;color:var(--ghost)">
+                {{ item.book.authors.all|join:", " }}
+              </span>
+            </div>
+            {% if can_see_reasons and item.reason %}
+              <p style="font-size:12px;color:var(--muted);margin:6px 0 0">
+                <span style="font-weight:600;color:var(--ghost)">Причина (LLM):</span>
+                {{ item.reason }}
+              </p>
+            {% endif %}
+          </div>
+          <div style="flex-shrink:0;text-align:right">
+            <span style="font-size:12px;color:var(--accent)">
+              {{ item.book.stars_display }}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:20px;background:var(--bg-2);border:1px dashed var(--border);
+                    border-radius:8px">
+          <p style="font-size:13px;color:var(--muted);margin:0 0 10px;font-weight:600">
+            AI-рекомендации ещё не сгенерированы
+          </p>
+          {% if ai_reason_bullets %}
+            <ul style="font-size:12px;color:var(--ghost);margin:0;padding-left:18px;
+                       line-height:1.6">
+              {% for b in ai_reason_bullets %}
+                <li>{{ b }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if is_own_profile %}
+            <p style="margin:10px 0 0;font-size:12px">
+              <a href="{% url 'profile' %}" class="lnk">Сгенерировать в своём профиле →</a>
+            </p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div x-show="rectab === 'reg'" x-cloak>
+      {% if regular_recs %}
+        <p style="font-size:12px;color:var(--ghost);margin:0 0 12px">
+          Режим:
+          {% if rec_diag.mode == "personal" %}
+            персональный (по спискам и отзывам)
+          {% elif rec_diag.mode == "onboarding" %}
+            по предпочтениям из онбординга
+          {% else %}
+            холодный старт — популярные книги
+          {% endif %}
+        </p>
+        {% for item in regular_recs %}
+        <div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+              <a href="{% url 'book_detail' item.book.pk %}" class="lnk"
+                 style="font-weight:600;font-size:14px">{{ item.book.title }}</a>
+              <span style="font-size:12px;color:var(--ghost)">
+                {{ item.book.authors.all|join:", " }}
+              </span>
+            </div>
+            {% if can_see_reasons and item.reasons %}
+              <ul style="font-size:12px;color:var(--muted);margin:6px 0 0;padding-left:18px;line-height:1.5">
+                {% for r in item.reasons %}<li>{{ r }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+          <div style="flex-shrink:0;text-align:right">
+            <span style="font-size:12px;color:var(--accent)">
+              {{ item.book.stars_display }}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:20px;background:var(--bg-2);border:1px dashed var(--border);
+                    border-radius:8px">
+          <p style="font-size:13px;color:var(--muted);margin:0 0 10px;font-weight:600">
+            Рекомендации не сгенерированы
+          </p>
+          <p style="font-size:12px;color:var(--ghost);margin:0 0 8px">
+            {{ rec_diag.reason }}
+          </p>
+          <ul style="font-size:12px;color:var(--ghost);margin:0;padding-left:18px;line-height:1.6">
+            {% for b in rec_diag.bullets %}<li>{{ b }}</li>{% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:0">
+
+  {# ── Контент пользователя: отзывы / рецензии / цитаты (табами) ──────────── #}
+  {% include "users/_profile_content.html" %}
+
+  {# ── История блокировок (публично видна, по требованию админа) ──────────── #}
+  {% if block_history_count %}
+    <hr class="divider" style="margin:24px 0 16px">
+    <div style="margin-bottom:24px">
+      <div class="pp-section-label" style="margin-bottom:12px">
+        История блокировок
+        <span class="pp-section-label__side">{{ block_history_count }}</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        {% for h in block_history %}
+          <div style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;
+                      {% if h.is_active %}background:#fff5f5;border-color:#feb2b2{% endif %}">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;margin-bottom:4px">
+              <strong>🚫 {{ h.blocked_at|date:"d.m.Y" }}</strong>
+              {% if h.is_active %}
+                <span class="badge badge-blocked">активна</span>
+              {% else %}
+                <span class="badge" style="background:#e2e8f0;color:#334155">снята</span>
+              {% endif %}
+              {% if h.blocked_until %}
+                <span style="font-size:12px;color:var(--muted)">
+                  до {{ h.blocked_until|date:"d.m.Y" }}
+                </span>
+              {% endif %}
+            </div>
+            {% if h.reason %}
+              <div style="font-size:13px;color:var(--fg)">
+                <span style="color:var(--ghost)">Причина:</span> {{ h.reason }}
+              </div>
+            {% endif %}
+            {% if h.unblocked_at %}
+              <div style="font-size:12px;color:var(--muted);margin-top:4px">
+                ✅ Разблокирован {{ h.unblocked_at|date:"d.m.Y" }}{% if h.unblock_reason %} — {{ h.unblock_reason }}{% endif %}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

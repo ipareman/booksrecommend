@@ -1,0 +1,32 @@
+{% for review in pending_reviews %}
+<div style="padding:14px 0;border-bottom:1px solid var(--border)" id="rev-{{ review.id }}">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+    <div style="display:flex;gap:14px;font-size:13px;align-items:baseline">
+      <a href="{% url 'user_profile_public' review.user.username %}" class="lnk" style="font-weight:600">{{ review.user.username }}</a>
+      <a href="{% url 'book_detail' review.book.id %}" class="lnk" style="color:var(--muted)">{{ review.book.title }}</a>
+      <span style="color:var(--ghost)">★{{ review.rating }}</span>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary btn-sm"
+              hx-post="{% url 'review_moderate' review.id %}"
+              hx-vals='{"action":"approve"}'
+              hx-target="#rev-{{ review.id }}"
+              hx-swap="outerHTML"
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+        Одобрить
+      </button>
+      <button class="btn btn-danger btn-sm"
+              hx-post="{% url 'review_moderate' review.id %}"
+              hx-vals='{"action":"reject"}'
+              hx-target="#rev-{{ review.id }}"
+              hx-swap="outerHTML"
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+        Отклонить
+      </button>
+    </div>
+  </div>
+  <p style="font-size:13px;color:var(--muted)">{{ review.text }}</p>
+</div>
+{% empty %}
+<p class="empty">Нет отзывов на модерации</p>
+{% endfor %}

@@ -1,0 +1,81 @@
+{% extends "core/base.html" %}
+{% block title %}Новая группа изданий — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:720px">
+  <a href="{% url 'admin_panel' %}" class="lnk-muted" style="font-size:12px;display:inline-block;margin-bottom:20px">← Панель администратора</a>
+
+  <h1 style="font-size:22px;margin-bottom:20px">Новая группа изданий</h1>
+
+  <form method="post" action="{% url 'edition_create' %}">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label class="form-label">Название группы *</label>
+      <input type="text" name="name" class="form-input" required placeholder="Например: «Преступление и наказание»">
+      <p class="form-hint">Это каноническое название произведения. Пользователи его не видят.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Книги в группе</label>
+      <p class="form-hint" style="margin-bottom:10px">Отметьте книги-издания одного произведения. Если книга уже в другой группе — она переместится сюда.</p>
+
+      <input type="text" class="form-input" id="edition-create-search"
+             placeholder="Поиск по названию, автору или издателю..."
+             style="margin-bottom:10px" autocomplete="off">
+
+      <div class="edition-picker" id="edition-create-picker">
+        {% for b in all_books %}
+          <label class="edition-picker__item" data-search="{{ b.title|lower }}|{% for a in b.authors.all %}{{ a.name|lower }} {% endfor %}|{{ b.publisher.name|lower|default:'' }}">
+            <input type="checkbox" name="book_ids" value="{{ b.pk }}" class="edition-picker__checkbox">
+            <span class="edition-picker__info">
+              <span class="edition-picker__title">
+                {{ b.title }}
+                {% if b.edition_group_id %}<span class="edition-picker__badge" title="Уже в группе «{{ b.edition_group.name }}»">в группе «{{ b.edition_group.name }}»</span>{% endif %}
+              </span>
+              <span class="edition-picker__meta">
+                {% for a in b.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                {% if b.publisher %} · {{ b.publisher.name }}{% endif %}
+                {% if b.publication_year %} · {{ b.publication_year }}{% endif %}
+              </span>
+            </span>
+          </label>
+        {% endfor %}
+      </div>
+      <p class="form-hint" style="margin-top:8px">Выбрано: <span id="edition-create-count">0</span></p>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button type="submit" class="btn btn-primary">Создать группу</button>
+      <a href="{% url 'admin_panel' %}" class="btn btn-secondary">Отмена</a>
+    </div>
+  </form>
+</div>
+
+<script>
+(function() {
+  const searchInput = document.getElementById("edition-create-search");
+  const picker = document.getElementById("edition-create-picker");
+  const countEl = document.getElementById("edition-create-count");
+  const items = Array.from(picker.querySelectorAll(".edition-picker__item"));
+  const checkboxes = Array.from(picker.querySelectorAll(".edition-picker__checkbox"));
+
+  function updateCount() {
+    countEl.textContent = checkboxes.filter(c => c.checked).length;
+  }
+  checkboxes.forEach(c => c.addEventListener("change", updateCount));
+
+  searchInput.addEventListener("input", function() {
+    const q = this.value.trim().toLowerCase();
+    if (!q) {
+      items.forEach(el => el.style.display = "");
+      return;
+    }
+    items.forEach(el => {
+      const hay = el.dataset.search || "";
+      el.style.display = hay.indexOf(q) >= 0 ? "" : "none";
+    });
+  });
+})();
+</script>
+{% endblock %}

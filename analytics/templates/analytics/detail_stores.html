@@ -1,0 +1,198 @@
+{% extends "analytics/_detail_base.html" %}
+
+{% block title %}Магазины · Аналитика{% endblock %}
+{% block crumb %}Магазины{% endblock %}
+{% block page_title %}Клики по магазинам{% endblock %}
+
+{% block filters %}
+<form method="get" class="an-filters">
+  <label>
+    Период (дней)
+    <select name="days" onchange="this.form.submit()">
+      <option value="7"   {% if d.days == 7   %}selected{% endif %}>7</option>
+      <option value="14"  {% if d.days == 14  %}selected{% endif %}>14</option>
+      <option value="30"  {% if d.days == 30  %}selected{% endif %}>30</option>
+      <option value="60"  {% if d.days == 60  %}selected{% endif %}>60</option>
+      <option value="90"  {% if d.days == 90  %}selected{% endif %}>90</option>
+      <option value="180" {% if d.days == 180 %}selected{% endif %}>180</option>
+      <option value="365" {% if d.days == 365 %}selected{% endif %}>365</option>
+    </select>
+  </label>
+  <label>
+    Сортировка
+    <select name="sort" onchange="this.form.submit()">
+      <option value="clicks" {% if d.sort == "clicks" %}selected{% endif %}>По кликам</option>
+      <option value="users"  {% if d.sort == "users"  %}selected{% endif %}>По уник. пользователям</option>
+      <option value="books"  {% if d.sort == "books"  %}selected{% endif %}>По числу книг</option>
+      <option value="name"   {% if d.sort == "name"   %}selected{% endif %}>По имени</option>
+    </select>
+  </label>
+  <button type="submit" class="btn btn-primary btn-sm">Обновить</button>
+</form>
+{% endblock %}
+
+{% block detail_content %}
+
+<div class="an-kpi-row">
+  <div class="an-kpi">
+    <div class="lbl">Всего кликов</div>
+    <div class="val">{{ d.total_clicks }}</div>
+    <div class="sub">за {{ d.days }} дней</div>
+  </div>
+  <div class="an-kpi">
+    <div class="lbl">Уникальных пользователей</div>
+    <div class="val">{{ d.unique_users }}</div>
+    <div class="sub">нажали «купить»</div>
+  </div>
+  <div class="an-kpi">
+    <div class="lbl">Активных магазинов</div>
+    <div class="val">{{ d.rows|length }}</div>
+  </div>
+  <div class="an-kpi">
+    <div class="lbl">В среднем кликов/день</div>
+    <div class="val">{{ d.total_clicks|floatformat:0 }}</div>
+  </div>
+</div>
+
+<div class="an-card">
+  <h3>Клики по дням</h3>
+  <div class="chart-box"><canvas id="clicksChart"></canvas></div>
+</div>
+
+<div class="an-card">
+  <h3>Распределение по магазинам</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center">
+    <div class="chart-box chart-box--sm"><canvas id="storesPieChart"></canvas></div>
+    <div>
+      <table class="an-tbl">
+        <thead>
+          <tr>
+            <th>Магазин</th>
+            <th class="num">Клики</th>
+            <th class="num">Уник. польз.</th>
+            <th class="num">Книг</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in d.rows %}
+          <tr>
+            <td>
+              <span style="margin-right:6px">{{ r.icon }}</span>
+              {{ r.name }}
+              {% if not r.is_active %}<span style="color:var(--ghost);font-size:11px">(неактивен)</span>{% endif %}
+            </td>
+            <td class="num"><b>{{ r.clicks }}</b></td>
+            <td class="num">{{ r.unique_users }}</td>
+            <td class="num">{{ r.books_linked }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="an-card">
+  <h3>Топ-10 книг по кликам</h3>
+  {% if d.top_books %}
+  <table class="an-tbl">
+    <thead>
+      <tr>
+        <th>Книга</th>
+        <th class="num">Кликов</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in d.top_books %}
+      <tr>
+        <td><a href="{% url 'book_detail' b.book_id %}" class="lnk">{{ b.book__title }}</a></td>
+        <td class="num"><b>{{ b.n }}</b></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">
+    За период кликов нет.
+  </p>
+  {% endif %}
+</div>
+
+{{ d.labels|json_script:"clicks-labels" }}
+{{ d.values|json_script:"clicks-values" }}
+
+<script id="stores-data" type="application/json">
+{
+  "labels": [{% for r in d.rows %}"{{ r.name|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+  "values": [{% for r in d.rows %}{{ r.clicks }}{% if not forloop.last %},{% endif %}{% endfor %}]
+}
+</script>
+
+{% endblock %}
+
+{% block chart_scripts %}
+<script>
+(function(){
+  var cs = getComputedStyle(document.documentElement);
+  var ink    = (cs.getPropertyValue('--ink')    || '#111').trim();
+  var border = (cs.getPropertyValue('--border') || '#e6dfca').trim();
+  var muted  = (cs.getPropertyValue('--muted')  || '#7a6f55').trim();
+
+  function readJSON(id){
+    var el = document.getElementById(id);
+    return el ? JSON.parse(el.textContent) : [];
+  }
+
+  new Chart(document.getElementById('clicksChart'), {
+    type: 'line',
+    data: {
+      labels: readJSON('clicks-labels'),
+      datasets: [{
+        label: 'Клики',
+        data:  readJSON('clicks-values'),
+        borderColor: ink,
+        backgroundColor: 'rgba(20,20,20,.08)',
+        fill: true,
+        tension: 0.25,
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display:false } },
+      scales: {
+        x: { grid: { color: border, drawBorder:false },
+             ticks: { color: muted, font:{size:11}, maxRotation:45, autoSkip:true, maxTicksLimit:15 } },
+        y: { beginAtZero: true,
+             grid: { color: border, drawBorder:false },
+             ticks: { color: muted, font:{size:11}, precision:0 } }
+      }
+    }
+  });
+
+  var storesData = JSON.parse(document.getElementById('stores-data').textContent);
+  var palette = ['#c97a2b','#e5a552','#b8914b','#0a7a42','#3b6fa5','#8b5a3c','#6b7c93','#a9a093','#d1b895','#5c7e8a'];
+
+  new Chart(document.getElementById('storesPieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: storesData.labels,
+      datasets: [{
+        data: storesData.values,
+        backgroundColor: palette,
+        borderColor: '#fff',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels:{ color: ink, font:{size:12}, boxWidth:12 } } }
+    }
+  });
+})();
+</script>
+{% endblock %}

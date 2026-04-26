@@ -1,0 +1,37 @@
+{% for review in reviews %}
+<div class="review">
+  <div class="review__head">
+    <a href="{% url 'user_profile_public' review.user.username %}" class="review__user lnk">{{ review.user.username }}</a>
+    <div style="display:flex;gap:12px;align-items:center">
+      <span class="review__stars">★{{ review.rating }}</span>
+      <span class="review__date">{{ review.created_at|date:"d.m.Y" }}</span>
+    </div>
+  </div>
+  {% if scope == 'all' and review.book_id != book.id %}
+  <div style="font-size:11px;color:var(--ghost);margin-bottom:4px">издание: {{ review.book.publisher|default:"—" }}{% if review.book.publication_year %}, {{ review.book.publication_year }}{% endif %}</div>
+  {% endif %}
+  <p class="review__text">{{ review.text }}</p>
+  <div style="margin-top:8px">
+    {% include "reviews/_like_btn.html" with review=review liked=review.user_liked likes_count=review.likes_count %}
+  </div>
+</div>
+{% empty %}
+<p class="empty">Отзывов пока нет</p>
+{% endfor %}
+
+{% if has_more_reviews %}
+{# id="load-more-reviews" + outerHTML — кнопка-якорь заменяется на (новые отзывы + новая кнопка), #}
+{# а уже отрендеренные отзывы выше — сохраняются. Append-семантика без manual hx-swap-oob. #}
+<div id="load-more-reviews" style="text-align:center;padding:16px 0">
+  <button class="btn btn-secondary btn-sm"
+          hx-get="{% url 'reviews_page' book.pk %}?page={{ next_page }}"
+          hx-target="#load-more-reviews"
+          hx-swap="outerHTML"
+          hx-indicator="#reviews-spinner">
+    Показать ещё
+  </button>
+  <span id="reviews-spinner" class="htmx-indicator">
+    <span class="spinner" style="display:inline-block;width:14px;height:14px"></span>
+  </span>
+</div>
+{% endif %}

@@ -1,0 +1,82 @@
+{# Блок контента пользователя: отзывы / критики / цитаты — с табами #}
+<div class="pp-content" x-data="{ ctab: 'reviews' }">
+  <div class="pp-content__tabs">
+    <button type="button" class="list-tab"
+            :class="{ 'list-tab--active': ctab === 'reviews' }"
+            @click="ctab = 'reviews'">
+      <span class="list-tab__name">Отзывы</span>
+      <span class="list-tab__count">{{ approved_reviews|length }}</span>
+    </button>
+    <button type="button" class="list-tab"
+            :class="{ 'list-tab--active': ctab === 'critiques' }"
+            @click="ctab = 'critiques'">
+      <span class="list-tab__name">Рецензии</span>
+      <span class="list-tab__count">{{ public_critiques|length }}</span>
+    </button>
+    <button type="button" class="list-tab"
+            :class="{ 'list-tab--active': ctab === 'quotes' }"
+            @click="ctab = 'quotes'">
+      <span class="list-tab__name">Цитаты</span>
+      <span class="list-tab__count">{{ public_quotes|length }}</span>
+    </button>
+  </div>
+
+  {# ── Отзывы ─────────────────────────────────────────────────────────────── #}
+  <div x-show="ctab === 'reviews'" x-cloak>
+    {% for r in approved_reviews %}
+      <div class="pp-review">
+        <div class="pp-review__head">
+          <a href="{% url 'book_detail' r.book.id %}" class="lnk pp-review__book">{{ r.book.title }}</a>
+          <span class="pp-review__meta">★ {{ r.rating }} · {{ r.created_at|date:"d.m.Y" }}</span>
+        </div>
+        <p class="pp-review__text">{{ r.text }}</p>
+      </div>
+    {% empty %}
+      <p class="empty" style="padding:24px 0;text-align:center">Отзывов пока нет</p>
+    {% endfor %}
+  </div>
+
+  {# ── Рецензии ──────────────────────────────────────────────────────────── #}
+  <div x-show="ctab === 'critiques'" x-cloak>
+    {% if public_critiques %}
+      <div class="pp-critiques-grid">
+        {% for c in public_critiques %}
+        <a href="{% url 'critique_detail' c.pk %}" class="pp-critique-card">
+          <div class="pp-critique-card__cover">
+            {% if c.cover_image %}
+              <img src="{{ c.cover_image.url }}" alt="" loading="lazy">
+            {% elif c.book.cover_image %}
+              <img src="{{ c.book.cover_image.url }}" alt="" loading="lazy">
+            {% else %}
+              <div class="pp-critique-card__cover-empty"></div>
+            {% endif %}
+          </div>
+          <div class="pp-critique-card__title">{{ c.title|truncatewords:8 }}</div>
+          <div class="pp-critique-card__book">{{ c.book.title }}</div>
+          <div class="pp-critique-card__meta">★ {{ c.final_rating }} · {{ c.created_at|date:"d.m.Y" }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty" style="padding:24px 0;text-align:center">Рецензий пока нет</p>
+    {% endif %}
+  </div>
+
+  {# ── Цитаты ────────────────────────────────────────────────────────────── #}
+  <div x-show="ctab === 'quotes'" x-cloak>
+    {% if public_quotes %}
+      <div class="pp-quotes">
+        {% for q in public_quotes %}
+        <a href="{% url 'book_detail' q.book.pk %}" class="pp-quote-card">
+          <div class="pp-quote-card__text">«{{ q.text|truncatewords:25 }}»</div>
+          <div class="pp-quote-card__source">
+            — {{ q.book.title }}{% if q.page_number %}, стр. {{ q.page_number }}{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty" style="padding:24px 0;text-align:center">Цитат пока нет</p>
+    {% endif %}
+  </div>
+</div>

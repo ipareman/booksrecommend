@@ -1,0 +1,19 @@
+{% extends "core/base.html" %}
+{% block title %}Лента — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:640px;margin:0 auto">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <h1 style="font-size:22px">Лента</h1>
+    <div style="display:flex;gap:4px">
+      <a href="{% url 'activity_feed' %}?mode=all"
+         class="btn btn-sm {% if mode == 'all' %}btn-primary{% else %}btn-ghost{% endif %}">Все</a>
+      <a href="{% url 'activity_feed' %}?mode=friends"
+         class="btn btn-sm {% if mode == 'friends' %}btn-primary{% else %}btn-ghost{% endif %}">Друзья</a>
+    </div>
+  </div>
+  <div id="feed-items">
+    {% include "social/_feed_items.html" %}
+  </div>
+</div>
+{% endblock %}

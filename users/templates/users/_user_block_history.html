@@ -1,0 +1,75 @@
+{# Развёрнутая карточка пользователя с историей блокировок. Заменяет обычную _user_card.html при клике «История». #}
+<div id="user-card-{{ u.id }}"
+     style="padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius);
+            background:var(--bg)">
+
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+    <a href="{% url 'user_profile_public' u.username %}" class="lnk" style="font-weight:600">{{ u.username }}</a>
+    {% if u.profile.is_currently_blocked %}
+      <span class="badge badge-blocked">Заблокирован</span>
+    {% else %}
+      <span class="badge badge-active">Активен</span>
+    {% endif %}
+    <span style="font-size:11px;color:var(--ghost)">— История блокировок</span>
+
+    <span style="flex:1"></span>
+
+    <button class="btn btn-ghost btn-sm"
+            hx-get="{% url 'admin_user_card' u.id %}"
+            hx-target="#user-card-{{ u.id }}"
+            hx-swap="outerHTML">
+      ← Свернуть
+    </button>
+  </div>
+
+  {% if not history %}
+    <div style="padding:12px;text-align:center;color:var(--ghost);font-size:13px">
+      Пользователь никогда не блокировался.
+    </div>
+  {% else %}
+    <div style="display:flex;flex-direction:column;gap:6px">
+      {% for h in history %}
+        <div style="padding:10px;border:1px solid var(--border);border-radius:6px;
+                    {% if h.is_active %}background:#fff5f5;border-color:#feb2b2{% endif %}">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+            <strong style="font-size:13px">
+              🚫 {{ h.blocked_at|date:"d.m.Y H:i" }}
+            </strong>
+            {% if h.is_active %}
+              <span class="badge badge-blocked">активна</span>
+            {% else %}
+              <span class="badge" style="background:#e2e8f0;color:#334155">снята</span>
+            {% endif %}
+            {% if h.blocked_by %}
+              <span style="font-size:12px;color:var(--muted)">
+                админ: <strong>{{ h.blocked_by.username }}</strong>
+              </span>
+            {% endif %}
+            {% if h.blocked_until %}
+              <span style="font-size:12px;color:var(--muted)">
+                до {{ h.blocked_until|date:"d.m.Y H:i" }}
+              </span>
+            {% endif %}
+          </div>
+          {% if h.reason %}
+            <div style="font-size:13px;color:var(--fg);margin-bottom:4px">
+              <span style="color:var(--ghost)">Причина:</span> {{ h.reason }}
+            </div>
+          {% endif %}
+
+          {% if h.unblocked_at %}
+            <div style="font-size:12px;color:var(--muted);padding-top:6px;border-top:1px dashed var(--border);margin-top:6px">
+              ✅ Разблокирован {{ h.unblocked_at|date:"d.m.Y H:i" }}
+              {% if h.unblocked_by %}
+                админом <strong>{{ h.unblocked_by.username }}</strong>
+              {% endif %}
+              {% if h.unblock_reason %}
+                — {{ h.unblock_reason }}
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

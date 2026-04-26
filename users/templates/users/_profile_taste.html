@@ -1,0 +1,68 @@
+{# Блок «Вкус»: жанры, авторы, настроения #}
+<div class="pp-taste">
+  {% if target_profile %}
+    {% with fav_genres=target_profile.favorite_genres.all %}
+      {% if fav_genres %}
+        <div class="pp-taste__block">
+          <div class="pp-section-label">Любимые жанры</div>
+          <div class="pp-chip-row">
+            {% for g in fav_genres %}
+              <span class="tag">{{ g.name }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% with fav_authors=target_profile.favorite_authors.all %}
+      {% if fav_authors %}
+        <div class="pp-taste__block">
+          <div class="pp-section-label">Любимые авторы</div>
+          <div class="pp-chip-row">
+            {% for a in fav_authors %}
+              <a href="{% url 'author_detail' a.id %}" class="tag tag--link">{{ a.name }}</a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+  {% endif %}
+
+  {% if mood_profile %}
+    <div class="pp-taste__block">
+      <div class="pp-section-label">Настроения</div>
+      <div class="pp-chip-row">
+        {% for m in mood_profile %}
+          <span class="tag tag--mood" title="{{ m.count }} книг">
+            {% if m.icon %}{{ m.icon }} {% endif %}{{ m.name }}
+            <span class="tag__count">{{ m.count }}</span>
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if common_books.count %}
+    <div class="pp-taste__block pp-common">
+      <div class="pp-section-label">Общие книги с вами</div>
+      <div class="pp-common__row">
+        <div class="pp-common__count">
+          <span class="pp-common__big">{{ common_books.count }}</span>
+          <span class="pp-common__small">совпадений</span>
+        </div>
+        <div class="pp-common__covers">
+          {% for b in common_books.preview %}
+            <a href="{% url 'book_detail' b.pk %}" class="pp-common__cover"
+               title="{{ b.title }}">
+              {% if b.cover_image %}
+                <img src="{{ b.cover_image.url }}" alt="" loading="lazy">
+              {% else %}
+                <div class="pp-common__cover-empty">{{ b.title|truncatechars:16 }}</div>
+              {% endif %}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>

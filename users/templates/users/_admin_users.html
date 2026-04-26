@@ -1,0 +1,7 @@
+<div style="display:flex;flex-direction:column;gap:8px">
+  {% for u in users %}
+    {% include "users/_user_card.html" %}
+  {% empty %}
+    <p class="empty">Пользователи не найдены</p>
+  {% endfor %}
+</div>

@@ -1,0 +1,78 @@
+{% extends "core/base.html" %}
+{% block title %}{{ edition.name }} — группа изданий{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:820px">
+  <a href="{% url 'admin_panel' %}" class="lnk-muted" style="font-size:12px;display:inline-block;margin-bottom:20px">← Панель администратора</a>
+
+  {# Название группы #}
+  <form method="post" action="{% url 'edition_edit' edition.pk %}" style="margin-bottom:28px">
+    {% csrf_token %}
+    <label class="form-label">Название группы</label>
+    <div style="display:flex;gap:8px">
+      <input type="text" name="name" class="form-input" value="{{ edition.name }}" required style="flex:1">
+      <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+    </div>
+  </form>
+
+  <hr class="divider" style="margin-bottom:24px">
+
+  {# Книги в группе #}
+  <h2 style="font-size:17px;margin-bottom:14px">Книги в группе ({{ books|length }})</h2>
+  <div id="edition-books-list" style="margin-bottom:28px">
+    {% for book in books %}
+      {% include "books/_admin_edition_book_row.html" with book=book edition=edition %}
+    {% empty %}
+      <p class="empty">Пока ни одной книги в группе.</p>
+    {% endfor %}
+  </div>
+
+  {# Автопредложения #}
+  {% if suggestions %}
+  <hr class="divider" style="margin-bottom:24px">
+  <h2 style="font-size:17px;margin-bottom:10px">Похожие книги (автопредложение)</h2>
+  <p class="form-hint" style="margin-bottom:14px">Найдены книги с таким же названием и первым автором, но без группы.</p>
+  <div>
+    {% for b in suggestions %}
+    <div class="edition-suggest" id="sug-{{ b.pk }}">
+      <div class="edition-suggest__info">
+        <div style="font-weight:500;font-size:14px">{{ b.title }}</div>
+        <div style="font-size:12px;color:var(--muted)">
+          {% for a in b.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+          {% if b.publisher %} · {{ b.publisher.name }}{% endif %}
+          {% if b.publication_year %} · {{ b.publication_year }}{% endif %}
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm"
+              hx-post="{% url 'edition_add_book' edition.pk %}"
+              hx-vals='{"book_id": "{{ b.pk }}"}'
+              hx-target="#edition-books-list"
+              hx-swap="beforeend"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-on::after-request="this.closest('.edition-suggest').remove()">
+        + Добавить
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Ручной поиск книг #}
+  <hr class="divider" style="margin-bottom:24px">
+  <h2 style="font-size:17px;margin-bottom:10px">Добавить книгу вручную</h2>
+  <input type="text" class="form-input" placeholder="Начните вводить название или автора..."
+         hx-get="{% url 'edition_search_books' %}?edition={{ edition.pk }}"
+         hx-trigger="input changed delay:250ms"
+         hx-target="#edition-search-results"
+         name="q"
+         style="margin-bottom:14px">
+  <div id="edition-search-results"></div>
+
+  {# Удаление группы #}
+  <hr class="divider" style="margin:32px 0 20px">
+  <form method="post" action="{% url 'edition_delete' edition.pk %}" onsubmit="return confirm('Удалить группу? Книги станут одиночными.')">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger btn-sm">Удалить группу</button>
+  </form>
+</div>
+{% endblock %}

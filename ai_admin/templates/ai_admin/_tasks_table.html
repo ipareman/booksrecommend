@@ -1,0 +1,58 @@
+{# Партиал: таблица текущих Celery-задач. Обновляется через HTMX poll. #}
+<div id="celery-tasks-block"
+     hx-get="{% url 'ai_admin_tasks_partial' %}"
+     hx-trigger="every 3s"
+     hx-swap="outerHTML"
+     style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:24px">
+
+  {% if unreachable %}
+  <div style="background:var(--err-bg,#2a1010);border:1px solid var(--err);color:var(--err);padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:13px">
+    ⚠ Celery-воркеры недоступны. Проверь, что контейнер <code>celery</code> запущен.
+  </div>
+  {% endif %}
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap">
+    <h3 style="margin:0;font-size:14px">Активные и ожидающие задачи ({{ tasks|length }})</h3>
+    <span style="font-size:11px;color:var(--ghost)">
+      обновление каждые 3&nbsp;сек · {{ now|date:"H:i:s" }}
+    </span>
+  </div>
+
+  {% if tasks %}
+  <div style="overflow-x:auto">
+    <table style="width:100%;font-size:12px;border-collapse:collapse;min-width:700px">
+      <thead><tr style="color:var(--ghost);font-size:11px;text-align:left">
+        <th style="padding:4px 8px 4px 0">Тип</th>
+        <th style="padding:4px 8px">Задача</th>
+        <th style="padding:4px 8px">Args</th>
+        <th style="padding:4px 8px">ID</th>
+        <th style="padding:4px 8px">Воркер</th>
+        <th style="padding:4px 0">—</th>
+      </tr></thead>
+      <tbody>
+      {% for t in tasks %}
+      <tr style="border-top:1px solid var(--border)">
+        <td style="padding:6px 8px 6px 0">
+          <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:{% if t.kind == 'active' %}var(--accent){% elif t.kind == 'reserved' %}var(--warn,#9a7a1a){% else %}var(--ghost){% endif %};color:#fff">{{ t.kind }}</span>
+        </td>
+        <td style="padding:6px 8px;font-family:monospace;font-size:11px">{{ t.name }}</td>
+        <td style="padding:6px 8px;color:var(--ghost)">{{ t.args|truncatechars:30 }}</td>
+        <td style="padding:6px 8px;font-family:monospace;font-size:10px;color:var(--ghost)">{{ t.id|truncatechars:16 }}</td>
+        <td style="padding:6px 8px;color:var(--ghost)">{{ t.worker|truncatechars:20 }}</td>
+        <td style="padding:6px 0">
+          <form method="post" action="{% url 'ai_admin_task_revoke' %}" style="display:flex;gap:4px">
+            {% csrf_token %}
+            <input type="hidden" name="task_id" value="{{ t.id }}">
+            <button type="submit" name="terminate" value="0" class="btn btn-sm btn-secondary" title="Отменить (дождаться)">✕</button>
+            <button type="submit" name="terminate" value="1" class="btn btn-sm" style="background:var(--err);color:#fff" title="Убить (SIGTERM)">⚡</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:var(--ghost);font-size:13px;margin:0">Нет активных задач</p>
+  {% endif %}
+</div>

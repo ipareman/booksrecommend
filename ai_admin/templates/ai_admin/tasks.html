@@ -1,0 +1,44 @@
+{% extends "ai_admin/_base.html" %}
+
+{% block ai_title %}Celery{% endblock %}
+
+{% block ai_content %}
+<h1 style="margin:0 0 20px;font-size:24px">Celery-задачи</h1>
+
+{# ─── Текущие задачи (самообновляющийся блок через HTMX) ─── #}
+{% include "ai_admin/_tasks_table.html" %}
+
+{# ─── Запустить задачу ─── #}
+<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px" x-data="{ selected: '' }">
+  <h3 style="margin:0 0 12px;font-size:14px">Запустить задачу вручную</h3>
+
+  <form method="post" action="{% url 'ai_admin_task_enqueue' %}" style="display:flex;flex-direction:column;gap:12px;max-width:600px">
+    {% csrf_token %}
+
+    <select name="name" x-model="selected" required style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:inherit">
+      <option value="">— выбери задачу —</option>
+      <option value="books.tasks.extract_tags_from_description">Извлечь теги из описания (нужен book_id)</option>
+      <option value="books.tasks.classify_book_mood">Классификация mood (нужен book_id)</option>
+      <option value="books.tasks.generate_smart_quotes">Сгенерировать AI-цитаты (нужен book_id)</option>
+      <option value="users.tasks.classify_list_sentiment">Тональность списка (нужен list_id)</option>
+      <option value="users.tasks.send_weekly_digest">Еженедельный дайджест</option>
+      <option value="books.tasks.check_price_alerts">Проверка алертов цен</option>
+    </select>
+
+    <div x-show="['books.tasks.extract_tags_from_description','books.tasks.classify_book_mood','books.tasks.generate_smart_quotes'].includes(selected)" x-cloak>
+      <label style="font-size:12px;color:var(--ghost);display:block;margin-bottom:4px">Книга (book_id)</label>
+      <select name="book_id" style="width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:inherit">
+        {% for b in books %}<option value="{{ b.pk }}">#{{ b.pk }} — {{ b.title|truncatechars:60 }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div x-show="selected === 'users.tasks.classify_list_sentiment'" x-cloak>
+      <label style="font-size:12px;color:var(--ghost);display:block;margin-bottom:4px">ID списка</label>
+      <input type="number" name="list_id" style="width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:inherit">
+    </div>
+
+    <button type="submit" class="btn btn-primary" x-bind:disabled="!selected">Запустить</button>
+  </form>
+</div>
+
+{% endblock %}

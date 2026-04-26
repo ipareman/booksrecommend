@@ -1,0 +1,63 @@
+{% extends "analytics/_detail_base.html" %}
+
+{% block title %}Топ-книги · Аналитика{% endblock %}
+{% block crumb %}Топ-книги{% endblock %}
+{% block page_title %}Топ-книги по активности{% endblock %}
+
+{% block filters %}
+{# Единый HTMX-фильтр: любое изменение → хит на тот же URL с hx-include="closest form".
+   Сервер возвращает partial (_detail_books_results.html), который полностью
+   заменяет #books-results. `hx-push-url=true` обновляет адресную строку. #}
+<form class="an-filters"
+      hx-get="{% url 'analytics_detail_books' %}"
+      hx-target="#books-results"
+      hx-swap="outerHTML"
+      hx-push-url="true"
+      hx-trigger="change from:select, input changed delay:300ms from:input[type=text]"
+      hx-indicator="#books-spinner"
+      onsubmit="return false">
+  <label>
+    Период (дней)
+    <select name="days">
+      <option value="7"   {% if d.days == 7   %}selected{% endif %}>7</option>
+      <option value="14"  {% if d.days == 14  %}selected{% endif %}>14</option>
+      <option value="30"  {% if d.days == 30  %}selected{% endif %}>30</option>
+      <option value="60"  {% if d.days == 60  %}selected{% endif %}>60</option>
+      <option value="90"  {% if d.days == 90  %}selected{% endif %}>90</option>
+      <option value="180" {% if d.days == 180 %}selected{% endif %}>180</option>
+      <option value="365" {% if d.days == 365 %}selected{% endif %}>365</option>
+    </select>
+  </label>
+  <label>
+    Сортировка
+    <select name="sort">
+      <option value="score"     {% if d.sort == "score"     %}selected{% endif %}>По score</option>
+      <option value="reviews"   {% if d.sort == "reviews"   %}selected{% endif %}>По отзывам</option>
+      <option value="critiques" {% if d.sort == "critiques" %}selected{% endif %}>По рецензиям</option>
+      <option value="clicks"    {% if d.sort == "clicks"    %}selected{% endif %}>По кликам</option>
+      <option value="rating"    {% if d.sort == "rating"    %}selected{% endif %}>По рейтингу</option>
+      <option value="title"     {% if d.sort == "title"     %}selected{% endif %}>По алфавиту</option>
+    </select>
+  </label>
+  <label style="flex:1;min-width:180px">
+    Поиск (название / автор)
+    <input type="text" name="q" value="{{ d.q }}"
+           placeholder="Фамилия или часть названия..."
+           autocomplete="off">
+  </label>
+  <span id="books-spinner" class="htmx-indicator"
+        style="font-size:12px;color:var(--muted);align-self:center">ищу…</span>
+  {% if d.q or d.sort != "score" or d.days != 30 %}
+    <a href="{% url 'analytics_detail_books' %}" class="btn btn-ghost btn-sm">Сбросить</a>
+  {% endif %}
+</form>
+<style>
+  .htmx-indicator { display:none; }
+  .htmx-request .htmx-indicator,
+  .htmx-request.htmx-indicator { display:inline; }
+</style>
+{% endblock %}
+
+{% block detail_content %}
+  {% include "analytics/_detail_books_results.html" %}
+{% endblock %}

@@ -1,0 +1,809 @@
+{% extends "core/base.html" %}
+{% block title %}{{ book.title }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:28px"
+     x-data="{
+       editing: false,
+
+       authorSearch: '',
+       selectedAuthors: {{ edit_author_ids }},
+       showNewAuthor: false,
+       newAuthorName: '',
+       newAuthorsList: [],
+
+       genreSearch: '',
+       selectedGenres: {{ edit_genre_ids }},
+       showNewGenre: false,
+       newGenreName: '',
+       newGenresList: [],
+
+       publisherSearch: '{{ edit_publisher_name|escapejs }}',
+       publisherOpen: false,
+       selectedPublisherId: {{ edit_publisher_id|default:'null' }},
+
+       seriesSearch: '{{ edit_series_name|escapejs }}',
+       seriesOpen: false,
+       selectedSeriesId: {{ edit_series_id|default:'null' }},
+
+       _post(url, data) {
+         const fd = new FormData();
+         for (const [k,v] of Object.entries(data)) fd.append(k,v);
+         fd.append('csrfmiddlewaretoken','{{ csrf_token }}');
+         return fetch(url,{method:'POST',body:fd}).then(r=>r.json());
+       },
+       createAuthor() {
+         const name = this.newAuthorName.trim(); if (!name) return;
+         this._post('{% url 'author_create_inline' %}',{name}).then(d=>{
+           if (d.error) return;
+           if (!this.selectedAuthors.includes(d.id)) { this.selectedAuthors.push(d.id); if (d.created) this.newAuthorsList.push({id:d.id,name:d.name}); }
+           this.newAuthorName=''; this.showNewAuthor=false;
+         });
+       },
+       createGenre() {
+         const name = this.newGenreName.trim(); if (!name) return;
+         this._post('{% url 'genre_create_inline' %}',{name}).then(d=>{
+           if (d.error) return;
+           if (!this.selectedGenres.includes(d.id)) { this.selectedGenres.push(d.id); if (d.created) this.newGenresList.push({id:d.id,name:d.name}); }
+           this.newGenreName=''; this.showNewGenre=false;
+         });
+       },
+       createPublisher() {
+         const name = this.publisherSearch.trim(); if (!name) return;
+         this._post('{% url 'publisher_create_inline' %}',{name}).then(d=>{ this.selectedPublisherId=d.id; this.publisherSearch=d.name; this.publisherOpen=false; });
+       },
+       createSeries() {
+         const name = this.seriesSearch.trim(); if (!name) return;
+         this._post('{% url 'series_create_inline' %}',{name}).then(d=>{ this.selectedSeriesId=d.id; this.seriesSearch=d.name; this.seriesOpen=false; });
+       }
+     }">
+
+  <a href="{% url 'catalog' %}" class="lnk-muted" style="font-size:12px;display:inline-block;margin-bottom:20px">← Каталог</a>
+
+  {# Форма охватывает весь контент страницы — поля с name передаются при submit, остальное игнорируется #}
+  {% if user.is_staff %}
+  <form id="book-edit-form" method="post" enctype="multipart/form-data" action="{% url 'book_edit' book.pk %}">
+    {% csrf_token %}
+    <input type="hidden" name="publisher_id"   :value="selectedPublisherId || ''">
+    <input type="hidden" name="publisher_name" :value="selectedPublisherId ? '' : publisherSearch.trim()">
+    <input type="hidden" name="series_id"      :value="selectedSeriesId || ''">
+    <input type="hidden" name="series_name"    :value="selectedSeriesId ? '' : seriesSearch.trim()">
+  </form>
+  {% endif %}
+
+  {# Полоска «режим редактирования» — появляется сверху #}
+    {% if user.is_staff %}
+    <div x-show="editing" x-cloak>
+      <div style="display: flex;display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:16px;padding:10px 14px;border:1px solid #292929;border-radius:8px;">
+        <span style="font-size:13px;color:#000000;">✏ Режим редактирования</span>
+        <div>
+          <button type="submit" form="book-edit-form" class="btn btn-primary btn-sm">Сохранить</button>
+          <button type="button" @click="editing=false" class="btn btn-secondary btn-sm">Отмена</button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {# ── ШАПКА: обложка + заголовок ───────────────────────────────── #}
+  <div style="display:flex;gap:28px;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap">
+
+    {# Обложка #}
+    <div style="flex-shrink:0">
+      {% if book.cover_image %}
+      <div style="width:140px;border-radius:8px;overflow:hidden;
+                  box-shadow:0 2px 8px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.06);
+                  background:var(--surface)">
+        <img id="ed-cover" src="{{ book.cover_image.url }}" alt="Обложка «{{ book.title }}»"
+             style="width:100%;display:block;aspect-ratio:2/3;object-fit:cover;transition:opacity .45s">
+      </div>
+      {% else %}
+      <div style="width:140px;aspect-ratio:2/3;border-radius:8px;
+                  border:1px solid var(--border);background:var(--surface);
+                  display:flex;flex-direction:column;align-items:center;
+                  justify-content:center;gap:8px;color:var(--ghost)">
+        <img id="ed-cover" alt="" style="width:100%;display:none;aspect-ratio:2/3;object-fit:cover;transition:opacity .45s">
+        <span style="font-size:10px;text-align:center;padding:0 8px;line-height:1.4">Нет обложки</span>
+      </div>
+      {% endif %}
+      {# Загрузка новой обложки — только в режиме редактирования #}
+      {% if user.is_staff %}
+      <div x-show="editing" x-cloak style="margin-top:8px;width:140px">
+        <input type="file" name="cover_image" form="book-edit-form" accept="image/*"
+               style="font-size:11px;color:var(--muted);width:100%">
+      </div>
+      {% endif %}
+    </div>
+
+    {# Заголовок, жанры, авторы #}
+    <div style="flex:1;min-width:200px">
+
+      {# Жанры — вид: чипы | ред: мультиселект #}
+      <div x-show="!editing" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        {% for g in book.genres.all %}<span class="tag">{{ g.name }}</span>{% endfor %}
+      </div>
+      {# Mood-теги #}
+      <div x-show="!editing">
+        {% include "books/_mood_tags.html" with moods=book.moods.all %}
+      </div>
+      {% if user.is_staff %}
+      <div x-show="editing" x-cloak style="margin-bottom:10px">
+        {% include "books/_multi_select_widget.html" with widget_type="genres" label="Жанры" search_placeholder="Поиск жанра..." new_placeholder="Новый жанр" new_btn_label="+ Жанр" create_fn="createGenre" search_model="genreSearch" selected_model="selectedGenres"  new_name_model="newGenreName" show_new_model="showNewGenre" new_list_model="newGenresList" items=all_genres form_id="book-edit-form" %}
+      </div>
+      {% endif %}
+
+      {# Кнопки staff: карандашик в режиме просмотра #}
+      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        {# Заголовок — вид: h1 | ред: input #}
+        <h1 x-show="!editing" id="ed-title"
+            style="font-size:26px;margin-bottom:6px;flex:1;min-width:0">{{ book.title }}</h1>
+        {% if user.is_staff %}
+        <input x-show="editing" x-cloak
+               class="form-input" type="text" name="title" form="book-edit-form" required
+               value="{{ book.title }}"
+               style="font-size:22px;font-family:'Mltsvfont';
+                      font-weight:400;flex:1;min-width:0;margin-bottom:6px">
+        <div x-show="!editing" style="display:flex;gap:6px;flex-shrink:0;margin-top:4px">
+          <button type="button" @click="editing=true"
+                  class="btn btn-secondary btn-sm" title="Редактировать книгу">✏</button>
+          <a href="{% url 'book_add' %}?copy_from={{ book.pk }}"
+             class="btn btn-secondary btn-sm" title="Добавить копированием">⧉</a>
+        </div>
+        {% endif %}
+      </div>
+
+      {# Авторы — вид: текст | ред: мультиселект #}
+      <p x-show="!editing" style="color:var(--muted);font-size:14px;margin-bottom:4px">
+  <span id="ed-authors">{% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+  <span id="ed-year-wrap">{% if book.publication_year %} · <span id="ed-year">{{ book.publication_year }}</span>{% endif %}</span>
+</p>
+      {% if user.is_staff %}
+      <div x-show="editing" x-cloak style="margin-top:8px">
+        {% include "books/_multi_select_widget.html" with widget_type="authors" label="Авторы" search_placeholder="Поиск автора..." new_placeholder="Новый автор" new_btn_label="+ Автор" create_fn="createAuthor" search_model="authorSearch" selected_model="selectedAuthors" new_name_model="newAuthorName" show_new_model="showNewAuthor" new_list_model="newAuthorsList" items=all_authors form_id="book-edit-form" %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:16px">
+
+  {# Рейтинг, списки, цена — всегда видны #}
+  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:16px">
+    <div class="rating-block">
+      <span class="rating-block__num">{{ book.avg_rating }}</span>
+      <div>
+        <div class="rating-block__stars">{% if book.avg_rating %}★★★★★{% endif %}</div>
+        <div class="rating-block__count">{{ book.rating_count }} оценок</div>
+      </div>
+    </div>
+    {% if user.is_authenticated %}
+    <div id="book-list-dropdown-{{ book.id }}">
+      {% include "books/_list_dropdown.html" with book=book user_lists=user_lists book_list_ids=book_list_ids %}
+    </div>
+
+    {# Рекомендовать другу #}
+    <div x-data="{ recOpen: false }" style="position:relative">
+      <button class="btn btn-secondary btn-sm" @click="recOpen = !recOpen">Рекомендовать</button>
+      <div x-show="recOpen" x-cloak @click.outside="recOpen = false"
+           style="position:absolute;top:calc(100% + 4px);right:0;z-index:200;width:300px;
+                  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+                  box-shadow:0 4px 16px rgba(0,0,0,.08);padding:16px"
+           hx-get="{% url 'recommend_friends_partial' book.pk %}"
+           hx-trigger="intersect once"
+           hx-swap="innerHTML">
+        <span class="spinner"></span>
+      </div>
+      <div id="recommend-result-{{ book.pk }}"></div>
+    </div>
+    {% endif %}
+    <div id="price-block-{{ book.id }}" style="margin-left:auto">
+      {% include "books/_price_block.html" with book=book pending=False %}
+    </div>
+  </div>
+  {% if user.is_authenticated %}
+  {% if book.avg_price %}
+  <div style="margin-bottom:10px">
+    {% include "books/_price_alert.html" with book=book alert=user_price_alert %}
+  </div>
+  {% endif %}
+  {% if book.pages %}
+  <div style="margin-bottom:10px">
+    {% include "books/_reading_progress.html" with book=book progress=reading_progress %}
+  </div>
+  {% endif %}
+
+  {# ── Блок «полный текст книги» ──────────────────────────────────────────── #}
+  {% if book.text and book.text.is_ready %}
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;padding:10px 14px;
+                border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)">
+      <span style="font-size:18px">📖</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">Полный текст доступен</div>
+        <div style="font-size:12px;color:var(--muted)">
+          {{ book.text.chapters.count }} глав
+          {% if book.text.word_count %}
+            · {{ book.text.word_count|floatformat:0 }} слов
+          {% endif %}
+          {% if book.text.humanize_reading_time %}
+            · ⏱ {{ book.text.humanize_reading_time }}
+          {% endif %}
+        </div>
+      </div>
+      {% if can_read_text %}
+        <a href="{% url 'book_read' book.id %}" class="btn btn-primary btn-sm">Читать</a>
+      {% else %}
+        <span style="font-size:12px;color:var(--ghost)">
+          Добавьте книгу в список, чтобы читать
+        </span>
+      {% endif %}
+      {% if user.is_staff %}
+        <div x-data="{ open: false }" style="position:relative">
+          <button type="button" class="btn btn-ghost btn-sm" @click="open = !open" title="Действия staff">⋯</button>
+          <div x-show="open" x-cloak @click.outside="open = false"
+               style="position:absolute;top:calc(100% + 4px);right:0;z-index:100;min-width:220px;
+                      background:var(--bg);border:1px solid var(--border);border-radius:8px;
+                      box-shadow:0 4px 16px rgba(0,0,0,.12);padding:6px;display:flex;flex-direction:column;gap:2px">
+            <form method="post" action="{% url 'book_ai_summaries' book.id %}" style="margin:0">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">📝 Саммари глав</button>
+            </form>
+            <form method="post" action="{% url 'book_ai_quotes_extract' book.id %}" style="margin:0">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">💬 AI-цитаты из текста</button>
+            </form>
+            <form method="post" action="{% url 'book_ai_themes' book.id %}" style="margin:0">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">🎭 Темы и мотивы</button>
+            </form>
+            <form method="post" action="{% url 'book_ai_style' book.id %}" style="margin:0">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">✒ Профиль стиля</button>
+            </form>
+            <hr style="margin:4px 0;border:0;border-top:1px solid var(--border)">
+            <form method="post" action="{% url 'book_text_delete' book.id %}"
+                  onsubmit="return confirm('Удалить загруженный текст?')" style="margin:0">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left;color:var(--err)">✕ Удалить текст</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  {% elif user.is_staff %}
+    <details style="margin-bottom:10px;padding:10px 14px;border:1px dashed var(--border);
+                    border-radius:var(--radius);background:var(--bg-2,transparent)">
+      <summary style="cursor:pointer;font-size:13px">
+        📤 Загрузить полный текст книги (EPUB / FB2, только админ)
+      </summary>
+      <form method="post" action="{% url 'book_text_upload' book.id %}"
+            enctype="multipart/form-data"
+            style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        {% csrf_token %}
+        <input type="file" name="text_file" accept=".epub,.fb2,.zip" required
+               style="font-size:13px">
+        <button type="submit" class="btn btn-primary btn-sm">Загрузить</button>
+        <span style="font-size:11px;color:var(--ghost)">до 30 МБ; .epub, .fb2, .fb2.zip</span>
+      </form>
+    </details>
+  {% endif %}
+
+  {% if reading_prediction and reading_prediction.confidence != "low" %}
+  <div style="margin-bottom:10px;padding:8px 12px;background:var(--surface);border-radius:6px;
+              font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"
+       title="На основе вашей скорости: {{ reading_prediction.pace_pages_per_day }} стр/день (по {{ reading_prediction.based_on_books }} книгам)">
+    ⏱ Вы прочтёте за ~<b style="color:var(--ink)">{{ reading_prediction.days }}</b> дн.
+  </div>
+  {% endif %}
+
+  {% endif %}
+  <hr class="divider" style="margin-bottom:0">
+
+  {# Вкладки #}
+  <div x-data="{ tab: '{{ active_tab }}' }">
+    <div class="tabs">
+      <button class="tab" :class="{'tab--active': tab==='about'}"   @click="tab='about'">Описание</button>
+      <button class="tab" :class="{'tab--active': tab==='reviews'}" @click="tab='reviews'">Отзывы ({{ review_count }})</button>
+      <button class="tab" :class="{'tab--active': tab==='critiques'}" @click="tab='critiques'">Рецензии ({{ critique_count }})</button>
+      <button class="tab" :class="{'tab--active': tab==='editions'}" @click="tab='editions'">От других издателей{% if editions_in_group %} ({{ editions_in_group|length }}){% endif %}</button>
+      {% if user.is_staff or store_links  %}
+      <button class="tab" :class="{'tab--active': tab==='stores'}"  @click="tab='stores'">Магазины</button>
+      {% endif %}
+      <button class="tab" :class="{'tab--active': tab==='tags'}"    @click="tab='tags'">Теги{% if user.is_staff %} читателей{% endif %}</button>
+      <button class="tab" :class="{'tab--active': tab==='quotes'}"  @click="tab='quotes'">Цитаты ({{ quotes_count }})</button>
+    </div>
+
+    {# Описание — вид: текст + мета | ред: textarea + поля мета #}
+    <div x-show="tab==='about'" x-cloak>
+
+      {# Описание #}
+      <div x-show="!editing">
+        <p id="ed-description" style="font-size:14px;line-height:1.85;max-width:620px;color:var(--muted);{% if not book.description %}display:none{% endif %}">{{ book.description }}</p>
+        {% if not book.description %}<p class="empty" id="ed-description-empty">Описание отсутствует.</p>{% endif %}
+
+        {# AI-темы и мотивы из полного текста #}
+        {% if book.ai_themes %}
+        <div style="margin-top:22px;max-width:620px">
+          <p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+            Темы и мотивы
+            <span style="text-transform:none;letter-spacing:0;opacity:.7">— из анализа текста</span>
+          </p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            {% for t in book.ai_themes %}
+              {% if t.kind == "motif" %}
+              <span class="tag" style="background:var(--surface);border:1px dashed var(--border);color:var(--muted);font-style:italic"
+                    title="Мотив — повторяющийся образ">◐ {{ t.name }}</span>
+              {% else %}
+              <span class="tag" style="background:var(--surface);border:1px solid var(--border);color:var(--text)"
+                    title="Тема — центральная смысловая категория">● {{ t.name }}</span>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% if user.is_staff %}
+      <div x-show="editing" x-cloak>
+        <label class="form-label">Описание</label>
+        <textarea class="form-input" name="description" form="book-edit-form" rows="6"
+                  style="max-width:620px">{{ book.description }}</textarea>
+      </div>
+      {% endif %}
+
+      {# Мета: вид — лейблы с данными | ред — маленькие инпуты #}
+      <div x-show="!editing">
+        <div id="ed-meta-row" style="display:flex;gap:24px;margin-top:20px;flex-wrap:wrap">
+          <div id="ed-meta-publisher" {% if not book.publisher %}style="display:none"{% endif %}><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Издательство</p><p style="font-size:13px" id="ed-publisher">{{ book.publisher|default:"" }}</p></div>
+          {% if book.series %}<div><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Серия</p><p style="font-size:13px"><a href="{% url 'series_detail' book.series.pk %}" class="lnk">{{ book.series }}</a></p></div>{% endif %}
+          <div id="ed-meta-pages" {% if not book.pages %}style="display:none"{% endif %}><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Страниц</p><p style="font-size:13px" id="ed-pages">{{ book.pages|default:"" }}</p></div>
+          <div id="ed-meta-isbn" {% if not book.isbn %}style="display:none"{% endif %}><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">ISBN</p><p style="font-size:13px" id="ed-isbn">{{ book.isbn|default:"" }}</p></div>
+        </div>
+      </div>
+      {% if user.is_staff %}
+      <div x-show="editing" x-cloak style="margin-top:16px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;max-width:620px">
+          <div>
+            <label class="form-label">Год публикации</label>
+            <input class="form-input" type="number" name="publication_year" form="book-edit-form"
+                   value="{{ book.publication_year|default:'' }}" max="2100" placeholder="2024">
+          </div>
+          <div>
+            <label class="form-label">Страниц</label>
+            <input class="form-input" type="number" name="pages" form="book-edit-form"
+                   value="{{ book.pages|default:'' }}" min="1" placeholder="350">
+          </div>
+          <div>
+            <label class="form-label">ISBN</label>
+            <input class="form-input" type="text" name="isbn" form="book-edit-form"
+                   value="{{ book.isbn|default:'' }}" placeholder="978-...">
+          </div>
+          <div>
+            <label class="form-label">Язык</label>
+            <select class="form-input" name="language" form="book-edit-form">
+              <option value="">— Выбрать —</option>
+              {% for lang in all_languages %}
+              <option value="{{ lang.pk }}" {% if book.language_id == lang.pk %}selected{% endif %}>{{ lang.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {# Издательство autocomplete #}
+          <div>
+            <label class="form-label">Издательство</label>
+            <template x-if="selectedPublisherId">
+              <div style="display:flex;align-items:center;height:38px">
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+                             background:var(--accent);color:#fff;border-radius:999px;font-size:12px">
+                  <span x-text="publisherSearch"></span>
+                  <button type="button" @click="selectedPublisherId=null;publisherSearch=''"
+                          style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px;line-height:1;padding:0">×</button>
+                </span>
+              </div>
+            </template>
+            <div x-show="!selectedPublisherId" style="position:relative">
+              <input class="form-input" type="text" x-model="publisherSearch"
+                     @focus="publisherOpen=true" @blur="setTimeout(()=>publisherOpen=false,150)"
+                     placeholder="Издательство...">
+              <div x-show="publisherOpen" x-cloak
+                   style="position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:200;
+                          background:var(--bg);border:1px solid var(--border);border-radius:8px;
+                          max-height:180px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.1)">
+                {% for pub in all_publishers %}
+                <div data-name="{{ pub.name|lower }}"
+                     x-show="!publisherSearch||$el.dataset.name.includes(publisherSearch.toLowerCase())"
+                     @mousedown.prevent="selectedPublisherId={{ pub.pk }};publisherSearch='{{ pub.name|escapejs }}';publisherOpen=false"
+                     style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)"
+                     @mouseenter="$el.style.background='var(--surface)'" @mouseleave="$el.style.background=''">{{ pub.name }}</div>
+                {% endfor %}
+                <div x-show="publisherSearch.trim().length>0" @mousedown.prevent="createPublisher()"
+                     style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--accent);border-top:1px solid var(--border);font-style:italic"
+                     @mouseenter="$el.style.background='var(--surface)'" @mouseleave="$el.style.background=''">
+                  + Создать «<span x-text="publisherSearch.trim()"></span>»</div>
+              </div>
+            </div>
+          </div>
+          {# Серия autocomplete #}
+          <div>
+            <label class="form-label">Серия</label>
+            <template x-if="selectedSeriesId">
+              <div style="display:flex;align-items:center;height:38px">
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+                             background:var(--accent);color:#fff;border-radius:999px;font-size:12px">
+                  <span x-text="seriesSearch"></span>
+                  <button type="button" @click="selectedSeriesId=null;seriesSearch=''"
+                          style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px;line-height:1;padding:0">×</button>
+                </span>
+              </div>
+            </template>
+            <div x-show="!selectedSeriesId" style="position:relative">
+              <input class="form-input" type="text" x-model="seriesSearch"
+                     @focus="seriesOpen=true" @blur="setTimeout(()=>seriesOpen=false,150)"
+                     placeholder="Серия...">
+              <div x-show="seriesOpen" x-cloak
+                   style="position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:200;
+                          background:var(--bg);border:1px solid var(--border);border-radius:8px;
+                          max-height:180px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.1)">
+                {% for ser in all_series %}
+                <div data-name="{{ ser.name|lower }}"
+                     x-show="!seriesSearch||$el.dataset.name.includes(seriesSearch.toLowerCase())"
+                     @mousedown.prevent="selectedSeriesId={{ ser.pk }};seriesSearch='{{ ser.name|escapejs }}';seriesOpen=false"
+                     style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)"
+                     @mouseenter="$el.style.background='var(--surface)'" @mouseleave="$el.style.background=''">{{ ser.name }}</div>
+                {% endfor %}
+                <div x-show="seriesSearch.trim().length>0" @mousedown.prevent="createSeries()"
+                     style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--accent);border-top:1px solid var(--border);font-style:italic"
+                     @mouseenter="$el.style.background='var(--surface)'" @mouseleave="$el.style.background=''">
+                  + Создать «<span x-text="seriesSearch.trim()"></span>»</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <div x-show="tab==='reviews'" x-cloak>
+      {% if editions_in_group %}
+      <div class="scope-toggle">
+        <a href="?scope=edition&tab=reviews" class="scope-toggle__btn {% if scope == 'edition' %}scope-toggle__btn--on{% endif %}">Этого издания</a>
+        <a href="?scope=all&tab=reviews" class="scope-toggle__btn {% if scope == 'all' %}scope-toggle__btn--on{% endif %}">Всех изданий</a>
+      </div>
+      {% endif %}
+      {% if user.is_authenticated and not user_has_review %}
+      <div id="review-form-wrap" style="margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        {% include "reviews/_review_form.html" with book=book %}
+      </div>
+      {% endif %}
+      <div id="reviews-list">{% include "reviews/_review_list.html" with reviews=reviews %}</div>
+    </div>
+
+    <div x-show="tab==='critiques'" x-cloak>
+      {% if editions_in_group %}
+      <div class="scope-toggle">
+        <a href="?scope=edition&tab=critiques" class="scope-toggle__btn {% if scope == 'edition' %}scope-toggle__btn--on{% endif %}">Этого издания</a>
+        <a href="?scope=all&tab=critiques" class="scope-toggle__btn {% if scope == 'all' %}scope-toggle__btn--on{% endif %}">Всех изданий</a>
+      </div>
+      {% endif %}
+      {% if user.is_authenticated %}
+      <div style="margin-bottom:16px">
+        <a href="{% url 'critique_create' book.pk %}" class="btn btn-primary btn-sm">Написать рецензию</a>
+      </div>
+      {% endif %}
+      <div id="critiques-list">{% include "reviews/_critique_list.html" with critiques=critiques %}</div>
+    </div>
+
+    {# От других издателей #}
+    <div x-show="tab==='editions'" x-cloak>
+      {% if editions_in_group %}
+      <p class="form-hint" style="margin-bottom:16px">Это произведение издавалось в разных издательствах. Нажмите на карточку, чтобы переключить издание.</p>
+      <div class="editions-grid">
+        {% for b in editions_in_group %}
+        <button type="button" class="edition-card" data-book-id="{{ b.pk }}" onclick="swapEdition({{ b.pk }}, this)">
+          {% if b.cover_image %}
+            <img src="{{ b.cover_image.url }}" alt="" class="edition-card__cover">
+          {% else %}
+            <div class="edition-card__no-cover">—</div>
+          {% endif %}
+          <div class="edition-card__info">
+            <div class="edition-card__publisher">{{ b.publisher.name|default:"Без издателя" }}</div>
+            <div class="edition-card__meta">
+              {% if b.publication_year %}{{ b.publication_year }} · {% endif %}{% if b.pages %}{{ b.pages }} стр.{% endif %}
+            </div>
+            {% if b.isbn %}<div class="edition-card__isbn">ISBN {{ b.isbn }}</div>{% endif %}
+          </div>
+        </button>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty">Других изданий этой книги пока нет.</p>
+      {% endif %}
+    </div>
+
+    {% if user.is_staff or store_links or unlinked_stores %}
+    <div x-show="tab==='stores'" x-cloak>
+      <div id="store-links-{{ book.id }}">
+        {% include "books/_store_links.html" with book=book store_links=store_links unlinked_stores=unlinked_stores %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div x-show="tab==='tags'" x-cloak>
+      {% include "books/_book_tags.html" with book=book %}
+    </div>
+
+    <div x-show="tab==='quotes'" x-cloak>
+      {% include "books/_quotes.html" with book=book quotes=quotes user=user %}
+    </div>
+  </div>{# /tabs x-data #}
+
+  {# Граф связей и AI-чат #}
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:24px">
+    <a href="{% url 'book_graph' book.pk %}" class="btn btn-secondary btn-sm">Граф связей</a>
+    {% if user.is_authenticated %}
+      <a href="{% url 'book_chat' book.pk %}" class="btn btn-secondary btn-sm">AI-собеседник</a>
+    {% endif %}
+  </div>
+
+  {# ── Похожие книги (горизонтальная карусель) ────────────────────────────── #}
+  {% if similar %}
+  <section style="margin-top:40px;padding-top:32px;border-top:1px solid var(--border)">
+    <div class="section-head" style="margin-bottom:14px">
+      <span class="section-title" style="font-size:17px">Похожие книги</span>
+      <span class="section-meta">по жанрам и содержанию</span>
+    </div>
+    <div class="shelf">
+      <div class="shelf__track">
+        {% for sim in similar %}
+        <a href="{% url 'book_detail' sim.pk %}" class="book-tile">
+          {% if sim.cover_image %}
+            <img src="{{ sim.cover_image.url }}" alt="{{ sim.title }}"
+                 class="book-tile__cover" loading="lazy">
+          {% else %}
+            <div class="book-tile__cover book-tile__cover--empty">
+              {{ sim.title|truncatechars:30 }}
+            </div>
+          {% endif %}
+          <div class="book-tile__title">{{ sim.title }}</div>
+          <div class="book-tile__authors">
+            {% for a in sim.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+          </div>
+          {% if sim.avg_rating %}
+            <div class="book-tile__rating">&#9733; {{ sim.avg_rating|floatformat:1 }}</div>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ── Тоже читают (collaborative — кто читал эту, читал и эти) ─────────── #}
+  {% if also_read %}
+  <section style="margin-top:32px;padding-top:32px;border-top:1px solid var(--border)">
+    <div class="section-head" style="margin-bottom:14px">
+      <span class="section-title" style="font-size:17px">Тоже читают</span>
+      <span class="section-meta">по поведению читателей</span>
+    </div>
+    <div class="shelf">
+      <div class="shelf__track">
+        {% for ar in also_read %}
+        <a href="{% url 'book_detail' ar.pk %}" class="book-tile">
+          {% if ar.cover_image %}
+            <img src="{{ ar.cover_image.url }}" alt="{{ ar.title }}"
+                 class="book-tile__cover" loading="lazy">
+          {% else %}
+            <div class="book-tile__cover book-tile__cover--empty">
+              {{ ar.title|truncatechars:30 }}
+            </div>
+          {% endif %}
+          <div class="book-tile__title">{{ ar.title }}</div>
+          <div class="book-tile__authors">
+            {% for a in ar.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+          </div>
+          {% if ar.avg_rating %}
+            <div class="book-tile__rating">&#9733; {{ ar.avg_rating|floatformat:1 }}</div>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+</div>{# /wrap #}
+
+{# Модалка графика цен #}
+<div id="price-modal-overlay"
+     onclick="if(event.target===this)closePriceChart()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+            z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:640px;
+              box-shadow:0 24px 64px rgba(0,0,0,.18);overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:18px 22px;border-bottom:1px solid var(--border)">
+      <div>
+        <div id="modal-book-title" style="font-weight:700;font-size:15px"></div>
+        <div style="font-size:12px;color:var(--ghost);margin-top:2px">История цен по магазинам</div>
+      </div>
+      <button onclick="closePriceChart()"
+              style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--ghost);line-height:1;padding:4px 8px">×</button>
+    </div>
+    <div style="display:flex;gap:4px;padding:14px 22px 0">
+      <button class="period-btn period-btn--active" data-days="30"  onclick="setPeriod(30,this)">Месяц</button>
+      <button class="period-btn"                    data-days="90"  onclick="setPeriod(90,this)">3 месяца</button>
+      <button class="period-btn"                    data-days="180" onclick="setPeriod(180,this)">6 месяцев</button>
+      <button class="period-btn"                    data-days="0"   onclick="setPeriod(0,this)">Всё время</button>
+    </div>
+    <div style="padding:16px 22px 8px;position:relative;height:260px">
+      <div id="chart-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--ghost)">
+        <span class="spinner"></span> Загрузка...
+      </div>
+      <canvas id="price-chart-canvas" style="display:none;width:100%;height:100%"></canvas>
+      <div id="chart-empty" style="display:none;height:100%;align-items:center;justify-content:center;text-align:center;font-size:13px;color:var(--ghost)">
+        Данных о ценах пока нет.<br>Нажмите «Запросить цену», чтобы начать отслеживание.
+      </div>
+    </div>
+    <div id="price-stores-list" style="border-top:1px solid var(--border);padding:14px 22px 18px"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+let _chart=null,_allData=null;
+function openPriceChart(bookId,bookTitle){document.getElementById("modal-book-title").textContent=bookTitle;const o=document.getElementById("price-modal-overlay");o.style.display="flex";document.body.style.overflow="hidden";loadChartData(bookId);}
+function closePriceChart(){document.getElementById("price-modal-overlay").style.display="none";document.body.style.overflow="";if(_chart){_chart.destroy();_chart=null;}_allData=null;}
+function setPeriod(days,btn){document.querySelectorAll(".period-btn").forEach(b=>b.classList.remove("period-btn--active"));btn.classList.add("period-btn--active");if(_allData)renderChart(_allData,days);}
+async function loadChartData(bookId){showLoading(true);try{const r=await fetch(`/books/${bookId}/price-chart/`);const data=await r.json();_allData=data;showLoading(false);if(!data.labels||!data.labels.length){showEmpty();return;}renderChart(data,30);renderStores(data);}catch(e){showLoading(false);showEmpty();}}
+function showLoading(on){document.getElementById("chart-loading").style.display=on?"flex":"none";}
+function showEmpty(){document.getElementById("chart-empty").style.display="flex";}
+function filterDays(labels,datasets,days){if(!days)return{labels,datasets};const cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);const cutStr=cutoff.toISOString().slice(0,10);const idx=labels.map((l,i)=>l>=cutStr?i:-1).filter(i=>i>=0);if(!idx.length)return{labels:[],datasets:datasets.map(d=>({...d,points:[]}))};return{labels:idx.map(i=>labels[i]),datasets:datasets.map(d=>({...d,points:idx.map(i=>d.points[i])}))};}
+function fmtDate(iso){return new Date(iso).toLocaleDateString("ru-RU",{day:"numeric",month:"short"});}
+function renderChart(data,days){const canvas=document.getElementById("price-chart-canvas");const{labels,datasets}=filterDays(data.labels,data.datasets,days);if(!labels.length){canvas.style.display="none";showEmpty();return;}document.getElementById("chart-empty").style.display="none";canvas.style.display="block";if(_chart)_chart.destroy();_chart=new Chart(canvas,{type:"line",data:{labels:labels.map(fmtDate),datasets:datasets.map(ds=>({label:ds.label,data:ds.points,borderColor:ds.color,backgroundColor:ds.color+"15",borderWidth:2,borderDash:ds.borderDash||[],pointRadius:labels.length<=15?4:2,pointHoverRadius:6,tension:.38,fill:false,spanGaps:true}))},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom",labels:{boxWidth:12,font:{size:12},padding:14,usePointStyle:true}},tooltip:{backgroundColor:"#fff",borderColor:"#e5e5e5",borderWidth:1,titleColor:"#111",bodyColor:"#6b7280",padding:10,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(0)+" ₽":"нет данных"}`}}},scales:{x:{grid:{display:false},ticks:{font:{size:11},maxTicksLimit:8,color:"#9ca3af"}},y:{grid:{color:"#f5f5f5"},ticks:{font:{size:11},color:"#9ca3af",callback:v=>v.toFixed(0)+" ₽"},border:{display:false}}}}});}
+function renderStores(data){const el=document.getElementById("price-stores-list");const stores=data.datasets.filter(d=>d.label!=="Средняя");if(!stores.length){el.innerHTML="";return;}const rows=stores.map(ds=>{const vals=ds.points.filter(v=>v!=null);const last=vals.length?vals[vals.length-1].toFixed(0)+" ₽":"—";const min=vals.length?Math.min(...vals).toFixed(0)+" ₽":"—";const max=vals.length?Math.max(...vals).toFixed(0)+" ₽":"—";return`<div style="display:grid;grid-template-columns:14px 1fr auto auto auto;gap:0 14px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="width:10px;height:10px;border-radius:50%;background:${ds.color};display:block"></span><span style="font-weight:500">${ds.label}</span><span style="color:var(--ghost);font-size:12px">мин: ${min}</span><span style="color:var(--ghost);font-size:12px">макс: ${max}</span><span style="font-weight:600;color:#16a34a">${last}</span></div>`;}).join("");el.innerHTML=`<p style="font-size:11px;color:var(--ghost);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-weight:600">Актуальные цены</p>${rows}`;}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closePriceChart();});
+
+// ─── Typewriter swap для других изданий ───────────────────────────────────
+// ⚙️ НАСТРОЙКИ СКОРОСТИ ПЕЧАТАНИЯ (все значения в миллисекундах)
+const TYPE_SPEED = {
+  SHORT: 12,               // задержка на символ для коротких полей (название, авторы, год, издатель, страницы, ISBN)
+  COVER_FADE_MS: 300,      // длительность fade-эффекта обложки
+  DESC_MIN_DELAY: 1,       // минимальная задержка на символ в описании (нижняя граница ускорения)
+  DESC_MAX_DELAY: 8,       // максимальная задержка на символ в описании (верхняя граница)
+  DESC_ERASE_NUMERATOR: 250, // числитель для расчёта скорости стирания описания (больше = медленнее)
+  DESC_WRITE_NUMERATOR: 180, // числитель для расчёта скорости печати описания (больше = медленнее)
+  DESC_LEN_FLOOR: 20,      // минимальная «длина» текста для расчёта (чтобы короткие тексты не печатались слишком быстро)
+};
+
+async function typeErase(el, speed) {
+  if (!el) return;
+  const orig = el.textContent;
+  for (let i = orig.length; i > 0; i--) {
+    el.textContent = orig.slice(0, i - 1);
+    await new Promise(r => setTimeout(r, speed));
+  }
+}
+async function typeWrite(el, text, speed) {
+  if (!el) return;
+  el.textContent = "";
+  for (let i = 0; i < text.length; i++) {
+    el.textContent += text[i];
+    await new Promise(r => setTimeout(r, speed));
+  }
+}
+function eraseWriteAccelerated(el, text) {
+  return new Promise(async (resolve) => {
+    if (!el) { resolve(); return; }
+    const oldText = el.textContent || "";
+    const oldLen = oldText.length;
+    const newLen = text.length;
+    // Ускорение для длинных текстов: чем длиннее, тем меньше delay
+    const eraseSpeed = Math.max(TYPE_SPEED.DESC_MIN_DELAY, Math.min(TYPE_SPEED.DESC_MAX_DELAY, TYPE_SPEED.DESC_ERASE_NUMERATOR / Math.max(oldLen, TYPE_SPEED.DESC_LEN_FLOOR)));
+    const writeSpeed = Math.max(TYPE_SPEED.DESC_MIN_DELAY, Math.min(TYPE_SPEED.DESC_MAX_DELAY, TYPE_SPEED.DESC_WRITE_NUMERATOR / Math.max(newLen, TYPE_SPEED.DESC_LEN_FLOOR)));
+    for (let i = oldLen; i > 0; i--) {
+      el.textContent = oldText.slice(0, i - 1);
+      await new Promise(r => setTimeout(r, eraseSpeed));
+    }
+    for (let i = 0; i < newLen; i++) {
+      el.textContent += text[i];
+      await new Promise(r => setTimeout(r, writeSpeed));
+    }
+    resolve();
+  });
+}
+let _swapLock = false;
+async function swapEdition(bookId, cardEl) {
+  if (_swapLock) return;
+  _swapLock = true;
+  document.querySelectorAll(".edition-card").forEach(c => c.classList.remove("edition-card--active"));
+  if (cardEl) cardEl.classList.add("edition-card--active");
+  try {
+    const resp = await fetch(`/books/${bookId}/edition-data/`);
+    if (!resp.ok) throw new Error("fetch failed");
+    const data = await resp.json();
+
+    // Меняем URL без перезагрузки
+    history.pushState({bookId: data.id}, "", data.url);
+    document.title = data.title + " — Строка";
+
+    // Обложка: fade-out → swap src → fade-in
+    const cover = document.getElementById("ed-cover");
+    if (cover) {
+      cover.style.opacity = "0";
+      await new Promise(r => setTimeout(r, TYPE_SPEED.COVER_FADE_MS));
+      if (data.cover_url) {
+        cover.src = data.cover_url;
+        cover.style.display = "block";
+      } else {
+        cover.style.display = "none";
+      }
+      cover.style.opacity = "1";
+    }
+
+    // Последовательно печатаем текстовые поля (быстро)
+    const FAST = TYPE_SPEED.SHORT;
+    await typeErase(document.getElementById("ed-title"), FAST);
+    await typeWrite(document.getElementById("ed-title"), data.title, FAST);
+
+    await typeErase(document.getElementById("ed-authors"), FAST);
+    await typeWrite(document.getElementById("ed-authors"), data.authors, FAST);
+
+    // Год
+    const yearWrap = document.getElementById("ed-year-wrap");
+    if (yearWrap) {
+      if (data.publication_year) {
+        yearWrap.innerHTML = ' · <span id="ed-year"></span>';
+        await typeWrite(document.getElementById("ed-year"), String(data.publication_year), FAST);
+      } else {
+        yearWrap.innerHTML = "";
+      }
+    }
+
+    // Мета: издатель / страницы / ISBN
+    const setMetaField = async (wrapId, valId, value) => {
+      const wrap = document.getElementById(wrapId);
+      const val = document.getElementById(valId);
+      if (!wrap || !val) return;
+      if (value) {
+        wrap.style.display = "";
+        await typeErase(val, FAST);
+        await typeWrite(val, String(value), FAST);
+      } else {
+        await typeErase(val, FAST);
+        wrap.style.display = "none";
+      }
+    };
+    await setMetaField("ed-meta-publisher", "ed-publisher", data.publisher);
+    await setMetaField("ed-meta-pages",     "ed-pages",     data.pages);
+    await setMetaField("ed-meta-isbn",      "ed-isbn",      data.isbn);
+
+    // Описание — с ускорением
+    const descEmpty = document.getElementById("ed-description-empty");
+    const desc = document.getElementById("ed-description");
+    if (desc) {
+      if (data.description) {
+        if (descEmpty) descEmpty.style.display = "none";
+        desc.style.display = "";
+        await eraseWriteAccelerated(desc, data.description);
+      } else {
+        await typeErase(desc, FAST);
+        desc.style.display = "none";
+        if (descEmpty) descEmpty.style.display = "";
+      }
+    }
+  } catch (e) {
+    console.error("swap edition failed", e);
+  } finally {
+    _swapLock = false;
+  }
+}
+
+// Обратная кнопка браузера: перезагрузить нужную страницу (проще, чем восстанавливать состояние)
+window.addEventListener("popstate", () => { window.location.reload(); });
+</script>
+<style>
+.period-btn{padding:4px 14px;font-size:12px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s;}
+.period-btn:hover{border-color:var(--ink);color:var(--ink);}
+.period-btn--active{background:var(--ink);color:#fff;border-color:var(--ink);}
+</style>
+{% endblock %}

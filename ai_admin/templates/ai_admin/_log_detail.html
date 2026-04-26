@@ -1,0 +1,56 @@
+{# Партиал деталей AIUsageLog — вставляется в модалку через htmx. #}
+<div class="ai-log-detail">
+  <div class="ai-log-detail__head">
+    <div>
+      <div class="ai-log-detail__title">
+        <code>{{ log.feature }}</code>
+        <span class="ai-log-detail__badge ai-log-detail__badge--{% if log.status == 'ok' %}ok{% else %}err{% endif %}">{{ log.get_status_display }}</span>
+      </div>
+      <div class="ai-log-detail__sub">
+        #{{ log.id }} · {{ log.created_at|date:"d.m.Y H:i:s" }}
+      </div>
+    </div>
+    <button type="button" class="ai-log-detail__close" @click="logOpen = false" aria-label="Закрыть">×</button>
+  </div>
+
+  <div class="ai-log-detail__meta">
+    <div><span>Пользователь</span><b>{% if log.user %}{{ log.user.username }}{% else %}—{% endif %}</b></div>
+    <div><span>Модель</span><b><code>{{ log.model|default:"—" }}</code></b></div>
+    <div><span>Tier</span><b>{{ log.tier }}</b></div>
+    <div><span>Tokens</span><b>{{ log.total_tokens|default:"0" }} <small style="color:var(--ghost)">(p:{{ log.prompt_tokens }} / c:{{ log.completion_tokens }})</small></b></div>
+    <div><span>Latency</span><b>{{ log.latency_ms|default:"0" }} мс</b></div>
+  </div>
+
+  {% if log.error_message %}
+  <section class="ai-log-detail__section">
+    <h4>Ошибка</h4>
+    <pre class="ai-log-detail__pre ai-log-detail__pre--err">{{ log.error_message }}</pre>
+  </section>
+  {% endif %}
+
+  {% if log.request_preview %}
+  <section class="ai-log-detail__section">
+    <div class="ai-log-detail__section-head">
+      <h4>Запрос</h4>
+      <button type="button" class="ai-log-detail__copy"
+              onclick="navigator.clipboard.writeText(this.closest('.ai-log-detail__section').querySelector('pre').innerText);this.innerText='Скопировано';setTimeout(()=>this.innerText='Копировать',1200)">Копировать</button>
+    </div>
+    <pre class="ai-log-detail__pre">{{ log.request_preview }}</pre>
+  </section>
+  {% endif %}
+
+  {% if log.response_preview %}
+  <section class="ai-log-detail__section">
+    <div class="ai-log-detail__section-head">
+      <h4>Ответ</h4>
+      <button type="button" class="ai-log-detail__copy"
+              onclick="navigator.clipboard.writeText(this.closest('.ai-log-detail__section').querySelector('pre').innerText);this.innerText='Скопировано';setTimeout(()=>this.innerText='Копировать',1200)">Копировать</button>
+    </div>
+    <pre class="ai-log-detail__pre">{{ log.response_preview }}</pre>
+  </section>
+  {% endif %}
+
+  {% if not log.request_preview and not log.response_preview and not log.error_message %}
+  <p style="color:var(--ghost);font-size:13px;margin:12px 0 0">Нет сохранённых данных запроса/ответа.</p>
+  {% endif %}
+</div>

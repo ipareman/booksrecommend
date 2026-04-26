@@ -1,0 +1,306 @@
+{% if not_found %}
+<div style="padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;
+            font-size:13px;color:#991b1b;margin-top:8px">
+  Книга с ISBN {{ isbn }} не найдена в Google Books / Open Library.
+</div>
+
+{% elif data %}
+<div style="padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+            margin-top:8px" id="isbn-result-data"
+     data-title="{{ data.title|escapejs }}"
+     data-description="{{ data.description|escapejs }}"
+     data-year="{{ data.publication_year|default:'' }}"
+     data-pages="{{ data.pages|default:'' }}"
+     data-publisher="{{ data.publisher|default:''|escapejs }}"
+     data-language="{{ data.language|default:''|escapejs }}"
+     data-cover-url="{{ data.cover_url|default:'' }}"
+     data-isbn="{{ data.isbn|default:'' }}"
+     data-source="{{ data.source }}">
+
+  <div style="display:flex;gap:16px;align-items:flex-start">
+    {% if data.cover_url %}
+    <img src="{{ data.cover_url }}" alt="{{ data.title }}"
+         style="width:80px;height:auto;border-radius:4px;border:1px solid var(--border)">
+    {% endif %}
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:600;font-size:15px;margin-bottom:4px">{{ data.title }}</div>
+      {% if data.authors %}
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px">
+        {{ data.authors|join:", " }}
+      </div>
+      {% endif %}
+      <div style="font-size:12px;color:var(--ghost);display:flex;gap:12px;flex-wrap:wrap">
+        {% if data.publication_year %}<span>{{ data.publication_year }}</span>{% endif %}
+        {% if data.pages %}<span>{{ data.pages }} стр.</span>{% endif %}
+        {% if data.publisher %}<span>{{ data.publisher }}</span>{% endif %}
+        <span style="color:var(--ghost)">via {{ data.source }}</span>
+      </div>
+      {% if data.genres %}
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">
+        {% for g in data.genres %}<span class="tag">{{ g }}</span>{% endfor %}
+      </div>
+      {% endif %}
+      {% if data.description %}
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;
+                  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">
+        {{ data.description|truncatewords:50 }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Сводка совпадений #}
+  <div style="margin-top:12px;font-size:12px;color:var(--muted)">
+    {% for am in author_matches %}
+      {% if am.exact %}
+        <span style="color:#16a34a">&#10003; {{ am.api_name }}</span>
+      {% else %}
+        <span style="color:#dc2626">&#10007; {{ am.api_name }}</span>
+      {% endif %}
+    {% endfor %}
+    &nbsp;|&nbsp;
+    {% for gm in genre_matches %}
+      {% if gm.exact %}
+        <span style="color:#16a34a">&#10003; {{ gm.api_name }}</span>
+      {% else %}
+        <span style="color:#dc2626">&#10007; {{ gm.api_name }}</span>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <button type="button" class="btn btn-primary" style="margin-top:12px;font-size:12px"
+          onclick="isbnFill.start()">
+    Заполнить форму
+  </button>
+</div>
+
+{# ── Модалка для матчинга авторов/жанров ───────────────────────────────── #}
+<div id="isbn-match-modal" style="display:none;position:fixed;inset:0;z-index:1100;
+     background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--bg);border-radius:12px;width:100%;max-width:480px;
+              max-height:80vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.18);padding:24px">
+    <div id="isbn-match-title" style="font-size:16px;font-weight:600;margin-bottom:16px"></div>
+    <div id="isbn-match-body"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="isbnFill.skipCurrent()">Пропустить</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="isbnFill.confirmCurrent()">Выбрать</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var isbnFill = (function() {
+  // Данные матчей из Django
+  var authorMatches = [
+    {% for am in author_matches %}
+    {
+      apiName: "{{ am.api_name|escapejs }}",
+      exact: {{ am.exact|yesno:"true,false" }},
+      dbId: {% if am.db_author %}{{ am.db_author.pk }}{% else %}null{% endif %},
+      candidates: [{% for c in am.candidates %}{id:{{ c.pk }},name:"{{ c.name|escapejs }}"},{% endfor %}]
+    },
+    {% endfor %}
+  ];
+  var genreMatches = [
+    {% for gm in genre_matches %}
+    {
+      apiName: "{{ gm.api_name|escapejs }}",
+      exact: {{ gm.exact|yesno:"true,false" }},
+      dbId: {% if gm.db_genre %}{{ gm.db_genre.pk }}{% else %}null{% endif %},
+      candidates: [{% for c in gm.candidates %}{id:{{ c.pk }},name:"{{ c.name|escapejs }}"},{% endfor %}]
+    },
+    {% endfor %}
+  ];
+
+  // Полные списки для поиска
+  var allAuthors = [{% for a in all_authors %}{id:{{ a.pk }},name:"{{ a.name|escapejs }}"},{% endfor %}];
+  var allGenres = [{% for g in all_genres %}{id:{{ g.pk }},name:"{{ g.name|escapejs }}"},{% endfor %}];
+
+  var pendingItems = [];
+  var currentIdx = 0;
+  var resolvedAuthors = [];
+  var resolvedGenres = [];
+  var selectedId = null;
+
+  function start() {
+    resolvedAuthors = [];
+    resolvedGenres = [];
+    pendingItems = [];
+    currentIdx = 0;
+
+    // Собираем exact-совпадения и очередь для модалок
+    authorMatches.forEach(function(am) {
+      if (am.exact) {
+        resolvedAuthors.push(am.dbId);
+      } else {
+        pendingItems.push({type:'author', item: am});
+      }
+    });
+    genreMatches.forEach(function(gm) {
+      if (gm.exact) {
+        resolvedGenres.push(gm.dbId);
+      } else {
+        pendingItems.push({type:'genre', item: gm});
+      }
+    });
+
+    if (pendingItems.length > 0) {
+      showModal(0);
+    } else {
+      applyAll();
+    }
+  }
+
+  function showModal(idx) {
+    currentIdx = idx;
+    if (idx >= pendingItems.length) { applyAll(); return; }
+
+    var p = pendingItems[idx];
+    var modal = document.getElementById('isbn-match-modal');
+    var title = document.getElementById('isbn-match-title');
+    var body = document.getElementById('isbn-match-body');
+
+    selectedId = null;
+
+    if (p.type === 'author') {
+      title.textContent = 'Не найден автор: ' + p.item.apiName;
+      body.innerHTML = buildMatchUI(p.item, allAuthors, 'author');
+    } else {
+      title.textContent = 'Не найден жанр: ' + p.item.apiName;
+      body.innerHTML = buildMatchUI(p.item, allGenres, 'genre');
+    }
+    modal.style.display = 'flex';
+  }
+
+  function buildMatchUI(item, allItems, type) {
+    var html = '';
+
+    // Поиск
+    html += '<input type="text" class="form-input" placeholder="Поиск..." '
+          + 'oninput="isbnFill.filterList(this.value,\'' + type + '\')" '
+          + 'style="margin-bottom:12px">';
+
+    // Кандидаты (приоритетные)
+    if (item.candidates.length > 0) {
+      html += '<div style="font-size:11px;color:var(--ghost);margin-bottom:6px">Похожие совпадения:</div>';
+    }
+
+    html += '<div id="isbn-match-list" style="max-height:240px;overflow-y:auto;'
+          + 'border:1px solid var(--border);border-radius:8px">';
+
+    // Сначала кандидаты
+    var candidateIds = new Set(item.candidates.map(function(c){return c.id}));
+    item.candidates.forEach(function(c) {
+      html += matchRow(c.id, c.name, true);
+    });
+
+    // Потом все остальные
+    allItems.forEach(function(a) {
+      if (!candidateIds.has(a.id)) {
+        html += matchRow(a.id, a.name, false);
+      }
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+  function matchRow(id, name, isCandidate) {
+    var bg = isCandidate ? 'background:#f0fdf4;' : '';
+    return '<div class="isbn-match-row" data-id="' + id + '" data-name="' + name.toLowerCase()
+         + '" onclick="isbnFill.selectRow(this,' + id + ')" '
+         + 'style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);' + bg + '"'
+         + ' onmouseenter="this.style.background=\'var(--surface)\'" onmouseleave="this.style.background=\'' + (isCandidate ? '#f0fdf4' : '') + '\'">'
+         + name + '</div>';
+  }
+
+  function selectRow(el, id) {
+    // Снимаем выделение со всех
+    document.querySelectorAll('.isbn-match-row').forEach(function(r) {
+      r.style.outline = 'none';
+      r.style.fontWeight = '';
+    });
+    el.style.outline = '2px solid var(--accent)';
+    el.style.fontWeight = '600';
+    selectedId = id;
+  }
+
+  function filterList(query, type) {
+    var q = query.toLowerCase().trim();
+    document.querySelectorAll('#isbn-match-list .isbn-match-row').forEach(function(row) {
+      row.style.display = (!q || row.dataset.name.includes(q)) ? '' : 'none';
+    });
+  }
+
+  function skipCurrent() {
+    showModal(currentIdx + 1);
+  }
+
+  function confirmCurrent() {
+    if (selectedId !== null) {
+      var p = pendingItems[currentIdx];
+      if (p.type === 'author') resolvedAuthors.push(selectedId);
+      else resolvedGenres.push(selectedId);
+    }
+    showModal(currentIdx + 1);
+  }
+
+  function applyAll() {
+    // Закрываем модалку
+    document.getElementById('isbn-match-modal').style.display = 'none';
+
+    var el = document.getElementById('isbn-result-data');
+    if (!el) return;
+
+    // Находим Alpine-компонент формы (не навигации!)
+    var formEl = document.querySelector('.wrap.page[x-data]');
+    if (!formEl) formEl = document.querySelector('form[method=post]');
+    if (formEl) formEl = formEl.closest('[x-data]');
+    if (!formEl || !formEl._x_dataStack) return;
+    var alpine = formEl._x_dataStack[0];
+
+    // Текстовые поля
+    var titleInput = document.querySelector('input[name=title]');
+    if (titleInput && !titleInput.value.trim()) titleInput.value = el.dataset.title;
+
+    var descInput = document.querySelector('textarea[name=description]');
+    if (descInput && !descInput.value.trim()) descInput.value = el.dataset.description;
+
+    var yearInput = document.querySelector('input[name=publication_year]');
+    if (yearInput && !yearInput.value.trim()) yearInput.value = el.dataset.year;
+
+    var pagesInput = document.querySelector('input[name=pages]');
+    if (pagesInput && !pagesInput.value.trim()) pagesInput.value = el.dataset.pages;
+
+    // Авторы — мутируем массив через splice чтобы Alpine отследил
+    if (resolvedAuthors.length > 0) {
+      alpine.selectedAuthors.splice(0, alpine.selectedAuthors.length);
+      resolvedAuthors.forEach(function(id) { alpine.selectedAuthors.push(id); });
+    }
+
+    // Жанры — мутируем массив через splice
+    if (resolvedGenres.length > 0) {
+      alpine.selectedGenres.splice(0, alpine.selectedGenres.length);
+      resolvedGenres.forEach(function(id) { alpine.selectedGenres.push(id); });
+    }
+
+    // Издательство
+    if (el.dataset.publisher) {
+      alpine.publisherSearch = el.dataset.publisher;
+      alpine.selectedPublisherId = null;
+    }
+
+    // Скрываем preview
+    el.style.display = 'none';
+  }
+
+  return {
+    start: start,
+    selectRow: selectRow,
+    filterList: filterList,
+    skipCurrent: skipCurrent,
+    confirmCurrent: confirmCurrent
+  };
+})();
+</script>
+{% endif %}

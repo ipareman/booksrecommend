@@ -1,0 +1,114 @@
+{# Список магазинов + форма добавления/редактирования #}
+<div x-data="{ editing: null }" style="max-width:700px">
+
+  {# ── ФОРМА ДОБАВЛЕНИЯ ────────────────────────────────────────────────────── #}
+  <div style="margin-bottom:20px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">
+    <p style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">
+      Добавить магазин
+    </p>
+    <div class="form-grid-2col">
+      <div>
+        <label class="form-label">Название *</label>
+        <input class="form-input" type="text" id="s-name" placeholder="Литрес">
+      </div>
+      <div>
+        <label class="form-label">Сайт *</label>
+        <input class="form-input" type="url" id="s-url" placeholder="https://litres.ru">
+      </div>
+      <div>
+        <label class="form-label">Иконка (эмодзи)</label>
+        <input class="form-input" type="text" id="s-icon" placeholder="📚" style="max-width:80px">
+      </div>
+      <div>
+        <label class="form-label">Активен</label>
+        <label class="form-check" style="margin-top:8px">
+          <input type="checkbox" id="s-active" checked>
+          <span>Да</span>
+        </label>
+      </div>
+      <div style="grid-column:1/-1">
+        <label class="form-label">
+          CSS-селектор цены
+          <span style="font-weight:400;color:var(--ghost)">(например: <code>.price</code> или <code>span[itemprop="price"]</code>)</span>
+        </label>
+        <input class="form-input" type="text" id="s-selector" placeholder=".product-price">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" style="margin-top:14px"
+            hx-post="{% url 'admin_store_save' %}"
+            hx-vals="js:{name:document.getElementById('s-name').value,base_url:document.getElementById('s-url').value,icon:document.getElementById('s-icon').value,price_selector:document.getElementById('s-selector').value,is_active:document.getElementById('s-active').checked?'on':''}"
+            hx-target="#stores-panel"
+            hx-swap="innerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+      Сохранить
+    </button>
+  </div>
+
+  {# ── СПИСОК МАГАЗИНОВ ────────────────────────────────────────────────────── #}
+  {% for store in stores %}
+  <div style="border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px">
+      <div class="store-icon">{{ store.icon|default:"🛒" }}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">{{ store.name }}</div>
+        <div style="font-size:12px;color:var(--muted)">
+          <a href="{{ store.base_url }}" target="_blank" class="lnk-muted">{{ store.base_url }}</a>
+          · {{ store.link_count }} книг
+          {% if not store.is_active %}<span class="badge badge-blocked" style="margin-left:6px">Неактивен</span>{% endif %}
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" @click="editing = editing === {{ store.id }} ? null : {{ store.id }}">
+        Изменить
+      </button>
+      <button class="btn btn-danger btn-sm"
+              hx-post="{% url 'admin_store_delete' store.id %}"
+              hx-target="#stores-panel"
+              hx-swap="innerHTML"
+              hx-confirm="Удалить магазин «{{ store.name }}»? Все ссылки на книги будут удалены."
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+        Удалить
+      </button>
+    </div>
+
+    {# Форма редактирования #}
+    <div x-show="editing === {{ store.id }}" x-cloak
+         style="padding:14px;background:var(--surface);border-top:1px solid var(--border)">
+      <div class="form-grid-2col">
+        <div>
+          <label class="form-label">Название</label>
+          <input class="form-input" type="text" id="se-name-{{ store.id }}" value="{{ store.name }}">
+        </div>
+        <div>
+          <label class="form-label">Сайт</label>
+          <input class="form-input" type="url" id="se-url-{{ store.id }}" value="{{ store.base_url }}">
+        </div>
+        <div>
+          <label class="form-label">Иконка</label>
+          <input class="form-input" type="text" id="se-icon-{{ store.id }}" value="{{ store.icon }}" style="max-width:80px">
+        </div>
+        <div>
+          <label class="form-label">Активен</label>
+          <label class="form-check" style="margin-top:8px">
+            <input type="checkbox" id="se-active-{{ store.id }}" {% if store.is_active %}checked{% endif %}>
+            <span>Да</span>
+          </label>
+        </div>
+        <div style="grid-column:1/-1">
+          <label class="form-label">CSS-селектор цены</label>
+          <input class="form-input" type="text" id="se-sel-{{ store.id }}" value="{{ store.price_selector }}">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:12px"
+              hx-post="{% url 'admin_store_save' %}"
+              hx-vals="js:{store_id:'{{ store.id }}',name:document.getElementById('se-name-{{ store.id }}').value,base_url:document.getElementById('se-url-{{ store.id }}').value,icon:document.getElementById('se-icon-{{ store.id }}').value,price_selector:document.getElementById('se-sel-{{ store.id }}').value,is_active:document.getElementById('se-active-{{ store.id }}').checked?'on':''}"
+              hx-target="#stores-panel"
+              hx-swap="innerHTML"
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+        Сохранить изменения
+      </button>
+    </div>
+  </div>
+  {% empty %}
+  <p class="empty">Магазины не добавлены</p>
+  {% endfor %}
+</div>

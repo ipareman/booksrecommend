@@ -1,0 +1,138 @@
+{% extends "core/base.html" %}
+{% block title %}{{ critique.title }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px">
+
+  <a href="{% url 'book_detail' critique.book.pk %}" class="lnk-muted" style="font-size:12px;display:inline-block;margin-bottom:20px">
+    ← {{ critique.book.title }}
+  </a>
+
+  {# ── ОБЛОЖКА-БАННЕР ──────────────────────────────────────────────────────── #}
+  {% if critique.cover_image %}
+  <div style="position:relative;border-radius:var(--radius);overflow:hidden;margin-bottom:24px;
+              aspect-ratio:21/9;max-height:300px">
+    <img src="{{ critique.cover_image.url }}" alt=""
+         style="width:100%;height:100%;object-fit:cover;filter:brightness(.6)">
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:24px;
+                background:linear-gradient(transparent,rgba(0,0,0,.6))">
+      <h1 style="font-size:24px;color:#fff;margin-bottom:4px">{{ critique.title }}</h1>
+      <span style="font-size:13px;color:rgba(255,255,255,.8)">
+        <a href="{% url 'user_profile_public' critique.user.username %}"
+           style="color:#fff;text-decoration:underline">{{ critique.user.username }}</a>
+        &middot; {{ critique.stars_display }}
+      </span>
+    </div>
+  </div>
+  {% else %}
+  <h1 style="font-size:24px;margin-bottom:8px">{{ critique.title }}</h1>
+  {% endif %}
+
+  {# ── МЕТА ────────────────────────────────────────────────────────────────── #}
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;font-size:13px;color:var(--muted)">
+    {% if not critique.cover_image %}
+      <a href="{% url 'user_profile_public' critique.user.username %}" class="lnk"
+         style="font-weight:500;color:var(--ink)">{{ critique.user.username }}</a>
+      <span>&middot;</span>
+      <span style="color:#f59e0b">{{ critique.stars_display }}</span>
+      <span>&middot;</span>
+    {% endif %}
+    <span>{{ critique.created_at|date:"d.m.Y" }}</span>
+    {% if critique.status == 'pending' %}
+      <span class="badge badge-default">На модерации</span>
+    {% endif %}
+    {% if user == critique.user %}
+      <a href="{% url 'critique_edit' critique.pk %}" class="lnk-muted" style="font-size:12px">Редактировать</a>
+    {% endif %}
+  </div>
+
+  {# ── КНИГА ───────────────────────────────────────────────────────────────── #}
+  <a href="{% url 'book_detail' critique.book.pk %}" class="card"
+     style="display:flex;gap:12px;align-items:center;padding:12px;margin-bottom:24px;text-decoration:none;max-width:400px">
+    {% if critique.book.cover_image %}
+      <img src="{{ critique.book.cover_image.url }}" alt=""
+           style="width:40px;height:60px;object-fit:cover;border-radius:2px;flex-shrink:0">
+    {% endif %}
+    <div>
+      <div style="font-size:14px;font-weight:500">{{ critique.book.title }}</div>
+      <div style="font-size:12px;color:var(--muted)">
+        {% for a in critique.book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </div>
+    </div>
+  </a>
+
+  {# ── КРИТЕРИИ ────────────────────────────────────────────────────────────── #}
+  {% if critique.criteria.all %}
+  <div class="criteria-grid" style="margin-bottom:24px">
+    {% for c in critique.criteria.all %}
+    <div class="criterion-card">
+      <div class="criterion-card__name">{{ c.name }}</div>
+      <div class="criterion-card__stars">{{ c.stars_display }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <hr class="divider" style="margin-bottom:24px">
+
+  {# ── ТЕКСТ РЕЦЕНЗИИ ─────────────────────────────────────────────────────── #}
+  <div class="critique-body">
+    {{ critique.body|safe }}
+  </div>
+
+  <hr class="divider" style="margin:32px 0">
+
+  {# ── ЛАЙК ────────────────────────────────────────────────────────────────── #}
+  <div id="critique-like-wrap" style="margin-bottom:32px">
+    {% include "reviews/_critique_like_btn.html" %}
+  </div>
+
+  {# ── КОММЕНТАРИИ ─────────────────────────────────────────────────────────── #}
+  <div x-data="{ sort: '{{ sort }}' }">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="font-size:18px">Комментарии</h2>
+      <div class="comment__sort">
+        <button class="comment__sort-btn" :class="{'comment__sort-btn--active': sort==='newest'}"
+                @click="sort='newest'"
+                hx-get="{% url 'critique_comments_page' critique.pk %}?sort=newest"
+                hx-target="#comments-list" hx-swap="innerHTML">Новые</button>
+        <button class="comment__sort-btn" :class="{'comment__sort-btn--active': sort==='oldest'}"
+                @click="sort='oldest'"
+                hx-get="{% url 'critique_comments_page' critique.pk %}?sort=oldest"
+                hx-target="#comments-list" hx-swap="innerHTML">Старые</button>
+        <button class="comment__sort-btn" :class="{'comment__sort-btn--active': sort==='top'}"
+                @click="sort='top'"
+                hx-get="{% url 'critique_comments_page' critique.pk %}?sort=top"
+                hx-target="#comments-list" hx-swap="innerHTML">Лучшие</button>
+      </div>
+    </div>
+
+    {# Форма нового комментария #}
+    {% if user.is_authenticated %}
+    <form hx-post="{% url 'critique_comment_create' critique.pk %}"
+          hx-target="#comments-list" hx-swap="afterbegin"
+          style="display:flex;gap:8px;margin-bottom:24px"
+          x-data="{ text: '' }"
+          @htmx:after-request="text = ''">
+      {% csrf_token %}
+      <input type="text" name="text" class="form-input" placeholder="Написать комментарий..."
+             x-model="text" style="flex:1">
+      <button type="submit" class="btn btn-primary btn-sm" :disabled="!text.trim()">Отправить</button>
+    </form>
+    {% else %}
+      <p style="font-size:13px;color:var(--ghost);margin-bottom:24px">
+        <a href="{% url 'login' %}" class="lnk">Войдите</a>, чтобы оставить комментарий
+      </p>
+    {% endif %}
+
+    <div id="comments-list">
+      {% for comment in comments %}
+        {% include "reviews/_comment.html" with comment=comment %}
+      {% empty %}
+        <p class="empty">Комментариев пока нет</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

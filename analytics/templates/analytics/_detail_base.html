@@ -1,0 +1,68 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:1200px">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+    <div>
+      <nav style="font-size:12px;color:var(--ghost);margin-bottom:4px">
+        <a href="{% url 'admin_panel' %}" class="lnk">Админ-панель</a>
+        <span style="color:var(--border)">›</span>
+        <span>Аналитика</span>
+        <span style="color:var(--border)">›</span>
+        <span style="color:var(--muted)">{% block crumb %}Раздел{% endblock %}</span>
+      </nav>
+      <h1 style="font-size:22px;margin:0">{% block page_title %}Раздел{% endblock %}</h1>
+    </div>
+    <a href="{% url 'admin_panel' %}?tab=analytics" class="btn btn-ghost btn-sm">← к общему дашборду</a>
+  </div>
+
+  {% block filters %}{% endblock %}
+
+  <div style="margin-top:16px">
+    {% block detail_content %}{% endblock %}
+  </div>
+
+</div>
+
+<style>
+  /* Общие стили деталей — те же переменные темы */
+  .an-card { background:var(--surface); border:1px solid var(--border);
+             border-radius:var(--radius); padding:16px 18px; }
+  .an-card + .an-card { margin-top:14px; }
+  .an-card h3 { font-size:13px;font-weight:600;margin:0 0 10px;
+                text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+                border-bottom:1px solid var(--border);padding-bottom:8px; }
+  .an-filters { display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;
+                background:var(--surface);border:1px solid var(--border);
+                border-radius:var(--radius);padding:12px 14px; }
+  .an-filters label { display:flex;flex-direction:column;gap:3px;font-size:11px;
+                      color:var(--muted);text-transform:uppercase;letter-spacing:.04em; }
+  .an-filters select, .an-filters input {
+     border:1px solid var(--border);border-radius:6px;padding:6px 10px;
+     font-size:13px;background:#fff;color:var(--ink);font-family:inherit; }
+  .an-kpi-row { display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;margin-bottom:14px; }
+  @media (max-width:860px){ .an-kpi-row { grid-template-columns:repeat(2,1fr); } }
+  .an-kpi { background:var(--surface);border:1px solid var(--border);
+            border-radius:var(--radius);padding:12px 14px; }
+  .an-kpi .lbl { font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em }
+  .an-kpi .val { font-family:'Mltsvfont';font-size:26px;color:var(--ink);line-height:1.1;margin-top:4px }
+  .an-kpi .sub { font-size:11px;color:var(--ghost);margin-top:2px }
+
+  .an-tbl { width:100%;border-collapse:collapse;font-size:13px; }
+  .an-tbl th { text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;
+               letter-spacing:.04em;border-bottom:1px solid var(--border);padding:8px 10px;font-weight:600; }
+  .an-tbl td { border-bottom:1px solid var(--border);padding:8px 10px;vertical-align:top; }
+  .an-tbl td.num, .an-tbl th.num { text-align:right;font-variant-numeric:tabular-nums; }
+  .an-tbl tbody tr:hover { background:var(--surface); }
+
+  .chart-box { position:relative;height:320px; }
+  .chart-box--sm { height:180px; }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/chart.umd.js' %}"></script>
+{% block chart_scripts %}{% endblock %}
+{% endblock %}

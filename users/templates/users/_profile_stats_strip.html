@@ -1,0 +1,33 @@
+{# Полоса чисел-якорей #}
+<div class="pp-stats-strip">
+  <div class="pp-stats-strip__item">
+    <div class="pp-stats-strip__num">{{ stats.books_read }}</div>
+    <div class="pp-stats-strip__label">книг прочитано</div>
+  </div>
+  <div class="pp-stats-strip__item">
+    <div class="pp-stats-strip__num">{{ stats.pages_read|default:0 }}</div>
+    <div class="pp-stats-strip__label">страниц</div>
+  </div>
+  <div class="pp-stats-strip__item">
+    <div class="pp-stats-strip__num">{{ stats.reviews_count }}</div>
+    <div class="pp-stats-strip__label">отзывов</div>
+  </div>
+  <div class="pp-stats-strip__item">
+    <div class="pp-stats-strip__num">
+      {% if stats.avg_rating %}★ {{ stats.avg_rating }}{% else %}—{% endif %}
+    </div>
+    <div class="pp-stats-strip__label">средняя оценка</div>
+  </div>
+  <div class="pp-stats-strip__item">
+    <div class="pp-stats-strip__num">{{ reading_streak.longest|default:0 }}</div>
+    <div class="pp-stats-strip__label">макс. стрик</div>
+  </div>
+  {% if target_achievements_earned %}
+  <div class="pp-stats-strip__item">
+    <div class="pp-stats-strip__num">
+      {{ target_achievements_earned|length }}<span class="pp-stats-strip__num-sub">/{{ target_achievements_total }}</span>
+    </div>
+    <div class="pp-stats-strip__label">достижений</div>
+  </div>
+  {% endif %}
+</div>

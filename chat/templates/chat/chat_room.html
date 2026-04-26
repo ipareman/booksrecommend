@@ -1,0 +1,604 @@
+{% extends "core/base.html" %}
+{% block title %}{{ title }} — Чат — Строка{% endblock %}
+
+{% block content %}
+<div class="chat-page"
+     x-data='chatRoom({{ room.pk }}, "{{ user.username|escapejs }}", {{ allowed_emoji_json|default:"[]" }})'
+     @keydown.escape.window="cancelEdit(); reactPicker.open = false">
+
+  {# Шапка #}
+  <div class="chat-page__header">
+    <a href="{% url 'chat_list' %}" class="lnk-muted" style="font-size:13px">&larr;</a>
+    <h1 style="font-size:16px;margin:0;flex:1">{{ title }}</h1>
+  </div>
+
+  {# Сообщения #}
+  <div class="chat-page__body" id="chat-messages">
+    {% for msg in chat_messages %}
+      <div class="chat-msg-wrap {% if msg.user == user %}chat-msg-wrap--own{% endif %}"
+           id="msg-{{ msg.pk }}">
+        {% if msg.user != user %}
+          <a href="{% url 'user_profile_public' msg.user.username %}" class="chat-msg__author lnk">{{ msg.user.username }}</a>
+        {% endif %}
+        <div class="chat-bubble {% if msg.user == user %}chat-bubble--own{% else %}chat-bubble--other{% endif %}"
+             data-msg-id="{{ msg.pk }}"
+             @contextmenu.prevent="{% if msg.user == user %}openCtx($event, {{ msg.pk }}){% endif %}">
+          {% if msg.body %}<span class="msg-text">{{ msg.body }}</span>{% endif %}
+          {% if msg.attached_book %}
+            {% include "ai_chat/_book_card.html" with book=msg.attached_book reason="" %}
+          {% endif %}
+          <button type="button" class="chat-react-btn"
+                  @click.stop="openReactPicker($event, {{ msg.pk }})"
+                  title="Реакция" aria-label="Добавить реакцию">+</button>
+        </div>
+        <div class="chat-reactions" data-msg-id="{{ msg.pk }}">
+          {% for r in msg.reactions_summary %}
+            <button type="button"
+                    class="chat-react-chip {% if r.mine %}chat-react-chip--mine{% endif %}"
+                    data-emoji="{{ r.emoji }}"
+                    title="{{ r.users|join:', ' }}"
+                    @click.stop="toggleReaction({{ msg.pk }}, '{{ r.emoji|escapejs }}')">
+              <span>{{ r.emoji }}</span><span class="chat-react-chip__num">{{ r.count }}</span>
+            </button>
+          {% endfor %}
+        </div>
+        <span class="chat-msg__time">{{ msg.created_at|date:"H:i" }}</span>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# Контекстное меню #}
+  <div class="chat-ctx"
+       x-show="ctxMenu.show" x-cloak
+       x-transition:enter="ctx-enter"
+       x-transition:enter-start="ctx-enter-start"
+       x-transition:enter-end="ctx-enter-end"
+       x-transition:leave="ctx-leave"
+       x-transition:leave-start="ctx-leave-start"
+       x-transition:leave-end="ctx-leave-end"
+       :style="`top:${ctxMenu.y}px;left:${ctxMenu.x}px`"
+       @click.outside="ctxMenu.show = false"
+       @click.stop>
+    <button class="chat-ctx__item" @click="startEdit()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+      <span x-text="ctxMenu.hasBody ? 'Редактировать' : 'Редактировать текст'"></span>
+    </button>
+    <button class="chat-ctx__item" @click="editAttachBook()">
+      <span style="font-size:14px;line-height:1">📎</span>
+      <span x-text="ctxMenu.hasBook ? 'Изменить книгу' : 'Прикрепить книгу'"></span>
+    </button>
+    <button class="chat-ctx__item" x-show="ctxMenu.hasBook" x-cloak
+            @click="detachBook()" style="color:var(--err,#c0392b)">
+      <span style="font-size:14px;line-height:1">✕</span>
+      Открепить книгу
+    </button>
+  </div>
+
+  {# Singleton emoji-picker. Один экземпляр на страницу, переиспользуется для любого сообщения. Position: fixed, координаты ставит openReactPicker. #}
+  <div class="chat-emoji-picker"
+       x-show="reactPicker.open" x-cloak
+       :style="`top:${reactPicker.y}px;left:${reactPicker.x}px`"
+       @click.outside="reactPicker.open = false"
+       @click.stop>
+    <template x-for="em in allowedEmoji" :key="em">
+      <button type="button" class="chat-emoji-picker__btn"
+              @click="pickReaction(em)"
+              x-text="em"></button>
+    </template>
+  </div>
+
+  {# Ввод #}
+  <div class="chat-page__input" style="flex-direction:column;align-items:stretch;gap:6px">
+
+    {# Превью выбранной книги над полем ввода — пользователь видит что прикрепил #}
+    <div x-show="attachedBook" x-cloak
+         style="display:flex;align-items:center;gap:10px;padding:8px 10px;
+                border:1px solid var(--border);border-radius:8px;background:var(--surface)">
+      <template x-if="attachedBook && attachedBook.cover_url">
+        <img :src="attachedBook.cover_url" alt=""
+             style="width:32px;height:44px;object-fit:cover;border-radius:3px;flex-shrink:0">
+      </template>
+      <template x-if="attachedBook && !attachedBook.cover_url">
+        <div style="width:32px;height:44px;background:var(--bg,#fff);border-radius:3px;
+                    display:flex;align-items:center;justify-content:center;color:var(--ghost)">📖</div>
+      </template>
+      <div style="flex:1;min-width:0;font-size:13px">
+        <div style="font-weight:600" x-text="attachedBook && attachedBook.title"></div>
+        <div style="color:var(--muted);font-size:11px" x-text="attachedBook && attachedBook.authors"></div>
+      </div>
+      <button type="button" @click="attachedBook = null"
+              title="Убрать книгу"
+              style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">×</button>
+    </div>
+
+    <div style="display:flex;gap:6px;align-items:center">
+      <button type="button" class="btn btn-sm"
+              @click="pickerOpen = !pickerOpen; if (pickerOpen) $nextTick(() => $refs.pickerInput.focus())"
+              title="Прикрепить книгу"
+              style="padding:6px 10px">📎</button>
+      <input type="text" class="form-input" placeholder="Сообщение…"
+             x-model="text" @keydown.enter="send()" maxlength="2000" style="flex:1">
+      <button class="btn btn-primary btn-sm" @click="send()">↑</button>
+    </div>
+
+    {# Пикер книги (inline-дропдаун) #}
+    <div x-show="pickerOpen" x-cloak
+         @click.outside="pickerOpen = false"
+         style="border:1px solid var(--border);border-radius:8px;background:var(--bg,#fff);
+                padding:10px;margin-top:4px;max-height:340px;overflow-y:auto">
+      <input type="text" class="form-input"
+             x-ref="pickerInput"
+             x-model="pickerQuery"
+             @input.debounce.250ms="searchBooks()"
+             @keydown.escape="pickerOpen = false"
+             placeholder="Искать книгу..."
+             style="width:100%;margin-bottom:8px">
+
+      <template x-if="pickerLoading">
+        <div style="font-size:12px;color:var(--muted);padding:8px 0">Ищу…</div>
+      </template>
+      <template x-if="!pickerLoading && pickerQuery.length >= 2 && pickerResults.length === 0">
+        <div style="font-size:12px;color:var(--muted);padding:8px 0">Ничего не найдено.</div>
+      </template>
+      <template x-if="!pickerLoading && pickerQuery.length < 2">
+        <div style="font-size:12px;color:var(--ghost);padding:8px 0">Начните вводить название…</div>
+      </template>
+
+      <template x-for="b in pickerResults" :key="b.id">
+        <div @click="selectBook(b)"
+             style="display:flex;gap:10px;align-items:center;padding:6px 8px;
+                    border-radius:6px;cursor:pointer"
+             onmouseenter="this.style.background='var(--surface)'"
+             onmouseleave="this.style.background=''">
+          <template x-if="b.cover_url">
+            <img :src="b.cover_url" style="width:32px;height:44px;object-fit:cover;border-radius:3px;flex-shrink:0">
+          </template>
+          <template x-if="!b.cover_url">
+            <div style="width:32px;height:44px;background:var(--surface);border-radius:3px;
+                        display:flex;align-items:center;justify-content:center;color:var(--ghost)">📖</div>
+          </template>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:500" x-text="b.title"></div>
+            <div style="font-size:11px;color:var(--muted)" x-text="b.authors"></div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function chatRoom(roomId, username, allowedEmoji) {
+  let ws = null;
+  // Регэксп для @username (синхронизирован с серверным MENTION_RE).
+  // (mention helpers removed)
+
+  // Превращаем @username в подсвеченный span. Используем placeholder-токены
+  // (\u0001…\u0002), чтобы не сломать предыдущий esc().
+
+  function connectWS() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}/ws/chat/${roomId}/`);
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.type === 'edit') {
+        const el = document.getElementById(`msg-${data.id}`);
+        if (el) el.querySelector('.msg-text').textContent = data.body;
+        return;
+      }
+      if (data.type === 'reaction') {
+        // Сервер шлёт {emoji: {count, users: [...]}} — mine выводим локально.
+        const counts = data.counts || {};
+        for (const em of Object.keys(counts)) {
+          counts[em].mine = (counts[em].users || []).includes(username);
+        }
+        applyReactionToBubble(data.message_id, counts);
+        return;
+      }
+      appendMessage(data);
+    };
+    ws.onclose = () => setTimeout(connectWS, 2000);
+  }
+
+  function appendMessage(data) {
+    const box = document.getElementById('chat-messages');
+    const isOwn = data.username === username;
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-msg-wrap' + (isOwn ? ' chat-msg-wrap--own' : '');
+    wrap.id = `msg-${data.id}`;
+    let html = '';
+    if (!isOwn) html += `<span class="chat-msg__author">${esc(data.username)}</span>`;
+
+    let bubbleInner = '';
+    if (data.body) bubbleInner += `<span class="msg-text">${esc(data.body)}</span>`;
+    if (data.book) {
+      const b = data.book;
+      const cover = b.cover_url
+        ? `<img src="${esc(b.cover_url)}" alt="" style="width:56px;height:78px;object-fit:cover;border-radius:3px;flex-shrink:0">`
+        : `<div style="width:56px;height:78px;background:var(--surface);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--ghost)">📖</div>`;
+      const rating = b.avg_rating ? `<div style="font-size:11px;color:var(--muted)">★ ${Number(b.avg_rating).toFixed(1)}</div>` : '';
+      bubbleInner += `
+        <a href="${esc(b.url)}" class="chat-book-card"
+           style="display:flex;gap:10px;align-items:flex-start;padding:8px;margin-top:6px;
+                  border:1px solid var(--border);border-radius:8px;
+                  background:var(--bg,#fff);text-decoration:none;color:inherit;max-width:320px">
+          ${cover}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;line-height:1.3">${esc(b.title)}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(b.authors || '')}</div>
+            ${rating}
+          </div>
+        </a>`;
+    }
+
+    const reactBtnHtml = `<button type="button" class="chat-react-btn"
+        onclick="(function(ev,id){
+          ev.stopPropagation();
+          const root = document.querySelector('.chat-page');
+          if (root && window.Alpine) window.Alpine.$data(root).openReactPicker(ev, id);
+        })(event, ${data.id})"
+        title="Реакция" aria-label="Добавить реакцию">+</button>`;
+    html += `<div class="chat-bubble ${isOwn ? 'chat-bubble--own' : 'chat-bubble--other'}"
+               data-msg-id="${data.id}"
+               ${isOwn ? `@contextmenu.prevent="openCtx($event, ${data.id})"` : ''}>${bubbleInner}${reactBtnHtml}</div>`;
+    html += `<div class="chat-reactions" data-msg-id="${data.id}"></div>`;
+    html += `<span class="chat-msg__time">${data.created_at}</span>`;
+    wrap.innerHTML = html;
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function esc(t) {
+    const d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
+  }
+
+  // Перерисовываем чипы реакций под сообщением. Не используем Alpine x-for,
+  // чтобы не пересобирать DOM на каждый WS-апдейт; работаем точечно по
+  // .chat-reactions[data-msg-id]. allowedEmoji определяет порядок отображения.
+  function applyReactionToBubble(messageId, counts) {
+    const host = document.querySelector(`.chat-reactions[data-msg-id="${messageId}"]`);
+    if (!host) return;
+    host.innerHTML = '';
+    const order = (Array.isArray(allowedEmoji) ? allowedEmoji : Object.keys(counts || {}));
+    for (const em of order) {
+      const info = counts[em];
+      if (!info || !info.count) continue;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chat-react-chip' + (info.mine ? ' chat-react-chip--mine' : '');
+      btn.dataset.emoji = em;
+      btn.title = (info.users || []).join(', ');
+      btn.innerHTML = `<span>${em}</span><span class="chat-react-chip__num">${info.count}</span>`;
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const root = document.querySelector('.chat-page');
+        if (root && window.Alpine) {
+          window.Alpine.$data(root).toggleReaction(messageId, em);
+        }
+      });
+      host.appendChild(btn);
+    }
+  }
+
+  // Обновляем .chat-book-card в пузыре после server-edit-а. Сервер возвращает
+  // уже отрендеренный partial (book_html) — он совпадает с тем, что выдаёт
+  // server-side при первой загрузке, поэтому стили и структура гарантированно
+  // одинаковые.
+  //   bookHtml === ""    → удалить карточку (открепление)
+  //   bookHtml === "..." → создать или заменить карточку
+  function applyBookHtmlToBubble(msgId, bookHtml) {
+    const wrap = document.getElementById(`msg-${msgId}`);
+    if (!wrap) return;
+    const bubble = wrap.querySelector('.chat-bubble');
+    if (!bubble) return;
+    const existing = bubble.querySelector('.chat-book-card');
+
+    if (!bookHtml) {
+      if (existing) existing.remove();
+      return;
+    }
+    if (existing) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = bookHtml.trim();
+      const newCard = tmp.firstElementChild;
+      if (newCard) existing.replaceWith(newCard);
+      else existing.remove();
+    } else {
+      bubble.insertAdjacentHTML('beforeend', bookHtml);
+    }
+  }
+
+  connectWS();
+  setTimeout(() => {
+    const box = document.getElementById('chat-messages');
+    if (box) box.scrollTop = box.scrollHeight;
+  }, 100);
+
+  return {
+    text: '',
+    ctxMenu: { show: false, x: 0, y: 0, msgId: null, hasBook: false, hasBody: true },
+    editing: { active: false, msgId: null, original: '' },
+
+    // Прикрепление книги
+    attachedBook: null,          // { id, title, authors, cover_url, avg_rating } или null
+    pickerOpen: false,
+    pickerQuery: '',
+    pickerResults: [],
+    pickerLoading: false,
+    // Если active=true, выбор книги из picker применится не к новому
+    // сообщению (attachedBook), а к редактируемому.
+    pickerForEdit: { active: false, msgId: null },
+
+    // Emoji-реакции
+    allowedEmoji: Array.isArray(allowedEmoji) ? allowedEmoji : [],
+    reactPicker: { open: false, x: 0, y: 0, msgId: null },
+
+    async searchBooks() {
+      const q = this.pickerQuery.trim();
+      if (q.length < 2) {
+        this.pickerResults = [];
+        return;
+      }
+      this.pickerLoading = true;
+      try {
+        const r = await fetch(`/chat/books/search/?q=${encodeURIComponent(q)}`);
+        if (r.ok) {
+          const data = await r.json();
+          this.pickerResults = data.results || [];
+        } else {
+          this.pickerResults = [];
+        }
+      } catch (e) {
+        this.pickerResults = [];
+      } finally {
+        this.pickerLoading = false;
+      }
+    },
+
+    selectBook(b) {
+      // Если picker открыт в режиме редактирования сообщения — шлём edit
+      // вместо обычного attach к новому сообщению.
+      if (this.pickerForEdit.active && this.pickerForEdit.msgId) {
+        this.saveBookEdit(this.pickerForEdit.msgId, b.id);
+        this.pickerOpen = false;
+        this.pickerQuery = '';
+        this.pickerResults = [];
+        this.pickerForEdit = { active: false, msgId: null };
+        return;
+      }
+      this.attachedBook = {
+        id: b.id,
+        title: b.title,
+        authors: b.authors || '',
+        cover_url: b.cover_url || '',
+        avg_rating: b.avg_rating,
+      };
+      this.pickerOpen = false;
+      this.pickerQuery = '';
+      this.pickerResults = [];
+    },
+
+    openCtx(event, msgId) {
+      // Повторный правый клик по тому же сообщению — закрывает меню (toggle).
+      // С анимацией всё ОК: x-transition отрабатывает leave перед скрытием.
+      if (this.ctxMenu.show && this.ctxMenu.msgId === msgId) {
+        this.ctxMenu.show = false;
+        return;
+      }
+      const menuW = 180, menuH = 120;
+      let x = event.clientX, y = event.clientY;
+      if (x + menuW > window.innerWidth) x = window.innerWidth - menuW - 8;
+      if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 8;
+      // Узнаём состояние сообщения по DOM — проще, чем тащить в state
+      const wrap = document.getElementById(`msg-${msgId}`);
+      const hasBook = !!(wrap && wrap.querySelector('.chat-book-card'));
+      const textEl = wrap ? wrap.querySelector('.msg-text') : null;
+      const hasBody = !!(textEl && textEl.textContent.trim().length > 0);
+      this.ctxMenu = { show: true, x, y, msgId, hasBook, hasBody };
+    },
+
+    // Открыть book-picker в режиме редактирования: после выбора книги
+    // изменения уйдут на сервер через saveBookEdit(), не на новое сообщение.
+    editAttachBook() {
+      const msgId = this.ctxMenu.msgId;
+      this.ctxMenu.show = false;
+      if (!msgId) return;
+      this.pickerForEdit = { active: true, msgId };
+      this.pickerOpen = true;
+      this.pickerQuery = '';
+      this.pickerResults = [];
+      this.$nextTick(() => {
+        if (this.$refs.pickerInput) this.$refs.pickerInput.focus();
+      });
+    },
+
+    // Открепить книгу от чужого… ой, своего сообщения
+    async detachBook() {
+      const msgId = this.ctxMenu.msgId;
+      this.ctxMenu.show = false;
+      if (!msgId) return;
+      await this._sendBookEditRequest(msgId, '');
+    },
+
+    // Применить выбор книги из picker к существующему сообщению
+    async saveBookEdit(msgId, bookId) {
+      await this._sendBookEditRequest(msgId, String(bookId));
+    },
+
+    async _sendBookEditRequest(msgId, bookIdStr) {
+      // Текущий body берём из DOM, чтобы не сбросить при чистой смене вложения.
+      const wrap = document.getElementById(`msg-${msgId}`);
+      if (!wrap) return;
+      const textEl = wrap.querySelector('.msg-text');
+      const currentBody = textEl ? textEl.textContent.trim() : '';
+
+      // Клиентская валидация для detach: чтобы юзер не получил 400, ловим
+      // случай «пустое сообщение и открепляем книгу» сразу, человечески.
+      if (bookIdStr === '' && !currentBody) {
+        alert('Чтобы открепить книгу, добавьте текст к сообщению — иначе оно станет пустым.');
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append('body', currentBody);
+      fd.append('book_id', bookIdStr);
+      fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+      try {
+        const r = await fetch(`/chat/message/${msgId}/edit/`, { method: 'POST', body: fd });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok || !data.ok) {
+          alert((data && data.error) || 'Не удалось обновить сообщение');
+          return;
+        }
+        // Сервер возвращает готовый partial (или пустую строку при detach).
+        applyBookHtmlToBubble(msgId, data.book_html || '');
+      } catch (e) {
+        console.error('book edit failed', e);
+        alert('Ошибка сети');
+      }
+    },
+
+    // ── Реакции ──────────────────────────────────────────────────────────
+    openReactPicker(event, msgId) {
+      const w = 220, h = 50;
+      let x = event.clientX - 8, y = event.clientY + 8;
+      if (x + w > window.innerWidth)  x = window.innerWidth  - w - 8;
+      if (y + h > window.innerHeight) y = event.clientY - h - 8;
+      this.reactPicker = { open: true, x, y, msgId };
+    },
+    pickReaction(emoji) {
+      const id = this.reactPicker.msgId;
+      this.reactPicker.open = false;
+      if (id) this.toggleReaction(id, emoji);
+    },
+    async toggleReaction(messageId, emoji) {
+      try {
+        const fd = new FormData();
+        fd.append('emoji', emoji);
+        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        const r = await fetch(`/chat/message/${messageId}/react/`, {
+          method: 'POST',
+          body: fd,
+          headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok || !data.ok) return;
+        // Сразу применяем локально, не ждём WS-эхо — снимает «дрожание» на медленных сетях.
+        const counts = data.counts || {};
+        for (const em of Object.keys(counts)) {
+          counts[em].mine = (counts[em].users || []).includes(username);
+        }
+        applyReactionToBubble(messageId, counts);
+      } catch (e) {
+        console.error('reaction failed', e);
+      }
+    },
+
+    startEdit() {
+      const msgId = this.ctxMenu.msgId;
+      this.ctxMenu.show = false;
+
+      const wrap = document.getElementById(`msg-${msgId}`);
+      if (!wrap) return;
+      const bubble = wrap.querySelector('.chat-bubble');
+      const textEl = bubble.querySelector('.msg-text');
+      const original = textEl.textContent.trim();
+
+      this.editing = { active: true, msgId, original };
+      bubble.classList.add('chat-bubble--editing');
+      textEl.contentEditable = 'true';
+      textEl.focus();
+
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(textEl);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      const onKey = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this._finishEdit(msgId, textEl, bubble, onKey, onBlur);
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          this._cancelInline(msgId, textEl, bubble, onKey, onBlur);
+        }
+      };
+      const onBlur = () => {
+        setTimeout(() => {
+          if (this.editing.active && this.editing.msgId === msgId) {
+            this._finishEdit(msgId, textEl, bubble, onKey, onBlur);
+          }
+        }, 150);
+      };
+
+      textEl.addEventListener('keydown', onKey);
+      textEl.addEventListener('blur', onBlur);
+    },
+
+    async _finishEdit(msgId, textEl, bubble, onKey, onBlur) {
+      const newText = textEl.textContent.trim();
+      const original = this.editing.original;
+      textEl.removeEventListener('keydown', onKey);
+      textEl.removeEventListener('blur', onBlur);
+      textEl.contentEditable = 'false';
+      bubble.classList.remove('chat-bubble--editing');
+      this.editing = { active: false, msgId: null, original: '' };
+
+      if (!newText) { textEl.textContent = original; return; }
+      if (newText === original) return;
+
+      const fd = new FormData();
+      fd.append('body', newText);
+      fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+      const r = await fetch(`/chat/message/${msgId}/edit/`, { method: 'POST', body: fd });
+      if (!r.ok) textEl.textContent = original;
+    },
+
+    _cancelInline(msgId, textEl, bubble, onKey, onBlur) {
+      textEl.removeEventListener('keydown', onKey);
+      textEl.removeEventListener('blur', onBlur);
+      textEl.textContent = this.editing.original;
+      textEl.contentEditable = 'false';
+      bubble.classList.remove('chat-bubble--editing');
+      this.editing = { active: false, msgId: null, original: '' };
+    },
+
+    cancelEdit() {
+      if (!this.editing.active) return;
+      const wrap = document.getElementById(`msg-${this.editing.msgId}`);
+      if (!wrap) return;
+      const bubble = wrap.querySelector('.chat-bubble');
+      const textEl = bubble.querySelector('.msg-text');
+      textEl.textContent = this.editing.original;
+      textEl.contentEditable = 'false';
+      bubble.classList.remove('chat-bubble--editing');
+      this.editing = { active: false, msgId: null, original: '' };
+    },
+
+    send() {
+      if (!ws || ws.readyState !== 1) return;
+      const body = this.text.trim();
+      const bookId = this.attachedBook ? this.attachedBook.id : null;
+      // Пустое сообщение без вложения — игнорируем
+      if (!body && !bookId) return;
+      ws.send(JSON.stringify({ body, book_id: bookId }));
+      this.text = '';
+      this.attachedBook = null;
+    }
+  };
+}
+</script>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% for event in events %}
+<div class="feed-item {% if event.user_id in friend_ids %}feed-item--friend{% endif %}"
+     style="padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius);
+            margin-bottom:8px;{% if event.user_id in friend_ids %}border-left:3px solid var(--accent){% endif %}">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <a href="{% url 'user_profile_public' event.user.username %}"
+       class="lnk" style="font-weight:600;font-size:14px">{{ event.user.username }}</a>
+
+    {% if event.event_type == "add_to_list" %}
+      <span style="font-size:13px;color:var(--muted)">добавил(а) в список</span>
+      {% if event.metadata.list_name %}
+        <span style="font-size:12px;color:var(--ghost)">{{ event.metadata.list_name }}</span>
+      {% endif %}
+    {% elif event.event_type == "review" %}
+      <span style="font-size:13px;color:var(--muted)">оставил(а) отзыв</span>
+      {% if event.metadata.rating %}
+        <span style="font-size:12px;color:var(--ghost)">&starf;{{ event.metadata.rating }}</span>
+      {% endif %}
+    {% elif event.event_type == "join_club" %}
+      <span style="font-size:13px;color:var(--muted)">вступил(а) в клуб</span>
+      {% if event.metadata.club_name %}
+        <span style="font-size:12px;font-weight:500">{{ event.metadata.club_name }}</span>
+      {% endif %}
+    {% elif event.event_type == "new_friendship" %}
+      <span style="font-size:13px;color:var(--muted)">и</span>
+      {% if event.target_user %}
+        <a href="{% url 'user_profile_public' event.target_user.username %}"
+           class="lnk" style="font-weight:600;font-size:14px">{{ event.target_user.username }}</a>
+      {% endif %}
+      <span style="font-size:13px;color:var(--muted)">теперь друзья</span>
+    {% elif event.event_type == "book_recommend" %}
+      <span style="font-size:13px;color:var(--muted)">рекомендует книгу</span>
+      {% if event.target_user %}
+        <span style="font-size:13px;color:var(--muted)">для</span>
+        <a href="{% url 'user_profile_public' event.target_user.username %}"
+           class="lnk" style="font-size:14px">{{ event.target_user.username }}</a>
+      {% endif %}
+    {% endif %}
+
+    <span style="font-size:11px;color:var(--ghost);margin-left:auto">{{ event.created_at|timesince }} назад</span>
+  </div>
+
+  {% if event.book %}
+  <a href="{% url 'book_detail' event.book.pk %}"
+     style="display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 10px;
+            background:var(--surface);border-radius:var(--radius);text-decoration:none;color:var(--ink)">
+    {% if event.book.cover_image %}
+      <img src="{{ event.book.cover_image.url }}" alt=""
+           style="width:32px;height:48px;object-fit:cover;border-radius:3px" loading="lazy">
+    {% endif %}
+    <div>
+      <div style="font-size:14px;font-weight:500">{{ event.book.title }}</div>
+      <div style="font-size:12px;color:var(--muted)">
+        {% for a in event.book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </div>
+    </div>
+  </a>
+  {% endif %}
+</div>
+{% empty %}
+<p class="empty" style="text-align:center;padding:24px 0">Пока нет событий</p>
+{% endfor %}
+
+{% if has_more %}
+<div style="text-align:center;padding:12px 0">
+  <button class="btn btn-ghost btn-sm"
+          hx-get="{% url 'activity_feed' %}?mode={{ mode }}&page={{ page|add:1 }}"
+          hx-target="this"
+          hx-swap="outerHTML">
+    Ещё
+  </button>
+</div>
+{% endif %}

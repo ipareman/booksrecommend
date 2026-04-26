@@ -1,0 +1,26 @@
+<div class="book-tile-grid">
+{% for book in books %}
+  <div class="book-tile book-tile--addable" id="book-option-{{ book.pk }}"
+       hx-post="{% url 'collection_add_book' collection.pk %}"
+       hx-vals='{"book_id":"{{ book.pk }}"}'
+       hx-target="#selected-books"
+       hx-swap="innerHTML"
+       hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+    {% if book.cover_image %}
+      <img src="{{ book.cover_image.url }}" alt="{{ book.title }}"
+           class="book-tile__cover" loading="lazy">
+    {% else %}
+      <div class="book-tile__cover book-tile__cover--empty">
+        {{ book.title|truncatechars:30 }}
+      </div>
+    {% endif %}
+    <div class="book-tile__title">{{ book.title }}</div>
+    <div class="book-tile__authors">
+      {% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </div>
+    <div class="book-tile__add-icon">+</div>
+  </div>
+{% empty %}
+  <p class="empty" style="grid-column:1/-1;text-align:center;padding:24px 0">Книги не найдены</p>
+{% endfor %}
+</div>

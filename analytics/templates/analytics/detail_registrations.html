@@ -1,0 +1,153 @@
+{% extends "analytics/_detail_base.html" %}
+
+{% block title %}Регистрации · Аналитика{% endblock %}
+{% block crumb %}Регистрации{% endblock %}
+{% block page_title %}Регистрации пользователей{% endblock %}
+
+{% block filters %}
+<form method="get" class="an-filters">
+  <label>
+    Период (дней)
+    <select name="days" onchange="this.form.submit()">
+      <option value="7"   {% if d.days == 7   %}selected{% endif %}>7</option>
+      <option value="14"  {% if d.days == 14  %}selected{% endif %}>14</option>
+      <option value="30"  {% if d.days == 30  %}selected{% endif %}>30</option>
+      <option value="60"  {% if d.days == 60  %}selected{% endif %}>60</option>
+      <option value="90"  {% if d.days == 90  %}selected{% endif %}>90</option>
+      <option value="180" {% if d.days == 180 %}selected{% endif %}>180</option>
+      <option value="365" {% if d.days == 365 %}selected{% endif %}>365</option>
+    </select>
+  </label>
+  <label>
+    Шаг
+    <select name="g" onchange="this.form.submit()">
+      <option value="hour"  {% if d.granularity == "hour"  %}selected{% endif %}>Час</option>
+      <option value="day"   {% if d.granularity == "day"   %}selected{% endif %}>День</option>
+      <option value="week"  {% if d.granularity == "week"  %}selected{% endif %}>Неделя</option>
+      <option value="month" {% if d.granularity == "month" %}selected{% endif %}>Месяц</option>
+    </select>
+  </label>
+  <button type="submit" class="btn btn-primary btn-sm">Обновить</button>
+</form>
+{% endblock %}
+
+{% block detail_content %}
+
+<div class="an-kpi-row">
+  <div class="an-kpi">
+    <div class="lbl">Всего регистраций</div>
+    <div class="val">{{ d.total }}</div>
+    <div class="sub">за последние {{ d.days }} дней</div>
+  </div>
+  <div class="an-kpi">
+    <div class="lbl">В среднем в день</div>
+    <div class="val">{{ d.avg_per_day }}</div>
+  </div>
+  <div class="an-kpi">
+    <div class="lbl">Пиковый день</div>
+    <div class="val">{{ d.peak_n }}</div>
+    <div class="sub">{{ d.peak_when|default:"—" }}</div>
+  </div>
+  <div class="an-kpi">
+    <div class="lbl">Макс. в интервале</div>
+    <div class="val">{{ d.max_n }}</div>
+  </div>
+</div>
+
+<div class="an-card">
+  <h3>Динамика регистраций</h3>
+  {% if d.values %}
+    <div class="chart-box"><canvas id="regChart"></canvas></div>
+  {% else %}
+    <p style="color:var(--muted);font-size:13px;text-align:center;padding:30px 0">
+      За выбранный период регистраций нет.
+    </p>
+  {% endif %}
+</div>
+
+<div class="an-card">
+  <h3>По дням недели</h3>
+  <div class="chart-box chart-box--sm"><canvas id="weekdayChart"></canvas></div>
+</div>
+
+{{ d.labels|json_script:"reg-labels" }}
+{{ d.values|json_script:"reg-values" }}
+{{ d.weekday_labels|json_script:"wd-labels" }}
+{{ d.weekday_values|json_script:"wd-values" }}
+
+{% endblock %}
+
+{% block chart_scripts %}
+<script>
+(function(){
+  var cs = getComputedStyle(document.documentElement);
+  var ink    = (cs.getPropertyValue('--ink')    || '#111').trim();
+  var border = (cs.getPropertyValue('--border') || '#e6dfca').trim();
+  var muted  = (cs.getPropertyValue('--muted')  || '#7a6f55').trim();
+
+  function readJSON(id){
+    var el = document.getElementById(id);
+    return el ? JSON.parse(el.textContent) : [];
+  }
+
+  var labels = readJSON('reg-labels');
+  var values = readJSON('reg-values');
+
+  if (values.length) {
+    new Chart(document.getElementById('regChart'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Регистрации',
+          data: values,
+          borderColor: ink,
+          backgroundColor: 'rgba(20,20,20,.08)',
+          fill: true,
+          tension: 0.25,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: border, drawBorder:false },
+               ticks: { color: muted, font:{size:11}, maxRotation:45, autoSkip:true, maxTicksLimit:15 } },
+          y: { beginAtZero: true,
+               grid: { color: border, drawBorder:false },
+               ticks: { color: muted, font:{size:11}, precision: 0 } }
+        }
+      }
+    });
+  }
+
+  new Chart(document.getElementById('weekdayChart'), {
+    type: 'bar',
+    data: {
+      labels: readJSON('wd-labels'),
+      datasets: [{
+        label: 'Регистрации',
+        data: readJSON('wd-values'),
+        backgroundColor: ink,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: muted, font:{size:11} } },
+        y: { beginAtZero: true,
+             grid: { color: border, drawBorder:false },
+             ticks: { color: muted, font:{size:11}, precision: 0 } }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

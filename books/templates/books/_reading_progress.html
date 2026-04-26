@@ -1,0 +1,165 @@
+{# Прогресс чтения: тумблер режима + полоска + ручной ввод (если режим manual). #}
+{% with current_mode=progress.mode|default:"manual" %}
+<div id="reading-progress-{{ book.id }}"
+     data-book-id="{{ book.id }}"
+     data-mode="{{ current_mode }}"
+     data-target-pct="{{ progress.percent|default:0 }}"
+     style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+
+  {# Полоска прогресса (всегда видна) #}
+  <div style="flex:1;min-width:160px">
+    <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+      <div id="progress-bar-{{ book.id }}"
+           style="height:100%;width:0%;background:var(--accent);border-radius:3px;
+                  transition:width 0.8s cubic-bezier(.4,0,.2,1)">
+      </div>
+    </div>
+    <span id="progress-text-{{ book.id }}"
+          style="font-size:11px;color:var(--ghost);margin-top:3px;display:block">
+      {% if current_mode == "reader" and progress.current_chapter %}
+        Глава {{ progress.current_chapter.order|add:1 }}
+        ({{ progress.percent|default:"0" }}%)
+      {% else %}
+        {{ progress.current_page|default:"0" }}{% if book.pages %} / {{ book.pages }}{% endif %} стр.
+        ({{ progress.percent|default:"0" }}%)
+      {% endif %}
+    </span>
+  </div>
+
+  {% if user.is_authenticated %}
+  {# Тумблер режима — доступен только если у книги есть загруженный текст #}
+  {% if book.text and book.text.is_ready %}
+  <div id="reading-progress-mode-{{ book.id }}"
+       style="display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:2px;font-size:11px;background:var(--bg)">
+    <button type="button"
+            data-mode="manual"
+            class="rp-mode-btn {% if current_mode == 'manual' %}rp-mode-btn--active{% endif %}"
+            title="Отмечать страницу вручную">✍ Вручную</button>
+    <button type="button"
+            data-mode="reader"
+            class="rp-mode-btn {% if current_mode == 'reader' %}rp-mode-btn--active{% endif %}"
+            title="Синхронизировать с читалкой">📖 С читалкой</button>
+  </div>
+  {% endif %}
+
+  {# Форма ручного ввода страницы — только в manual-режиме #}
+  <form id="reading-progress-form-{{ book.id }}"
+        style="display:{% if current_mode == 'reader' %}none{% else %}flex{% endif %};gap:6px;align-items:center"
+        hx-post="{% url 'reading_progress_save' book.pk %}"
+        hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+        hx-swap="none">
+    <input class="form-input" type="number" name="current_page" min="0"
+           {% if book.pages %}max="{{ book.pages }}"{% endif %}
+           placeholder="Текущая стр." style="width:135px">
+    <button type="submit" class="btn btn-secondary btn-sm">Обновить</button>
+  </form>
+  {% endif %}
+</div>
+
+<style>
+  .rp-mode-btn {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    transition: background .15s, color .15s;
+  }
+  .rp-mode-btn:hover { color: var(--ink); }
+  .rp-mode-btn--active {
+    background: var(--ink);
+    color: #fff;
+  }
+</style>
+
+<script>
+  (function(){
+    const bookId = {{ book.id }};
+    const root = document.getElementById('reading-progress-' + bookId);
+    if (!root) return;
+    const bar = document.getElementById('progress-bar-' + bookId);
+    const text = document.getElementById('progress-text-' + bookId);
+    const form = document.getElementById('reading-progress-form-' + bookId);
+    const modeWrap = document.getElementById('reading-progress-mode-' + bookId);
+
+    // ─── On-load анимация: двигаем полоску от 0 до target ───
+    const targetPct = Number(root.dataset.targetPct) || 0;
+    // Небольшая задержка, чтобы transition гарантированно сработал
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (bar) bar.style.width = targetPct + '%';
+      }, 30);
+    });
+
+    function updateBarTo(pct) {
+      const p = Math.max(0, Math.min(100, Number(pct) || 0));
+      if (bar) bar.style.width = p + '%';
+      root.dataset.targetPct = String(p);
+    }
+
+    function updateText(data) {
+      if (!text) return;
+      const mode = data.mode || root.dataset.mode || 'manual';
+      const pct = Number(data.percent) || 0;
+      if (mode === 'reader') {
+        text.textContent = 'Синхронизация с читалкой (' + pct + '%)';
+      } else {
+        const cur = Number(data.current_page) || 0;
+        text.textContent = cur + '{% if book.pages %} / {{ book.pages }}{% endif %} стр. (' + pct + '%)';
+      }
+    }
+
+    // ─── HTMX: обновление после ручного ввода страницы ───
+    if (form) {
+      form.addEventListener('htmx:afterRequest', function(evt){
+        const xhr = evt && evt.detail && evt.detail.xhr;
+        if (!xhr) return;
+        try {
+          const data = JSON.parse(xhr.responseText);
+          updateBarTo(data.percent);
+          updateText(data);
+          form.reset();
+        } catch (err) {
+          console.error('reading-progress: parse error', err);
+        }
+      });
+    }
+
+    // ─── Переключение режима ───
+    if (modeWrap) {
+      modeWrap.addEventListener('click', async function(evt){
+        const btn = evt.target.closest('.rp-mode-btn');
+        if (!btn) return;
+        const newMode = btn.dataset.mode;
+        if (!newMode || btn.classList.contains('rp-mode-btn--active')) return;
+
+        // Оптимистичное обновление UI
+        modeWrap.querySelectorAll('.rp-mode-btn').forEach(b => b.classList.remove('rp-mode-btn--active'));
+        btn.classList.add('rp-mode-btn--active');
+        root.dataset.mode = newMode;
+        if (form) form.style.display = (newMode === 'reader') ? 'none' : 'flex';
+
+        // POST на бэкенд
+        try {
+          const fd = new FormData();
+          fd.append('mode', newMode);
+          const resp = await fetch('{% url "reading_progress_save" book.pk %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: fd,
+          });
+          const data = await resp.json();
+          updateBarTo(data.percent);
+          updateText(data);
+        } catch (err) {
+          console.error('reading-progress: mode switch failed', err);
+        }
+      });
+    }
+  })();
+</script>
+{% endwith %}

@@ -1,0 +1,27 @@
+{% if selected_items %}
+<div style="display:flex;gap:12px;overflow-x:auto;padding:8px 0">
+  {% for item in selected_items %}
+  <div class="selected-book-card fade-up" style="flex-shrink:0;width:100px;position:relative;text-align:center">
+    <button class="selected-book-card__remove"
+            hx-post="{% url 'collection_remove_book' collection.pk item.book.pk %}"
+            hx-target="#selected-books"
+            hx-swap="innerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>&times;</button>
+    {% if item.book.cover_image %}
+      <img src="{{ item.book.cover_image.url }}" alt=""
+           style="width:80px;height:120px;object-fit:cover;border-radius:4px" loading="lazy">
+    {% else %}
+      <div style="width:80px;height:120px;background:var(--surface);border-radius:4px;
+                  display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);
+                  padding:4px">{{ item.book.title|truncatechars:25 }}</div>
+    {% endif %}
+    <a href="{% url 'book_detail' item.book.pk %}" class="lnk"
+       style="font-size:11px;margin-top:4px;display:block;line-height:1.3">
+      {{ item.book.title|truncatechars:20 }}
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p style="font-size:13px;color:var(--ghost);padding:16px 0">Добавьте книги из поиска ниже</p>
+{% endif %}

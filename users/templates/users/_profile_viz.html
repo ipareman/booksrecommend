@@ -1,0 +1,138 @@
+{# Визуализации: хитмап активности, pie жанров, гистограмма оценок #}
+<div class="pp-viz">
+  {# ── Хитмап активности ─────────────────────────────────────────────────── #}
+  {% if activity_heatmap.total_actions %}
+  <div class="pp-viz__block pp-viz__block--heatmap"
+       x-data="ppHeatmapTip()" @mousemove.window="onMove($event)">
+    <div class="pp-section-label">
+      Активность за полгода
+      <span class="pp-section-label__side">{{ activity_heatmap.total_actions }} действий</span>
+    </div>
+    <div class="pp-heatmap" style="position:relative">
+      {% for week in activity_heatmap.weeks %}
+        <div class="pp-heatmap__col">
+          {% for day in week %}
+            {% if day.in_range %}
+              <div class="pp-heatmap__cell pp-heatmap__cell--l{{ day.level }}"
+                   @mouseenter="show({
+                     date: '{{ day.date|date:'D, j E Y'|escapejs }}',
+                     count: {{ day.count }},
+                     overflow: {{ day.overflow }},
+                     events: [{% for e in day.events %}{time:'{{ e.time|escapejs }}',icon:'{{ e.icon|escapejs }}',text:'{{ e.text|escapejs }}'}{% if not forloop.last %},{% endif %}{% endfor %}],
+                   })"
+                   @mouseleave="hide()"></div>
+            {% else %}
+              <div class="pp-heatmap__cell pp-heatmap__cell--void"></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      {# Кастомный тултип — позиционируется относительно контейнера .pp-heatmap #}
+      <div class="pp-heatmap-tip" x-show="open" x-cloak
+           x-transition.opacity.duration.100ms
+           :style="{left: x + 'px', top: y + 'px'}">
+        <div class="pp-heatmap-tip__date" x-text="data.date"></div>
+        <template x-if="data.count === 0">
+          <div class="pp-heatmap-tip__empty">Активности не было</div>
+        </template>
+        <template x-if="data.count > 0">
+          <ul class="pp-heatmap-tip__list">
+            <template x-for="e in data.events" :key="e.time + e.text">
+              <li class="pp-heatmap-tip__item">
+                <span class="pp-heatmap-tip__time" x-text="e.time"></span>
+                <span class="pp-heatmap-tip__icon" x-text="e.icon"></span>
+                <span class="pp-heatmap-tip__text" x-text="e.text"></span>
+              </li>
+            </template>
+            <li class="pp-heatmap-tip__more" x-show="data.overflow > 0"
+                x-text="'…и ещё ' + data.overflow"></li>
+          </ul>
+        </template>
+      </div>
+    </div>
+
+    <div class="pp-heatmap__legend">
+      <span>Меньше</span>
+      <div class="pp-heatmap__legend-scale">
+        <div class="pp-heatmap__cell pp-heatmap__cell--l0"></div>
+        <div class="pp-heatmap__cell pp-heatmap__cell--l1"></div>
+        <div class="pp-heatmap__cell pp-heatmap__cell--l2"></div>
+        <div class="pp-heatmap__cell pp-heatmap__cell--l3"></div>
+        <div class="pp-heatmap__cell pp-heatmap__cell--l4"></div>
+      </div>
+      <span>Больше</span>
+    </div>
+  </div>
+  <script>
+    function ppHeatmapTip() {
+      return {
+        open: false,
+        x: 0, y: 0,
+        data: {date:"", count:0, overflow:0, events:[]},
+        _container: null,
+        show(d) {
+          this.data = d;
+          this.open = true;
+        },
+        hide() { this.open = false; },
+        onMove(evt) {
+          if (!this.open) return;
+          if (!this._container) this._container = this.$el.querySelector(".pp-heatmap");
+          if (!this._container) return;
+          const rect = this._container.getBoundingClientRect();
+          // Offset относительно контейнера + смещение, чтобы тултип был рядом с курсором
+          let x = evt.clientX - rect.left + 14;
+          let y = evt.clientY - rect.top + 14;
+          // Не вылезаем за правый край
+          const tipWidth = 280;
+          if (x + tipWidth > rect.width) x = evt.clientX - rect.left - tipWidth - 10;
+          this.x = x;
+          this.y = y;
+        },
+      };
+    }
+  </script>
+  {% endif %}
+
+  {# ── Жанры-колечко (через segments) + гистограмма оценок ───────────────── #}
+  <div class="pp-viz__row">
+    {% if genre_breakdown %}
+    <div class="pp-viz__block pp-viz__block--genres">
+      <div class="pp-section-label">Палитра жанров</div>
+      <div class="pp-genre-bars">
+        {% for g in genre_breakdown %}
+          <div class="pp-genre-bar" title="{{ g.count }} книг">
+            <div class="pp-genre-bar__label">{{ g.name }}</div>
+            <div class="pp-genre-bar__track">
+              <div class="pp-genre-bar__fill pp-genre-bar__fill--{{ forloop.counter }}"
+                   style="width:{{ g.percent }}%"></div>
+            </div>
+            <div class="pp-genre-bar__val">{{ g.percent }}%</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if stats.reviews_count %}
+    <div class="pp-viz__block pp-viz__block--hist">
+      <div class="pp-section-label">
+        Как оценивает
+        <span class="pp-section-label__side">★ {{ stats.avg_rating|default:"—" }} средн.</span>
+      </div>
+      <div class="pp-histogram">
+        {% for row in rating_histogram %}
+        <div class="pp-histogram__row">
+          <div class="pp-histogram__stars">{{ row.stars_display }}</div>
+          <div class="pp-histogram__track">
+            <div class="pp-histogram__fill" style="width:{{ row.percent_of_max }}%"></div>
+          </div>
+          <div class="pp-histogram__val">{{ row.count }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>

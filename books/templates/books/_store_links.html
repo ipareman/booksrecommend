@@ -1,0 +1,90 @@
+{# Список магазинов для книги — вкладка «Магазины» на странице книги #}
+
+{% if store_links %}
+<div style="margin-bottom:20px">
+  <p style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;
+            letter-spacing:.05em;margin-bottom:10px">Книга в магазинах</p>
+  {% for link in store_links %}
+  <div class="store-row">
+    <div class="store-icon">{{ link.store.icon|default:"🛒" }}</div>
+    <div class="store-info">
+      <div class="store-name">
+        <a href="{{ link.store.base_url }}" target="_blank" class="lnk">{{ link.store.name }}</a>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:2px">
+        {# Ссылка через счётчик /b/<book>/s/<store>/ — потом 302 на product_url; текстом показываем URL #}
+        <a href="{% url 'store_click' book.id link.store.id %}" target="_blank" rel="nofollow noopener"
+           style="font-size:11px;color:var(--ghost);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          {{ link.product_url }}
+        </a>
+      </div>
+    </div>
+    <div style="text-align:right">
+      {% if link.current_price %}
+        <div class="store-price">{{ link.current_price }} ₽</div>
+      {% endif %}
+      {% if link.last_checked %}
+        <div class="store-date">{{ link.last_checked|date:"d.m.Y" }}</div>
+      {% endif %}
+    </div>
+    {% if user.is_staff %}
+    <div x-data="{ edit: false }">
+      <button class="btn btn-ghost btn-sm" @click="edit=!edit">Изменить</button>
+      <div x-show="edit" x-cloak style="margin-top:8px;display:flex;gap:8px;align-items:center">
+        <input type="text" class="form-input" style="font-size:12px;padding:4px 8px;width:260px"
+               placeholder="Новый URL" id="url-edit-{{ link.id }}" value="{{ link.product_url }}">
+        <button class="btn btn-primary btn-sm"
+                hx-post="{% url 'store_link_save' book.id %}"
+                hx-vals="js:{store_id:'{{ link.store.id }}',product_url:document.getElementById('url-edit-{{ link.id }}').value}"
+                hx-target="#store-links-{{ book.id }}"
+                hx-swap="innerHTML"
+                hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+          Сохранить
+        </button>
+        <button class="btn btn-danger btn-sm"
+                hx-post="{% url 'store_link_delete' book.id link.store.id %}"
+                hx-target="#store-links-{{ book.id }}"
+                hx-swap="innerHTML"
+                hx-confirm="Удалить ссылку на этот магазин?"
+                hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+          Удалить
+        </button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if user.is_staff and unlinked_stores %}
+<div>
+  <p style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;
+            letter-spacing:.05em;margin-bottom:10px">Добавить в магазин</p>
+  {% for store in unlinked_stores %}
+  <div x-data="{ open: false }" style="margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="store-icon">{{ store.icon|default:"🛒" }}</div>
+      <span style="font-size:13px">{{ store.name }}</span>
+      <button class="btn btn-secondary btn-sm" @click="open=!open">+ Добавить URL</button>
+    </div>
+    <div x-show="open" x-cloak style="margin-top:8px;display:flex;gap:8px;align-items:center;padding-left:42px">
+      <input type="text" class="form-input" style="font-size:12px;padding:4px 8px;width:300px"
+             placeholder="URL страницы книги в магазине" id="url-new-{{ store.id }}">
+      <button class="btn btn-primary btn-sm"
+              hx-post="{% url 'store_link_save' book.id %}"
+              hx-vals="js:{store_id:'{{ store.id }}',product_url:document.getElementById('url-new-{{ store.id }}').value}"
+              hx-target="#store-links-{{ book.id }}"
+              hx-swap="innerHTML"
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+        Сохранить
+      </button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not store_links and not unlinked_stores %}
+  <p class="empty">Магазины не добавлены</p>
+{% endif %}

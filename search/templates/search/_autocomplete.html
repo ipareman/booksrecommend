@@ -1,0 +1,34 @@
+<div class="autocomplete-list">
+  {% if books %}
+    <div class="autocomplete-section">Книги</div>
+    {% for book in books %}
+      <a href="{% url 'book_detail' book.pk %}" class="autocomplete-item">
+        <span class="autocomplete-icon">📖</span>
+        <span class="autocomplete-text">
+          <span class="autocomplete-title">{{ book.title }}</span>
+          {% with first_author=book.authors.all.0 %}
+            {% if first_author %}
+              <span class="autocomplete-sub">{{ first_author.name }}</span>
+            {% endif %}
+          {% endwith %}
+        </span>
+      </a>
+    {% endfor %}
+  {% endif %}
+
+  {% if authors %}
+    <div class="autocomplete-section">Авторы</div>
+    {% for author in authors %}
+      <a href="{% url 'author_detail' author.pk %}" class="autocomplete-item">
+        <span class="autocomplete-icon">✍️</span>
+        <span class="autocomplete-text">
+          <span class="autocomplete-title">{{ author.name }}</span>
+        </span>
+      </a>
+    {% endfor %}
+  {% endif %}
+
+  <a href="{% url 'search' %}?q={{ query|urlencode }}" class="autocomplete-footer">
+    Показать все результаты для «{{ query }}»
+  </a>
+</div>

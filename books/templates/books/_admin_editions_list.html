@@ -1,0 +1,20 @@
+{% if editions %}
+<div class="editions-list">
+  {% for edition in editions %}
+  <div class="edition-row">
+    <div class="edition-row__main">
+      <a href="{% url 'edition_edit' edition.pk %}" class="edition-row__title">{{ edition.name }}</a>
+      <span class="edition-row__count">{{ edition.books.count }} изд.</span>
+    </div>
+    <div class="edition-row__books">
+      {% for b in edition.books.all|slice:":5" %}
+        <span class="edition-row__book">{{ b.publisher.name|default:"—" }}{% if b.publication_year %}, {{ b.publication_year }}{% endif %}</span>
+      {% endfor %}
+      {% if edition.books.count > 5 %}<span class="edition-row__more">+{{ edition.books.count|add:"-5" }}</span>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">Групп изданий пока нет. Создайте первую группу, чтобы объединить одну книгу от разных издателей.</p>
+{% endif %}

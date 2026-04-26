@@ -1,0 +1,391 @@
+{# ── HERO: Книга недели ────────────────────────────────────────────────────── #}
+{% if book_of_week %}
+<div class="hero reveal-scale">
+  <div class="hero__inner">
+    {% if book_of_week.cover_image %}
+      <img src="{{ book_of_week.cover_image.url }}" alt="{{ book_of_week.title }}"
+           class="hero__cover" loading="lazy">
+    {% else %}
+      <div class="hero__cover-placeholder">{{ book_of_week.title|truncatechars:40 }}</div>
+    {% endif %}
+    <div class="hero__content">
+      <div class="hero__label">Книга недели</div>
+      <div class="hero__title">{{ book_of_week.title }}</div>
+      <div class="hero__author">
+        {% for a in book_of_week.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </div>
+      {% if book_of_week.description %}
+        <div class="hero__desc">{{ book_of_week.description|truncatewords:40 }}</div>
+      {% endif %}
+      <div class="hero__meta">
+        {% if book_of_week.avg_rating %}
+          <span>&#9733; {{ book_of_week.avg_rating|floatformat:1 }}</span>
+        {% endif %}
+        {% if book_of_week.rating_count %}
+          <span>{{ book_of_week.rating_count }} оценок</span>
+        {% endif %}
+        {% for g in book_of_week.genres.all|slice:":3" %}
+          <span>{{ g.name }}</span>
+        {% endfor %}
+      </div>
+      <div style="margin-top:16px">
+        <a href="{% url 'book_detail' book_of_week.pk %}" class="hero__btn">Подробнее &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── MOOD CHIPS ────────────────────────────────────────────────────────────── #}
+{% if mood_tags %}
+<div class="mood-bar reveal">
+  {% for mood in mood_tags %}
+    <a href="{% url 'catalog' %}?mood={{ mood.pk }}" class="mood-chip">
+      {% if mood.icon %}{{ mood.icon }} {% endif %}{{ mood.name }}
+    </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ── РЕКОМЕНДОВАНО ДЛЯ ВАС (карусель) ─────────────────────────────────────── #}
+{% if personal_recs %}
+<section class="reveal" style="margin-bottom:36px">
+  <div class="section-head">
+    <span class="section-title">Рекомендовано для вас</span>
+    <a href="{% url 'profile' %}" class="lnk-muted" style="font-size:12px">Все &rarr;</a>
+  </div>
+  <div class="shelf">
+    <div class="shelf__track stagger">
+      {% for book in personal_recs %}
+      <a href="{% url 'book_detail' book.pk %}" class="book-tile">
+        {% if book.cover_image %}
+          <img src="{{ book.cover_image.url }}" alt="{{ book.title }}"
+               class="book-tile__cover" loading="lazy">
+        {% else %}
+          <div class="book-tile__cover book-tile__cover--empty">
+            {{ book.title|truncatechars:30 }}
+          </div>
+        {% endif %}
+        <div class="book-tile__title">{{ book.title }}</div>
+        <div class="book-tile__authors">
+          {% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </div>
+        {% if book.avg_rating %}
+          <div class="book-tile__rating">&#9733; {{ book.avg_rating|floatformat:1 }}</div>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── ЧТО ЧИТАЮТ (социальное доказательство) ────────────────────────────────── #}
+{% if feed_events %}
+<section class="reveal" style="margin-bottom:36px">
+  <div class="section-head">
+    <span class="section-title">Что читают</span>
+  </div>
+  <div class="reading-now stagger">
+    {% for event in feed_events %}
+      {% if event.book %}
+      <a href="{% url 'book_detail' event.book.pk %}" class="reading-now__item">
+        <div class="reading-now__avatar{% if event.user.pk in feed_friend_ids %} reading-now__avatar--friend{% endif %}">
+          {{ event.user.username|make_list|first|upper }}
+        </div>
+        {% if event.book.cover_image %}
+          <img src="{{ event.book.cover_image.url }}" alt="{{ event.book.title }}"
+               class="reading-now__cover" loading="lazy">
+        {% else %}
+          <div class="reading-now__cover-empty">{{ event.book.title|truncatechars:20 }}</div>
+        {% endif %}
+        <div class="reading-now__user">{{ event.user.username }}</div>
+        <div class="reading-now__book">{{ event.book.title }}</div>
+      </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── ПОПУЛЯРНОЕ (карусель) ─────────────────────────────────────────────────── #}
+<section class="reveal" style="margin-bottom:36px">
+  <div class="section-head">
+    <span class="section-title">Популярное</span>
+    <a href="{% url 'catalog' %}?ordering=-rating_count" class="lnk-muted" style="font-size:12px">Все &rarr;</a>
+  </div>
+  {% if popular %}
+  <div class="shelf">
+    <div class="shelf__track stagger">
+      {% for book in popular %}
+      <a href="{% url 'book_detail' book.pk %}" class="book-tile">
+        {% if book.cover_image %}
+          <img src="{{ book.cover_image.url }}" alt="{{ book.title }}"
+               class="book-tile__cover" loading="lazy">
+        {% else %}
+          <div class="book-tile__cover book-tile__cover--empty">
+            {{ book.title|truncatechars:30 }}
+          </div>
+        {% endif %}
+        <div class="book-tile__title">{{ book.title }}</div>
+        <div class="book-tile__authors">
+          {% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </div>
+        {% if book.avg_rating %}
+          <div class="book-tile__rating">&#9733; {{ book.avg_rating|floatformat:1 }}</div>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+    <p class="empty">Книги ещё не добавлены</p>
+  {% endif %}
+</section>
+
+{# ── ПОДБОРКИ (журнальный layout) ──────────────────────────────────────────── #}
+{% if home_collections %}
+<section class="reveal" style="margin-bottom:36px">
+  <div class="section-head">
+    <span class="section-title">Подборки</span>
+    <a href="{% url 'collections_list' %}" class="lnk-muted" style="font-size:12px">Все &rarr;</a>
+  </div>
+  <div class="showcase-grid stagger">
+    {% for item in home_collections %}
+    <a href="{% url 'collection_detail' item.obj.pk %}" class="showcase-card">
+      <div class="showcase-card__covers">
+        {% if item.preview_books %}
+          {% for book in item.preview_books %}
+            <img src="{{ book.cover_image.url }}" alt="" loading="lazy">
+          {% endfor %}
+        {% else %}
+          <div class="showcase-card__covers-empty"></div>
+        {% endif %}
+      </div>
+      <div class="showcase-card__info">
+        <div class="showcase-card__title">{{ item.obj.title }}</div>
+        <div class="showcase-card__count">{{ item.obj.num_books }} книг</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── СЕРИИ КНИГ ────────────────────────────────────────────────────────────── #}
+{% if home_series %}
+<section class="reveal" style="margin-bottom:36px">
+  <div class="section-head">
+    <span class="section-title">Серии книг</span>
+  </div>
+  <div class="series-grid stagger">
+    {% for item in home_series %}
+    <a href="{% url 'series_detail' item.obj.pk %}" class="series-card">
+      <div class="series-card__stack">
+        {% for book in item.preview_books %}
+          <div class="series-card__cover series-card__cover--{{ forloop.counter }}">
+            {% if book.cover_image %}
+              <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" loading="lazy">
+            {% else %}
+              <div class="series-card__cover-empty">{{ book.title|truncatechars:24 }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+        <div class="series-card__badge">{{ item.num_books }}</div>
+      </div>
+      <div class="series-card__info">
+        <div class="series-card__label">Серия</div>
+        <div class="series-card__title">{{ item.obj.name }}</div>
+        <div class="series-card__count">{{ item.num_books }} {{ item.num_books|pluralize:"книга,книги,книг" }}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── ЦИТАТЫ ────────────────────────────────────────────────────────────────── #}
+{% if home_quotes %}
+<section class="reveal-left" style="margin-bottom:36px">
+  <div class="section-head">
+    <span class="section-title">Цитаты</span>
+  </div>
+  <div class="quote-carousel">
+    <div class="quote-track stagger">
+      {% for quote in home_quotes %}
+      <a href="{% url 'book_detail' quote.book.pk %}" class="quote-card">
+        <div class="quote-card__bg">
+          {% if quote.book.cover_image %}
+            <img src="{{ quote.book.cover_image.url }}" alt="" loading="lazy">
+          {% endif %}
+        </div>
+        <div class="quote-card__content">
+          <div class="quote-card__text">{{ quote.text|truncatewords:30 }}</div>
+          <div class="quote-card__source">{{ quote.book.title }} &mdash; {{ quote.user.username }}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── НОВИНКИ (карусель) ────────────────────────────────────────────────────── #}
+<section class="reveal" style="margin-bottom:36px">
+  <div class="section-head">
+    <span class="section-title">Новинки</span>
+    <a href="{% url 'catalog' %}?ordering=-publication_year" class="lnk-muted" style="font-size:12px">Все &rarr;</a>
+  </div>
+  {% if newest %}
+  <div class="shelf">
+    <div class="shelf__track stagger">
+      {% for book in newest %}
+      <a href="{% url 'book_detail' book.pk %}" class="book-tile">
+        {% if book.cover_image %}
+          <img src="{{ book.cover_image.url }}" alt="{{ book.title }}"
+               class="book-tile__cover" loading="lazy">
+        {% else %}
+          <div class="book-tile__cover book-tile__cover--empty">
+            {{ book.title|truncatechars:30 }}
+          </div>
+        {% endif %}
+        <div class="book-tile__title">{{ book.title }}</div>
+        <div class="book-tile__authors">
+          {% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </div>
+        {% if book.avg_rating %}
+          <div class="book-tile__rating">&#9733; {{ book.avg_rating|floatformat:1 }}</div>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+    <p class="empty">Книги ещё не добавлены</p>
+  {% endif %}
+</section>
+
+{# ── КЛУБЫ ─────────────────────────────────────────────────────────────────── #}
+{% if home_clubs %}
+<section class="reveal" style="margin-bottom:36px">
+  <div class="section-head">
+    <span class="section-title">Книжные клубы</span>
+    <a href="{% url 'clubs_list' %}" class="lnk-muted" style="font-size:12px">Все &rarr;</a>
+  </div>
+  <div class="club-home-grid stagger">
+    {% for item in home_clubs %}
+    <a href="{% url 'club_detail' item.obj.pk %}" class="club-home-card">
+      <div class="club-home-card__top">
+        <div class="club-home-card__name">{{ item.obj.name }}</div>
+        <div class="club-home-card__members">
+          {% for i in "abc"|make_list %}
+            {% if forloop.counter <= item.obj.num_members and forloop.counter <= 3 %}
+              <div class="club-home-card__avatar">{{ forloop.counter }}</div>
+            {% endif %}
+          {% endfor %}
+          {% if item.obj.num_members > 3 %}
+            <div class="club-home-card__count">+{{ item.obj.num_members|add:"-3" }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% if item.obj.description %}
+        <div class="club-home-card__desc">{{ item.obj.description|truncatewords:15 }}</div>
+      {% endif %}
+      {% if item.current_book %}
+        <div class="club-home-card__reading">
+          {% if item.current_book.book.cover_image %}
+            <img src="{{ item.current_book.book.cover_image.url }}" alt=""
+                 class="club-home-card__book-cover" loading="lazy">
+          {% else %}
+            <div class="club-home-card__book-cover-empty"></div>
+          {% endif %}
+          <div>
+            <div class="club-home-card__book-label">Сейчас читают</div>
+            <div class="club-home-card__book-title">{{ item.current_book.book.title }}</div>
+          </div>
+        </div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── СВЕЖИЕ РЕЦЕНЗИИ ──────────────────────────────────────────────────────── #}
+{% if home_critiques %}
+<section class="reveal" style="margin-bottom:36px">
+  <div class="section-head">
+    <span class="section-title">Свежие рецензии</span>
+  </div>
+  <div class="critique-home-grid stagger">
+    {% for critique in home_critiques %}
+    <a href="{% url 'critique_detail' critique.pk %}" class="critique-home-card">
+      <div class="critique-home-card__cover">
+        {% if critique.cover_image %}
+          <img src="{{ critique.cover_image.url }}" alt="" loading="lazy">
+        {% elif critique.book.cover_image %}
+          <img src="{{ critique.book.cover_image.url }}" alt="" loading="lazy">
+        {% endif %}
+      </div>
+      <div class="critique-home-card__overlay">
+        <div class="critique-home-card__title">{{ critique.title|truncatewords:8 }}</div>
+        <div class="critique-home-card__author">{{ critique.user.username }}</div>
+        <div class="critique-home-card__book">{{ critique.book.title }}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── СВЕЖИЕ ОТЗЫВЫ ────────────────────────────────────────────────────────── #}
+{% if home_reviews %}
+<section class="reveal" style="margin-bottom:36px">
+  <div class="section-head">
+    <span class="section-title">Свежие отзывы</span>
+  </div>
+  <div class="review-home-grid stagger">
+    {% for review in home_reviews|slice:":3" %}
+    <div class="review-home-card">
+      <div class="review-home-card__head">
+        <div class="review-home-card__avatar">
+          {{ review.user.username|make_list|first|upper }}
+        </div>
+        <a href="{% url 'user_profile_public' review.user.username %}" class="review-home-card__user lnk">{{ review.user.username }}</a>
+        <div class="review-home-card__stars">{{ review.stars_display }}</div>
+      </div>
+      <div class="review-home-card__text">{{ review.text|truncatewords:25 }}</div>
+      <a href="{% url 'book_detail' review.book.pk %}" class="review-home-card__book">
+        {% if review.book.cover_image %}
+          <img src="{{ review.book.cover_image.url }}" alt=""
+               class="review-home-card__book-cover" loading="lazy">
+        {% endif %}
+        <div class="review-home-card__book-title">{{ review.book.title }}</div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── СТАТИСТИКА ПЛАТФОРМЫ ──────────────────────────────────────────────────── #}
+{% if platform_stats %}
+<div class="platform-stats reveal-scale" style="margin-bottom:36px">
+  <div class="platform-stat">
+    <div class="platform-stat__num">{{ platform_stats.books }}</div>
+    <div class="platform-stat__label">книг</div>
+  </div>
+  <div class="platform-stat">
+    <div class="platform-stat__num">{{ platform_stats.reviews }}</div>
+    <div class="platform-stat__label">отзывов</div>
+  </div>
+  <div class="platform-stat">
+    <div class="platform-stat__num">{{ platform_stats.clubs }}</div>
+    <div class="platform-stat__label">клубов</div>
+  </div>
+  <div class="platform-stat">
+    <div class="platform-stat__num">{{ platform_stats.collections }}</div>
+    <div class="platform-stat__label">подборок</div>
+  </div>
+</div>
+{% endif %}

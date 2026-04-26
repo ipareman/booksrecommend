@@ -1,0 +1,78 @@
+<div class="club-panel">
+  <div class="section-head">
+    <div>
+      <div class="section-title" style="font-size:16px">Опросы клуба</div>
+      <div class="section-meta">Быстрые решения прямо рядом с клубным чатом.</div>
+    </div>
+  </div>
+
+  {% if membership %}
+  <form class="club-poll-form"
+        hx-post="{% url 'club_create_poll' club.pk %}"
+        hx-target="#club-polls-panel" hx-swap="innerHTML">
+    {% csrf_token %}
+    <input class="form-input" type="text" name="question" maxlength="240"
+           placeholder="О чём голосуем?" style="margin-bottom:8px">
+    <textarea class="form-input form-textarea" name="options" rows="3"
+              placeholder="Варианты, по одному на строку&#10;Например:&#10;Вторник в 20:00&#10;Среда в 19:30"></textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px">
+      <button class="btn btn-secondary btn-sm" type="submit">Создать опрос</button>
+    </div>
+  </form>
+  {% endif %}
+
+  <div class="club-tab-stack" style="margin-top:16px">
+    {% for poll in polls %}
+    <div class="club-poll-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <div style="font-size:14px;font-weight:600">{{ poll.question }}</div>
+          <div style="font-size:11px;color:var(--ghost);margin-top:2px">
+            {{ poll.created_by.username }} · {{ poll.created_at|date:"d.m H:i" }} · {{ poll.total_votes_count }} голосов
+            {% if poll.is_closed %}· закрыт{% endif %}
+          </div>
+        </div>
+        {% if membership and not poll.is_closed and poll.can_manage_user %}
+        <form hx-post="{% url 'club_close_poll' club.pk poll.pk %}"
+              hx-target="#club-polls-panel" hx-swap="innerHTML">
+          {% csrf_token %}
+          <button class="btn btn-ghost btn-sm">Закрыть</button>
+        </form>
+        {% endif %}
+      </div>
+
+      <div style="margin-top:12px">
+        {% for option in poll.options.all %}
+        <form class="club-poll-option"
+              hx-post="{% url 'club_vote_poll' club.pk poll.pk option.pk %}"
+              hx-target="#club-polls-panel" hx-swap="innerHTML">
+          {% csrf_token %}
+          <button type="submit"
+                  class="club-poll-option__button {% if poll.user_option_id == option.pk %}club-poll-option__button--active{% endif %}"
+                  {% if poll.is_closed %}disabled{% endif %}>
+            <span>{{ option.text }}</span>
+            <span>{{ option.votes_count }}</span>
+          </button>
+          <div class="club-vote-meter club-vote-meter--animated" style="margin-top:6px">
+            {% widthratio option.votes_count poll.total_votes_count|default:1 100 as option_pct %}
+            <div class="club-vote-meter__fill" style="width:{% if poll.total_votes_count %}{{ option_pct }}{% else %}0{% endif %}%"></div>
+          </div>
+        </form>
+        {% if option.votes.all %}
+        <details class="club-voters">
+          <summary>Кто проголосовал</summary>
+          <div class="club-voters__list">
+            {% for vote in option.votes.all %}
+              <a href="{% url 'user_profile_public' vote.user.username %}" class="club-voters__person">{{ vote.user.username }}</a>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% empty %}
+      <p class="empty" style="padding:6px 0">Пока нет ни одного опроса.</p>
+    {% endfor %}
+  </div>
+</div>

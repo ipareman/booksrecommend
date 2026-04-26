@@ -1,0 +1,96 @@
+{% if ticker_events %}
+{% with events=ticker_events %}
+<div class="ticker-wrap" id="activity-ticker">
+  <div class="ticker-row">
+    <div class="ticker-inner" data-speed="30">
+      <div class="ticker-set">
+        {% for ev in events %}
+        <span class="ticker-event">
+          {% if ev.event_type == "review" %}
+            <a href="{% url 'user_profile_public' ev.user.username %}">{{ ev.user.username }}</a>
+            <span>&nbsp;написал(а) отзыв на&nbsp;</span>
+            {% if ev.book %}<a href="{% url 'book_detail' ev.book.pk %}">{{ ev.book.title }}</a>{% endif %}
+          {% elif ev.event_type == "join_club" %}
+            <a href="{% url 'user_profile_public' ev.user.username %}">{{ ev.user.username }}</a>
+            <span>&nbsp;вступил(а) в клуб&nbsp;</span>
+            {% if ev.metadata.club_id %}
+              <a href="{% url 'club_detail' ev.metadata.club_id %}">{{ ev.metadata.club_name }}</a>
+            {% else %}
+              <span>{{ ev.metadata.club_name }}</span>
+            {% endif %}
+          {% elif ev.event_type == "new_friendship" %}
+            <a href="{% url 'user_profile_public' ev.user.username %}">{{ ev.user.username }}</a>
+            <span>&nbsp;и&nbsp;</span>
+            {% if ev.target_user %}<a href="{% url 'user_profile_public' ev.target_user.username %}">{{ ev.target_user.username }}</a>{% endif %}
+            <span>&nbsp;теперь друзья</span>
+          {% endif %}
+          <span class="ticker-dot"></span>
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+requestAnimationFrame(function() {
+  requestAnimationFrame(function() {
+    var ticker = document.getElementById('activity-ticker');
+    if (!ticker) return;
+
+    var DECEL_MS = 500;
+    var animations = [];
+
+    ticker.querySelectorAll('.ticker-inner').forEach(function(inner) {
+      var set = inner.querySelector('.ticker-set');
+      if (!set) return;
+
+      var setWidth = set.offsetWidth;
+      if (!setWidth) return;
+
+      var needed = Math.ceil((window.innerWidth + setWidth) / setWidth);
+      for (var i = 0; i < needed; i++) {
+        inner.appendChild(set.cloneNode(true));
+      }
+
+      var speed = parseFloat(inner.dataset.speed) || 10;
+      var anim = inner.animate(
+        [
+          { transform: 'translateX(0)' },
+          { transform: 'translateX(-' + setWidth + 'px)' }
+        ],
+        { duration: speed * 1000, iterations: Infinity, easing: 'linear' }
+      );
+      animations.push(anim);
+    });
+
+    ticker.addEventListener('mouseenter', function() {
+      animations.forEach(function(anim) {
+        var start = anim.playbackRate;
+        var t0 = performance.now();
+        (function step(now) {
+          var p = Math.min((now - t0) / DECEL_MS, 1);
+          anim.playbackRate = start * (1 - p * p);
+          if (p < 1) requestAnimationFrame(step);
+          else anim.pause();
+        })(performance.now());
+      });
+    });
+
+    ticker.addEventListener('mouseleave', function() {
+      animations.forEach(function(anim) {
+        anim.play();
+        var t0 = performance.now();
+        (function step(now) {
+          var p = Math.min((now - t0) / DECEL_MS, 1);
+          anim.playbackRate = p * p;
+          if (p < 1) requestAnimationFrame(step);
+          else anim.playbackRate = 1;
+        })(performance.now());
+      });
+    });
+  });
+});
+</script>
+{% endwith %}
+{% endif %}

@@ -1,0 +1,55 @@
+{# Социальное: друзья, клубы, подписки на авторов #}
+<div class="pp-social">
+
+  {# ── Друзья ─────────────────────────────────────────────────────────────── #}
+  {% if social_snapshot.friends_count %}
+  <div class="pp-social__block">
+    <div class="pp-section-label">
+      Друзья
+      <span class="pp-section-label__side">{{ social_snapshot.friends_count }}</span>
+    </div>
+    <div class="pp-friends-row">
+      {% for f in social_snapshot.friends_preview %}
+        <a href="{% url 'user_profile_public' f.username %}" class="pp-friend" title="{{ f.username }}">
+          <div class="pp-friend__avatar">{{ f.username|make_list|first|upper }}</div>
+          <div class="pp-friend__name">{{ f.username }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Клубы ──────────────────────────────────────────────────────────────── #}
+  {% if social_snapshot.clubs %}
+  <div class="pp-social__block">
+    <div class="pp-section-label">Клубы</div>
+    <div class="pp-chip-row">
+      {% for m in social_snapshot.clubs %}
+        <a href="{% url 'club_detail' m.club.pk %}" class="tag tag--link">
+          📚 {{ m.club.name }}
+          {% if m.role == "owner" %}
+            <span class="tag__count">владелец</span>
+          {% elif m.role == "admin" %}
+            <span class="tag__count">админ</span>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Подписки на авторов ───────────────────────────────────────────────── #}
+  {% if social_snapshot.author_subs %}
+  <div class="pp-social__block">
+    <div class="pp-section-label">Следит за авторами</div>
+    <div class="pp-chip-row">
+      {% for sub in social_snapshot.author_subs %}
+        <a href="{% url 'author_detail' sub.author.id %}" class="tag tag--link">
+          ✍️ {{ sub.author.name }}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>

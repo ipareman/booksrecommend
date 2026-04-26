@@ -1,0 +1,94 @@
+{# Результаты поиска «Топ-книги» — переиспользуется как HTMX-partial и внутри основной страницы. #}
+<div id="books-results">
+
+  <div class="an-kpi-row">
+    <div class="an-kpi">
+      <div class="lbl">Найдено книг</div>
+      <div class="val">{{ d.total }}</div>
+      <div class="sub">
+        {% if d.q %}по запросу «{{ d.q }}»{% else %}с активностью за {{ d.days }} дн.{% endif %}
+      </div>
+    </div>
+    <div class="an-kpi">
+      <div class="lbl">Страница</div>
+      <div class="val">{{ d.page }} / {{ d.pages|default:"1" }}</div>
+      <div class="sub">по {{ d.page_size }} на страницу</div>
+    </div>
+    <div class="an-kpi">
+      <div class="lbl">На этой странице</div>
+      <div class="val">{{ d.rows|length }}</div>
+    </div>
+    <div class="an-kpi">
+      <div class="lbl">Формула score</div>
+      <div class="val" style="font-size:14px;line-height:1.4">
+        3×отзывы + 5×рецензии + 1×клики
+      </div>
+    </div>
+  </div>
+
+  <div class="an-card">
+    <h3>Результаты</h3>
+    {% if d.rows %}
+    <table class="an-tbl">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Книга</th>
+          <th class="num">Рейтинг</th>
+          <th class="num">Отзывы</th>
+          <th class="num">Рецензии</th>
+          <th class="num">Клики</th>
+          <th class="num">Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in d.rows %}
+        <tr>
+          <td style="color:var(--ghost)">{{ forloop.counter }}.</td>
+          <td>
+            <a href="{% url 'book_detail' r.id %}" class="lnk"><b>{{ r.title }}</b></a>
+            <div style="font-size:11px;color:var(--ghost);margin-top:2px">{{ r.authors }}</div>
+          </td>
+          <td class="num">
+            {% if r.rating_count %}
+              <b>{{ r.rating|floatformat:1 }}</b>
+              <div style="font-size:10px;color:var(--ghost)">{{ r.rating_count }} оц.</div>
+            {% else %}—{% endif %}
+          </td>
+          <td class="num">{{ r.reviews }}</td>
+          <td class="num">{{ r.critiques }}</td>
+          <td class="num">{{ r.clicks }}</td>
+          <td class="num"><b>{{ r.score }}</b></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if d.pages > 1 %}
+    <div style="display:flex;justify-content:center;gap:6px;margin-top:18px;align-items:center">
+      {% if d.page > 1 %}
+        <a class="btn btn-ghost btn-sm"
+           href="?days={{ d.days }}&sort={{ d.sort }}&q={{ d.q|urlencode }}&page={{ d.page|add:"-1" }}">← Назад</a>
+      {% endif %}
+      <span style="font-size:13px;color:var(--muted)">
+        Страница {{ d.page }} из {{ d.pages }}
+      </span>
+      {% if d.page < d.pages %}
+        <a class="btn btn-ghost btn-sm"
+           href="?days={{ d.days }}&sort={{ d.sort }}&q={{ d.q|urlencode }}&page={{ d.page|add:"1" }}">Вперёд →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <p style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center">
+      {% if d.q %}
+        По запросу «{{ d.q }}» ничего не нашлось.
+      {% else %}
+        За период активности по книгам нет.
+      {% endif %}
+    </p>
+    {% endif %}
+  </div>
+
+</div>

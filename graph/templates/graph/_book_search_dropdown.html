@@ -1,0 +1,19 @@
+{% if books %}
+  {% for book in books %}
+  <button type="button"
+          class="graph-book-option"
+          onclick="selectBookTo('{{ book.pk }}', '{{ book.title|escapejs }}')">
+    {% if book.cover_image %}
+      <img src="{{ book.cover_image.url }}" alt="" style="width:22px;height:32px;object-fit:cover;border-radius:2px;flex-shrink:0">
+    {% else %}
+      <div style="width:22px;height:32px;background:var(--bg-alt);border-radius:2px;flex-shrink:0"></div>
+    {% endif %}
+    <div style="text-align:left">
+      <div style="font-size:13px;font-weight:500;line-height:1.3">{{ book.title }}</div>
+      <div style="font-size:11px;color:var(--ghost)">{{ book.authors.all|join:", " }}</div>
+    </div>
+  </button>
+  {% endfor %}
+{% elif q %}
+  <p style="font-size:13px;color:var(--ghost);padding:8px 10px">Ничего не найдено</p>
+{% endif %}

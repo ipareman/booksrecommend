@@ -1,0 +1,1187 @@
+{% extends "core/base.html" %}
+{% block title %}{{ book.title }} — Читать{% endblock %}
+
+{% block content %}
+<div x-data="reader()" x-init="init()" x-bind:data-theme="theme"
+     class="reader-root"
+     x-bind:style="{background: bgColor, color: fgColor}">
+
+  {# ── Верхняя панель (всегда видна, sticky, минималистичная) ───────────── #}
+  <header class="reader-bar" x-bind:style="{background: barBg, color: fgColor, borderColor: 'rgba(127,127,127,.18)'}">
+    <button class="reader-icon-btn" @click="showToc = true" title="Содержание"
+            x-bind:style="{color: fgColor}">
+      <span aria-hidden="true">☰</span>
+    </button>
+
+    <a href="{% url 'book_detail' book.id %}" class="reader-bar__title"
+       x-bind:style="{color: fgColor}">
+      <span class="reader-bar__title-main">{{ book.title }}</span>
+      <span class="reader-bar__title-sub">
+        Гл. {{ current.order|add:1 }}/{{ total_ch }} · <span x-text="percent + '%'"></span>
+      </span>
+    </a>
+
+    <button class="reader-icon-btn" @click="openNotesDrawer()" title="Мои заметки"
+            x-bind:style="{color: fgColor}">
+      <span aria-hidden="true">📝</span>
+    </button>
+    <button class="reader-icon-btn" @click="showSettings = true" title="Настройки"
+            x-bind:style="{color: fgColor}">
+      <span aria-hidden="true">⚙</span>
+    </button>
+  </header>
+
+  {# ── Модалка: содержание (слева / снизу) ──────────────────────────────── #}
+  <div x-show="showToc" x-cloak
+       @click.self="showToc = false"
+       @keydown.escape.window="showToc = false"
+       class="reader-modal-backdrop">
+    <aside class="reader-drawer reader-drawer--left"
+           x-bind:style="{background: bgColor, color: fgColor}">
+      <div class="reader-drawer__head">
+        <strong>Содержание</strong>
+        <button class="reader-icon-btn reader-icon-btn--sm" @click="showToc = false"
+                x-bind:style="{color: fgColor}" title="Закрыть">✕</button>
+      </div>
+
+      {# Поиск по главам #}
+      <div class="reader-toc-search">
+        <input type="search"
+               class="reader-toc-search__input"
+               x-model="chapterSearchQuery"
+               @input.debounce.400ms="runChapterSearch()"
+               placeholder="Поиск: «где дуэль?»"
+               x-bind:style="{color: fgColor, borderColor: fgColor + '44'}">
+        <label class="reader-toc-search__rerank" x-bind:style="{color: fgColor}"
+               x-show="chapterSearchQuery.length >= 3">
+          <input type="checkbox" x-model="chapterSearchRerank" @change="runChapterSearch()">
+          <span>Умный поиск (AI)</span>
+        </label>
+        <div x-show="chapterSearchLoading" class="reader-toc-search__loading"
+             x-bind:style="{color: fgColor}">Ищу…</div>
+      </div>
+
+      {# Результаты поиска (когда query >= 3 символов) #}
+      <template x-if="chapterSearchQuery.length >= 3 && !chapterSearchLoading">
+        <div>
+          <template x-if="chapterSearchResults.length === 0">
+            <p class="reader-toc-search__empty" x-bind:style="{color: fgColor}">
+              Ничего не нашли.
+            </p>
+          </template>
+          <ol class="reader-toc-list" x-show="chapterSearchResults.length > 0">
+            <template x-for="r in chapterSearchResults" :key="r.chapter_order">
+              <li>
+                <a x-bind:href="'{% url 'book_read' book.id %}' + r.chapter_order + '/'"
+                   class="reader-toc-item"
+                   x-bind:style="{color: fgColor}">
+                  <div class="reader-toc-row">
+                    <span class="reader-toc-num" x-text="(r.chapter_order + 1) + '.'"></span>
+                    <span class="reader-toc-title" x-text="r.title"></span>
+                  </div>
+                  <div class="reader-toc-snippet" x-html="r.snippet"></div>
+                  <div class="reader-toc-why" x-show="r.why" x-text="r.why"></div>
+                </a>
+              </li>
+            </template>
+          </ol>
+        </div>
+      </template>
+
+      {# TOC (когда нет активного поиска) #}
+      <ol class="reader-toc-list" x-show="chapterSearchQuery.length < 3">
+        {% for ch in chapters %}
+          <li>
+            <a href="{% url 'book_read_chapter' book.id ch.order %}"
+               class="reader-toc-item {% if ch.id == current.id %}reader-toc-item--active{% endif %}"
+               x-bind:style="{color: fgColor}">
+              <div class="reader-toc-row">
+                <span class="reader-toc-num">{{ ch.order|add:1 }}.</span>
+                <span class="reader-toc-title">{{ ch.title|default:"Без названия" }}</span>
+              </div>
+              {% if ch.summary %}
+                <div class="reader-toc-summary">{{ ch.summary }}</div>
+              {% endif %}
+            </a>
+          </li>
+        {% endfor %}
+      </ol>
+    </aside>
+  </div>
+
+  {# ── Модалка: настройки (справа / снизу на мобилке) ──────────────────── #}
+  <div x-show="showSettings" x-cloak
+       @click.self="showSettings = false"
+       @keydown.escape.window="showSettings = false"
+       class="reader-modal-backdrop">
+    <aside class="reader-drawer reader-drawer--right"
+           x-bind:style="{background: bgColor, color: fgColor}">
+      <div class="reader-drawer__head">
+        <strong>Настройки</strong>
+        <button class="reader-icon-btn reader-icon-btn--sm" @click="showSettings = false"
+                x-bind:style="{color: fgColor}" title="Закрыть">✕</button>
+      </div>
+
+      <section class="reader-settings-section">
+        <div class="reader-settings-label">Тема</div>
+        <div class="reader-theme-grid">
+          <button class="reader-theme-btn" :class="theme==='light' && 'reader-theme-btn--active'"
+                  @click="setTheme('light')">
+            <span class="reader-theme-btn__icon">☀</span>
+            <span>Светлая</span>
+          </button>
+          <button class="reader-theme-btn" :class="theme==='sepia' && 'reader-theme-btn--active'"
+                  @click="setTheme('sepia')">
+            <span class="reader-theme-btn__icon">📜</span>
+            <span>Сепия</span>
+          </button>
+          <button class="reader-theme-btn" :class="theme==='dark' && 'reader-theme-btn--active'"
+                  @click="setTheme('dark')">
+            <span class="reader-theme-btn__icon">🌙</span>
+            <span>Тёмная</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="reader-settings-section">
+        <div class="reader-settings-label">
+          Размер шрифта: <span x-text="fontSize"></span> px
+        </div>
+        <div class="reader-size-row">
+          <button class="reader-size-btn" @click="fontSize = Math.max(14, fontSize - 1)" title="Меньше">A−</button>
+          <input type="range" min="14" max="28" step="1" x-model.number="fontSize" class="reader-size-range">
+          <button class="reader-size-btn" @click="fontSize = Math.min(28, fontSize + 1)" title="Больше">A+</button>
+        </div>
+      </section>
+
+      <section class="reader-settings-section">
+        <div class="reader-settings-label">Ширина колонки</div>
+        <div class="reader-width-row">
+          <button class="reader-chip-btn" :class="width==='narrow' && 'reader-chip-btn--active'"
+                  @click="setWidth('narrow')">Узкая</button>
+          <button class="reader-chip-btn" :class="width==='normal' && 'reader-chip-btn--active'"
+                  @click="setWidth('normal')">Средняя</button>
+          <button class="reader-chip-btn" :class="width==='wide' && 'reader-chip-btn--active'"
+                  @click="setWidth('wide')">Широкая</button>
+        </div>
+      </section>
+
+      {# ── Шрифт (serif / sans) ──────────────────────────────────────────── #}
+      <section class="reader-settings-section">
+        <div class="reader-settings-label">Шрифт</div>
+        <div class="reader-width-row">
+          <button class="reader-chip-btn" :class="fontFamily==='serif' && 'reader-chip-btn--active'"
+                  @click="setFontFamily('serif')"
+                  style="font-family:Georgia,'Times New Roman',serif">Serif</button>
+          <button class="reader-chip-btn" :class="fontFamily==='sans' && 'reader-chip-btn--active'"
+                  @click="setFontFamily('sans')"
+                  style="font-family:-apple-system,'Segoe UI',system-ui,sans-serif">Sans</button>
+        </div>
+      </section>
+
+      {# ── Межстрочный интервал ─────────────────────────────────────────── #}
+      <section class="reader-settings-section">
+        <div class="reader-settings-label">Межстрочный интервал</div>
+        <div class="reader-width-row">
+          <button class="reader-chip-btn" :class="lineHeight==='compact' && 'reader-chip-btn--active'"
+                  @click="setLineHeight('compact')">Сжатый</button>
+          <button class="reader-chip-btn" :class="lineHeight==='normal' && 'reader-chip-btn--active'"
+                  @click="setLineHeight('normal')">Обычный</button>
+          <button class="reader-chip-btn" :class="lineHeight==='relaxed' && 'reader-chip-btn--active'"
+                  @click="setLineHeight('relaxed')">Просторный</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  {# ── Модалка: «Мои заметки» (drawer справа) ──────────────────────────── #}
+  <div x-show="showNotesDrawer" x-cloak
+       @click.self="showNotesDrawer = false"
+       @keydown.escape.window="showNotesDrawer = false"
+       class="reader-modal-backdrop">
+    <aside class="reader-drawer reader-drawer--right"
+           x-bind:style="{background: bgColor, color: fgColor}">
+      <div class="reader-drawer__head">
+        <strong>Мои заметки</strong>
+        <button class="reader-icon-btn reader-icon-btn--sm" @click="showNotesDrawer = false"
+                x-bind:style="{color: fgColor}" title="Закрыть">✕</button>
+      </div>
+
+      <div style="padding:6px 16px 16px">
+        <template x-if="notesLoading">
+          <p style="font-size:13px;opacity:.7">Загружаю…</p>
+        </template>
+        <template x-if="!notesLoading && notesItems.length === 0">
+          <p style="font-size:13px;opacity:.7;line-height:1.5">
+            К этой книге пока нет заметок. Выделите фрагмент текста и нажмите «📝 Заметка».
+          </p>
+        </template>
+        <template x-for="n in notesItems" :key="n.id">
+          <div class="reader-note-card"
+               x-bind:style="{borderColor: 'rgba(127,127,127,.25)'}">
+            <div class="reader-note-card__excerpt"
+                 x-bind:style="{borderColor: fgColor + '88'}"
+                 x-text="'« ' + n.excerpt + ' »'"></div>
+            <template x-if="n.note">
+              <div class="reader-note-card__text" x-text="n.note"></div>
+            </template>
+            <div class="reader-note-card__foot">
+              <span x-text="n.chapter_order !== null ? ('Гл. ' + (n.chapter_order + 1) + ' · ' + n.created_at) : n.created_at"></span>
+              <button type="button" class="reader-note-card__del"
+                      @click="deleteNote(n.id)">
+                Удалить
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </aside>
+  </div>
+
+  {# ── Сам текст главы ────────────────────────────────────────────────── #}
+  <article class="reader-body"
+           x-bind:style="{
+             'font-size': fontSize + 'px',
+             'max-width': bodyMaxWidth,
+             'font-family': bodyFontFamily,
+             'line-height': bodyLineHeight
+           }">
+
+    {% if current.title %}
+      <h1 class="reader-chapter-title">{{ current.title }}</h1>
+    {% endif %}
+
+    <div class="reader-content" id="reader-content">
+      {{ current.html|safe }}
+    </div>
+
+    {# ── Всплывашка «В цитаты» / «Заметка» при выделении текста ──────── #}
+    {# Состояния: noteMode=false → две кнопки рядом; noteMode=true → ввод текста #}
+    <div x-show="showQuoteBubble" x-cloak
+         x-bind:style="{left: quoteBubbleX + 'px', top: quoteBubbleY + 'px', background: bgColor, color: fgColor, borderColor: 'rgba(127,127,127,.35)'}"
+         class="reader-quote-bubble"
+         @mousedown.prevent>
+      {# Default state — две action-кнопки #}
+      <template x-if="!noteMode">
+        <div style="display:flex;gap:6px">
+          <button class="reader-quote-bubble__btn" @click="saveSelectionAsQuote()"
+                  x-bind:disabled="quoteSaving">
+            <span x-show="!quoteSaving && !quoteSaved">💬 В цитаты</span>
+            <span x-show="quoteSaving" x-cloak>⏳ Сохраняю…</span>
+            <span x-show="quoteSaved"  x-cloak>✓ Сохранено</span>
+          </button>
+          <button class="reader-quote-bubble__btn" @click="enterNoteMode()"
+                  x-bind:disabled="noteSaving"
+                  title="Приватная заметка к фрагменту">
+            <span x-show="!noteSaved">📝 Заметка</span>
+            <span x-show="noteSaved" x-cloak>✓ Сохранено</span>
+          </button>
+        </div>
+      </template>
+
+      {# Note state — textarea + save/cancel #}
+      <template x-if="noteMode">
+        <div style="display:flex;flex-direction:column;gap:6px;min-width:240px">
+          {# stop остановит всплытие mousedown к родителю с @mousedown.prevent —
+             иначе цурсор не позиционируется кликом и нельзя выделить текст внутри textarea #}
+          <textarea x-model="noteText"
+                    x-ref="noteInput"
+                    @mousedown.stop
+                    @click.stop
+                    @keydown.escape.stop="cancelNoteMode()"
+                    @keydown.ctrl.enter.stop="saveSelectionAsNote()"
+                    @keydown.meta.enter.stop="saveSelectionAsNote()"
+                    placeholder="Заметка для себя (необязательно)..."
+                    rows="3"
+                    style="resize:vertical;min-height:60px;padding:6px 8px;border:1px solid rgba(127,127,127,.4);border-radius:6px;font:inherit;background:transparent;color:inherit;outline:none"></textarea>
+          <div style="display:flex;gap:6px;justify-content:flex-end">
+            <button class="reader-quote-bubble__btn" @click="cancelNoteMode()"
+                    style="font-size:12px;padding:4px 10px">Отмена</button>
+            <button class="reader-quote-bubble__btn" @click="saveSelectionAsNote()"
+                    x-bind:disabled="noteSaving"
+                    style="font-size:12px;padding:4px 10px">
+              <span x-show="!noteSaving">Сохранить</span>
+              <span x-show="noteSaving" x-cloak>⏳</span>
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    {# Навигация между главами #}
+    <div class="reader-chap-nav">
+      {% if prev_ch %}
+        <a href="{% url 'book_read_chapter' book.id prev_ch.order %}"
+           class="reader-chap-nav__btn reader-chap-nav__btn--prev"
+           x-bind:style="{color: fgColor}">
+          <div class="reader-chap-nav__label">← Предыдущая</div>
+          <div class="reader-chap-nav__title">{{ prev_ch.title|default:"Глава"|truncatechars:50 }}</div>
+        </a>
+      {% else %}
+        <span class="reader-chap-nav__spacer"></span>
+      {% endif %}
+
+      {% if next_ch %}
+        <a href="{% url 'book_read_chapter' book.id next_ch.order %}"
+           class="reader-chap-nav__btn reader-chap-nav__btn--next"
+           x-bind:style="{color: fgColor}">
+          <div class="reader-chap-nav__label">Следующая →</div>
+          <div class="reader-chap-nav__title">{{ next_ch.title|default:"Глава"|truncatechars:50 }}</div>
+        </a>
+      {% else %}
+        <div class="reader-chap-nav__end">Конец книги 📚</div>
+      {% endif %}
+    </div>
+  </article>
+</div>
+
+{# ── Стили читалки ──────────────────────────────────────────────────────── #}
+<style>
+  .reader-root {
+    min-height: 100vh;
+    transition: background .2s, color .2s;
+  }
+
+  /* ── Top bar ─────────────────────────────────────────────────────── */
+  /* Верхняя панель читалки стоит под глобальным .nav сайта (52px высотой, z-index: 100). */
+  .reader-bar {
+    position: sticky;
+    top: 52px;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(127,127,127,.18);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .reader-bar__title {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-decoration: none;
+    overflow: hidden;
+    padding: 2px 4px;
+  }
+  .reader-bar__title-main {
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .reader-bar__title-sub {
+    font-size: 11px;
+    opacity: .65;
+  }
+
+  .reader-icon-btn {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(127,127,127,.22);
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    transition: background .15s, border-color .15s, transform .1s;
+    font-family: inherit;
+  }
+  .reader-icon-btn:hover { background: rgba(127,127,127,.12); }
+  .reader-icon-btn:active { transform: scale(.96); }
+  .reader-icon-btn--sm {
+    width: 32px; height: 32px; font-size: 15px;
+  }
+
+  /* ── Модалки / drawer ────────────────────────────────────────────── */
+  /* Выше глобального .nav (z-index: 100), чтобы модалка покрывала весь экран. */
+  .reader-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,.42);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    display: flex;
+  }
+  .reader-drawer {
+    width: min(360px, 82vw);
+    height: 100%;
+    padding: 18px 20px 24px;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,.25);
+    animation: reader-drawer-slide .22s ease;
+  }
+  .reader-drawer--left {
+    margin-right: auto;
+    border-right: 1px solid rgba(127,127,127,.18);
+  }
+  .reader-drawer--right {
+    margin-left: auto;
+    border-left: 1px solid rgba(127,127,127,.18);
+    animation-name: reader-drawer-slide-right;
+  }
+  @keyframes reader-drawer-slide {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0); }
+  }
+  @keyframes reader-drawer-slide-right {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+  }
+  .reader-drawer__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    font-size: 15px;
+  }
+
+  /* ── TOC список ─────────────────────────────────────────────────── */
+  .reader-toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .reader-toc-list li {
+    border-bottom: 1px dashed rgba(127,127,127,.18);
+  }
+  .reader-toc-item {
+    display: block;
+    text-decoration: none;
+    padding: 10px 6px;
+    font-size: 14px;
+    line-height: 1.4;
+    border-radius: 6px;
+    transition: background .12s;
+  }
+  .reader-toc-item:hover { background: rgba(127,127,127,.1); }
+  .reader-toc-item--active {
+    font-weight: 700;
+    background: rgba(127,127,127,.14);
+  }
+  .reader-toc-row { display: flex; gap: 6px; align-items: baseline; }
+  .reader-toc-num { opacity: .5; font-size: 12px; flex-shrink: 0; }
+  .reader-toc-title { flex: 1; }
+  .reader-toc-summary {
+    margin-top: 4px;
+    padding-left: 20px;
+    font-size: 12px;
+    line-height: 1.4;
+    opacity: .68;
+    font-weight: 400;
+  }
+  /* Chapter search */
+  .reader-toc-search {
+    padding: 0 6px 12px;
+    border-bottom: 1px dashed rgba(127,127,127,.2);
+    margin-bottom: 10px;
+  }
+  .reader-toc-search__input {
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(127,127,127,.3);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+  }
+  .reader-toc-search__input:focus { border-color: rgba(127,127,127,.6); }
+  .reader-toc-search__rerank {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 11px;
+    opacity: .75;
+    cursor: pointer;
+  }
+  .reader-toc-search__loading {
+    margin-top: 8px;
+    font-size: 12px;
+    opacity: .6;
+    font-style: italic;
+  }
+  .reader-toc-search__empty {
+    padding: 14px 6px;
+    font-size: 13px;
+    opacity: .6;
+  }
+  .reader-toc-snippet {
+    margin-top: 4px;
+    padding-left: 20px;
+    font-size: 12px;
+    line-height: 1.45;
+    opacity: .75;
+    font-weight: 400;
+  }
+  .reader-toc-snippet mark {
+    background: rgba(255,213,0,.35);
+    padding: 0 2px;
+    border-radius: 2px;
+    color: inherit;
+  }
+  .reader-toc-why {
+    margin-top: 4px;
+    padding-left: 20px;
+    font-size: 11px;
+    opacity: .55;
+    font-style: italic;
+  }
+
+  /* ── Settings ───────────────────────────────────────────────────── */
+  .reader-settings-section {
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px dashed rgba(127,127,127,.15);
+  }
+  .reader-settings-section:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+  .reader-settings-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    opacity: .7;
+    margin-bottom: 10px;
+  }
+  .reader-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .reader-theme-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px;
+    border: 1px solid rgba(127,127,127,.22);
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    color: inherit;
+    transition: background .12s, border-color .12s;
+  }
+  .reader-theme-btn:hover { background: rgba(127,127,127,.08); }
+  .reader-theme-btn--active {
+    border-color: currentColor;
+    background: rgba(127,127,127,.15);
+    font-weight: 600;
+  }
+  .reader-theme-btn__icon { font-size: 18px; }
+  .reader-size-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .reader-size-range {
+    flex: 1;
+    accent-color: currentColor;
+  }
+  .reader-size-btn {
+    width: 40px;
+    height: 36px;
+    border: 1px solid rgba(127,127,127,.22);
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    color: inherit;
+    transition: background .12s;
+  }
+  .reader-size-btn:hover { background: rgba(127,127,127,.1); }
+  .reader-width-row {
+    display: flex;
+    gap: 6px;
+  }
+  .reader-chip-btn {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid rgba(127,127,127,.22);
+    background: transparent;
+    border-radius: 99px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: inherit;
+    transition: background .12s, border-color .12s;
+  }
+  .reader-chip-btn:hover { background: rgba(127,127,127,.08); }
+  .reader-chip-btn--active {
+    border-color: currentColor;
+    background: rgba(127,127,127,.15);
+    font-weight: 600;
+  }
+
+  /* ── Тело читалки ───────────────────────────────────────────────── */
+  .reader-body {
+    margin: 0 auto;
+    padding: 40px 24px 140px;
+    line-height: 1.65;
+    font-family: Georgia, 'Times New Roman', serif;
+    transition: max-width .25s;
+  }
+  .reader-chapter-title {
+    font-size: 1.6em;
+    font-weight: 700;
+    margin: 0 0 30px;
+    text-align: center;
+  }
+  .reader-content p {
+    margin: 0 0 1em;
+    text-indent: 1.5em;
+  }
+  .reader-content h2,
+  .reader-content h3,
+  .reader-content h4 {
+    margin: 1.5em 0 .5em;
+    line-height: 1.3;
+    font-weight: 700;
+  }
+  .reader-content h2 { font-size: 1.4em; text-align: center; }
+  .reader-content h3 { font-size: 1.2em; }
+  .reader-content h4 { font-size: 1.05em; }
+  .reader-content blockquote {
+    margin: 1em 2em;
+    padding-left: 1em;
+    border-left: 3px solid rgba(127,127,127,.4);
+    font-style: italic;
+    opacity: .9;
+  }
+  .reader-content hr {
+    border: 0;
+    border-top: 1px solid rgba(127,127,127,.3);
+    margin: 2em auto;
+    width: 50%;
+  }
+  .reader-content em { font-style: italic; }
+  .reader-content strong { font-weight: 700; }
+  .reader-content ol,
+  .reader-content ul {
+    margin: 0 0 1em 2em;
+  }
+  .reader-content li { margin-bottom: .3em; }
+
+  /* ── Навигация по главам внизу ─────────────────────────────────── */
+  .reader-chap-nav {
+    display: flex;
+    gap: 12px;
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(127,127,127,.2);
+  }
+  .reader-chap-nav__btn {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid rgba(127,127,127,.3);
+    border-radius: 10px;
+    text-decoration: none;
+    transition: background .12s, border-color .12s;
+  }
+  .reader-chap-nav__btn:hover { background: rgba(127,127,127,.08); }
+  .reader-chap-nav__btn--prev { text-align: left; }
+  .reader-chap-nav__btn--next { text-align: right; }
+  .reader-chap-nav__label { font-size: 11px; opacity: .6; margin-bottom: 4px; }
+  .reader-chap-nav__title { font-size: 13px; font-weight: 600; }
+  .reader-chap-nav__end {
+    flex: 1;
+    padding: 14px;
+    border: 1px dashed rgba(127,127,127,.22);
+    border-radius: 10px;
+    text-align: center;
+    opacity: .6;
+    font-size: 13px;
+  }
+  .reader-chap-nav__spacer { flex: 1; }
+
+  /* ── Всплывашка «В цитаты» ─────────────────────────────────────── */
+  .reader-quote-bubble {
+    position: absolute;
+    z-index: 50;
+    padding: 4px;
+    border: 1px solid rgba(127,127,127,.35);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.22);
+    transform: translate(-50%, -100%);
+    animation: reader-bubble-pop .14s ease;
+  }
+  @keyframes reader-bubble-pop {
+    from { opacity: 0; transform: translate(-50%, -90%); }
+    to   { opacity: 1; transform: translate(-50%, -100%); }
+  }
+  .reader-quote-bubble__btn {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .1s;
+  }
+  .reader-quote-bubble__btn:hover:not(:disabled) {
+    background: rgba(127,127,127,.15);
+  }
+  .reader-quote-bubble__btn:disabled { cursor: default; opacity: .7; }
+
+  /* Флеш-подсветка куска текста сразу после сохранения */
+  .reader-quote-flash {
+    background: rgba(255, 235, 59, .55);
+    transition: background .6s ease;
+    border-radius: 2px;
+  }
+
+  /* ── Карточка заметки в drawer-е ───────────────────────────────── */
+  .reader-note-card {
+    border: 1px solid;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .reader-note-card__excerpt {
+    font-style: italic;
+    border-left: 3px solid;
+    padding-left: 8px;
+    margin-bottom: 6px;
+    opacity: .9;
+  }
+  .reader-note-card__text {
+    margin-bottom: 8px;
+    white-space: pre-wrap;
+  }
+  .reader-note-card__foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    opacity: .7;
+  }
+  .reader-note-card__del {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: inherit;
+    font-family: inherit;
+    font-size: 11px;
+    opacity: .7;
+    padding: 0;
+    text-decoration: underline;
+  }
+  .reader-note-card__del:hover { opacity: 1; }
+
+  /* ── Мобилка ────────────────────────────────────────────────────── */
+  @media (max-width: 620px) {
+    .reader-bar { padding: 8px 10px; gap: 6px; }
+    .reader-bar__title-main { font-size: 13px; }
+    .reader-bar__title-sub  { font-size: 10px; }
+    .reader-icon-btn { width: 40px; height: 40px; font-size: 20px; }
+    .reader-body { padding: 28px 16px 120px; }
+    .reader-drawer { width: 86vw; }
+    .reader-chap-nav { flex-direction: column; }
+  }
+</style>
+
+<script>
+  function reader() {
+    return {
+      theme: localStorage.getItem("reader_theme") || "light",
+      fontSize: parseInt(localStorage.getItem("reader_fontsize") || "18", 10),
+      width: localStorage.getItem("reader_width") || "normal",
+      // Семейство шрифта (serif/sans) и межстрочный интервал — оба хранятся в localStorage,
+      // чтобы сохраняться между главами и между сессиями.
+      fontFamily: localStorage.getItem("reader_font_family") || "serif",
+      lineHeight: localStorage.getItem("reader_line_height") || "normal",
+      showToc: false,
+      showSettings: false,
+      percent: {{ progress.percent|default:0 }},
+      _saveTimer: null,
+
+      // Семантический поиск по главам
+      chapterSearchQuery:   "",
+      chapterSearchResults: [],
+      chapterSearchLoading: false,
+      chapterSearchRerank:  false,
+      _chapterSearchAbort:  null,
+
+      // Fair-use highlight → цитата
+      showQuoteBubble: false,
+      quoteBubbleX: 0,
+      quoteBubbleY: 0,
+      quoteSaving: false,
+      quoteSaved: false,
+      _lastSelectionText: "",
+      _lastSelectionRange: null,
+
+      // Приватная заметка к фрагменту (BookNote)
+      noteMode: false,        // переключает bubble в режим textarea
+      noteText: "",
+      noteSaving: false,
+      noteSaved: false,
+
+      // Drawer «Мои заметки» (список всех заметок к этой книге)
+      showNotesDrawer: false,
+      notesItems: [],
+      notesLoading: false,
+
+      get bgColor() {
+        return this.theme === "dark"  ? "#1a1a1a"
+             : this.theme === "sepia" ? "#f4ecd8"
+             : "#ffffff";
+      },
+      get fgColor() {
+        return this.theme === "dark"  ? "#e8e8e8"
+             : this.theme === "sepia" ? "#5b4636"
+             : "#1a1a1a";
+      },
+      get barBg() {
+        // Полупрозрачный bar, наследует фон темы
+        return this.theme === "dark"  ? "rgba(26,26,26,.88)"
+             : this.theme === "sepia" ? "rgba(244,236,216,.88)"
+             : "rgba(255,255,255,.88)";
+      },
+      get bodyMaxWidth() {
+        if (this.width === "narrow") return "560px";
+        if (this.width === "wide")   return "880px";
+        return "720px";
+      },
+      get bodyFontFamily() {
+        // Системные стеки — без подгрузки кастомных шрифтов (zero latency).
+        return this.fontFamily === "sans"
+          ? "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
+          : "Georgia, 'Times New Roman', Cambria, 'Liberation Serif', serif";
+      },
+      get bodyLineHeight() {
+        if (this.lineHeight === "compact") return 1.45;
+        if (this.lineHeight === "relaxed") return 2.0;
+        return 1.7;
+      },
+
+      setTheme(t) {
+        this.theme = t;
+        localStorage.setItem("reader_theme", t);
+      },
+      setWidth(w) {
+        this.width = w;
+        localStorage.setItem("reader_width", w);
+      },
+      setFontFamily(f) {
+        this.fontFamily = f;
+        localStorage.setItem("reader_font_family", f);
+      },
+      setLineHeight(lh) {
+        this.lineHeight = lh;
+        localStorage.setItem("reader_line_height", lh);
+      },
+
+      async runChapterSearch() {
+        const q = this.chapterSearchQuery.trim();
+        if (q.length < 3) {
+          this.chapterSearchResults = [];
+          this.chapterSearchLoading = false;
+          if (this._chapterSearchAbort) this._chapterSearchAbort.abort();
+          return;
+        }
+        // Отменяем предыдущий запрос, если он ещё в полёте
+        if (this._chapterSearchAbort) this._chapterSearchAbort.abort();
+        this._chapterSearchAbort = new AbortController();
+        this.chapterSearchLoading = true;
+        try {
+          const url = "{% url 'book_chapter_search' book.id %}"
+                    + "?q=" + encodeURIComponent(q)
+                    + (this.chapterSearchRerank ? "&rerank=1" : "");
+          const resp = await fetch(url, {
+            headers: {"X-Requested-With": "XMLHttpRequest"},
+            signal: this._chapterSearchAbort.signal,
+          });
+          if (!resp.ok) throw new Error("search failed: " + resp.status);
+          const data = await resp.json();
+          // Гонка запросов: игнорируем ответ, если query уже изменился
+          if (data.query === this.chapterSearchQuery.trim()) {
+            this.chapterSearchResults = data.results || [];
+          }
+        } catch (e) {
+          if (e.name !== "AbortError") {
+            console.error(e);
+            this.chapterSearchResults = [];
+          }
+        } finally {
+          this.chapterSearchLoading = false;
+        }
+      },
+
+      init() {
+        // Восстанавливаем scroll offset текущей главы
+        const initialOffset = {{ progress.scroll_offset|default:0|stringformat:".4f" }};
+        if (initialOffset > 0.001) {
+          setTimeout(() => {
+            const article = document.querySelector(".reader-body");
+            if (article) {
+              const targetY = article.scrollHeight * initialOffset;
+              window.scrollTo({top: targetY, behavior: "instant"});
+            }
+          }, 50);
+        }
+
+        this.$watch("fontSize", v => localStorage.setItem("reader_fontsize", String(v)));
+
+        window.addEventListener("scroll", () => this._onScroll(), {passive: true});
+
+        // ── Fair-use: отслеживаем выделение внутри текста главы ──────
+        const contentEl = document.getElementById("reader-content");
+        if (contentEl) {
+          document.addEventListener("mouseup",   (e) => this._onSelectionChange(e, contentEl));
+          document.addEventListener("touchend",  (e) => this._onSelectionChange(e, contentEl));
+          document.addEventListener("selectionchange", () => {
+            // Если в режиме заметки — selection «уехал» в textarea, это нормально:
+            // не скрываем bubble, иначе теряется фрагмент и инпут.
+            if (this.noteMode) return;
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed) this.showQuoteBubble = false;
+          });
+        }
+      },
+
+      _onSelectionChange(evt, contentEl) {
+        // Если клик был по самой всплывашке — не трогаем (иначе она схлопнется)
+        if (evt && evt.target && evt.target.closest &&
+            evt.target.closest(".reader-quote-bubble")) return;
+
+        setTimeout(() => {
+          const sel = window.getSelection();
+          if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+            this.showQuoteBubble = false;
+            return;
+          }
+          const text = sel.toString().trim();
+          if (text.length < 5) {
+            this.showQuoteBubble = false;
+            return;
+          }
+          // Проверяем, что выделение целиком внутри главы
+          const range = sel.getRangeAt(0);
+          if (!contentEl.contains(range.commonAncestorContainer)) {
+            this.showQuoteBubble = false;
+            return;
+          }
+          // Позиционируем пузырь над серединой выделения
+          const rect = range.getBoundingClientRect();
+          const scrollY = window.scrollY || document.documentElement.scrollTop;
+          this.quoteBubbleX = rect.left + rect.width / 2;
+          this.quoteBubbleY = rect.top + scrollY - 8;
+          this._lastSelectionText = text;
+          this._lastSelectionRange = range.cloneRange();
+          this.quoteSaved = false;
+          this.showQuoteBubble = true;
+        }, 10);
+      },
+
+      async saveSelectionAsQuote() {
+        if (!this._lastSelectionText || this.quoteSaving) return;
+        this.quoteSaving = true;
+        try {
+          const fd = new URLSearchParams();
+          fd.append("text", this._lastSelectionText);
+          fd.append("chapter_order", "{{ current.order }}");
+          const resp = await fetch("{% url 'quote_add' book.id %}", {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": "{{ csrf_token }}",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "Accept": "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            body: fd.toString(),
+          });
+          if (!resp.ok) throw new Error("HTTP " + resp.status);
+          this.quoteSaved = true;
+          // Флеш-подсветка оригинала
+          this._flashRange(this._lastSelectionRange);
+          // Скрыть через 1.1с
+          setTimeout(() => {
+            this.showQuoteBubble = false;
+            this.quoteSaved = false;
+          }, 1100);
+          // Сбросить выделение
+          window.getSelection().removeAllRanges();
+        } catch (e) {
+          console.error("save quote failed:", e);
+          alert("Не удалось сохранить цитату");
+        } finally {
+          this.quoteSaving = false;
+        }
+      },
+
+      // ── Приватные заметки (BookNote) ───────────────────────────────────
+      enterNoteMode() {
+        // bubble остаётся открытым, но переключается в режим textarea.
+        // Замораживаем фрагмент в _lastSelectionText/Range — иначе когда юзер кликнет
+        // в textarea, выделение пропадёт и фрагмент потеряется.
+        if (!this._lastSelectionText) return;
+        this.noteMode = true;
+        this.noteText = "";
+        this.noteSaved = false;
+        // autofocus textarea
+        this.$nextTick(() => {
+          if (this.$refs.noteInput) this.$refs.noteInput.focus();
+        });
+      },
+      cancelNoteMode() {
+        this.noteMode = false;
+        this.noteText = "";
+        // Закрываем bubble целиком, как при click-outside
+        this.showQuoteBubble = false;
+      },
+      async saveSelectionAsNote() {
+        if (!this._lastSelectionText || this.noteSaving) return;
+        this.noteSaving = true;
+        try {
+          const fd = new URLSearchParams();
+          fd.append("excerpt", this._lastSelectionText);
+          fd.append("note", this.noteText || "");
+          fd.append("chapter_order", "{{ current.order }}");
+          const resp = await fetch("{% url 'note_add' book.id %}", {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": "{{ csrf_token }}",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "Accept": "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            body: fd.toString(),
+          });
+          // Пытаемся распарсить JSON в любом случае, чтобы показать осмысленную ошибку
+          let payload = null;
+          try { payload = await resp.json(); } catch (_) {}
+          if (!resp.ok || (payload && payload.ok === false)) {
+            const msg = (payload && payload.error) ? payload.error
+                       : ("HTTP " + resp.status + ". Возможно, не накатили миграцию books/0012_booknote.");
+            throw new Error(msg);
+          }
+          this.noteSaved = true;
+          this._flashRange(this._lastSelectionRange);
+          setTimeout(() => {
+            this.showQuoteBubble = false;
+            this.noteMode = false;
+            this.noteSaved = false;
+            this.noteText = "";
+          }, 900);
+          window.getSelection().removeAllRanges();
+          // Если drawer заметок открыт — обновим его, чтобы новая заметка появилась сразу
+          if (this.showNotesDrawer) this.loadNotes();
+        } catch (e) {
+          console.error("save note failed:", e);
+          alert("Не удалось сохранить заметку: " + (e && e.message ? e.message : ""));
+        } finally {
+          this.noteSaving = false;
+        }
+      },
+
+      // ── Drawer «Мои заметки» ───────────────────────────────────────────
+      openNotesDrawer() {
+        this.showNotesDrawer = true;
+        this.loadNotes();
+      },
+      async loadNotes() {
+        this.notesLoading = true;
+        try {
+          const resp = await fetch("{% url 'note_list_for_book' book.id %}", {
+            headers: {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+          });
+          const data = await resp.json();
+          this.notesItems = (data && data.items) ? data.items : [];
+        } catch (e) {
+          console.error("load notes failed:", e);
+          this.notesItems = [];
+        } finally {
+          this.notesLoading = false;
+        }
+      },
+      async deleteNote(id) {
+        if (!confirm("Удалить заметку?")) return;
+        try {
+          const resp = await fetch("/books/notes/" + id + "/delete/", {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": "{{ csrf_token }}",
+              "X-Requested-With": "XMLHttpRequest",
+              "Accept": "application/json",
+            },
+          });
+          const data = await resp.json().catch(() => ({ok:false}));
+          if (data && data.ok) {
+            this.notesItems = this.notesItems.filter(n => n.id !== id);
+          } else {
+            alert("Не удалось удалить заметку");
+          }
+        } catch (e) {
+          console.error("delete note failed:", e);
+          alert("Ошибка сети");
+        }
+      },
+
+      _flashRange(range) {
+        if (!range) return;
+        try {
+          const span = document.createElement("span");
+          span.className = "reader-quote-flash";
+          range.surroundContents(span);
+          setTimeout(() => { span.style.background = "transparent"; }, 30);
+          setTimeout(() => {
+            // Разворачиваем span обратно, оставляя чистый DOM
+            const parent = span.parentNode;
+            while (span.firstChild) parent.insertBefore(span.firstChild, span);
+            parent.removeChild(span);
+          }, 800);
+        } catch (e) {
+          // Cross-element selection — игнорим, не все range можно обернуть
+        }
+      },
+
+      _onScroll() {
+        clearTimeout(this._saveTimer);
+        this._saveTimer = setTimeout(() => this._saveProgress(), 800);
+      },
+
+      async _saveProgress() {
+        const article = document.querySelector(".reader-body");
+        if (!article) return;
+        const total = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+        const offset = Math.max(0, Math.min(1, window.scrollY / total));
+
+        try {
+          const resp = await fetch("{% url 'book_read_progress' book.id %}", {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": "{{ csrf_token }}",
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: `chapter_order={{ current.order }}&offset=${offset}`,
+          });
+          const data = await resp.json();
+          if (data.ok && typeof data.percent === "number") {
+            this.percent = data.percent;
+          }
+        } catch (e) { /* молча */ }
+      },
+    };
+  }
+</script>
+{% endblock %}

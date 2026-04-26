@@ -1,0 +1,19 @@
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+  <div>
+    <a href="{% url 'collections_list' %}" class="lnk-muted" style="font-size:13px">&larr; Подборки</a>
+    <h1 style="font-size:22px;margin-top:4px">{{ collection.title }}</h1>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-sm {% if collection.is_published %}btn-secondary{% else %}btn-primary{% endif %}"
+            hx-post="{% url 'collection_toggle_publish' collection.pk %}"
+            hx-target="#editor-header"
+            hx-swap="innerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+      {% if collection.is_published %}Снять с публикации{% else %}Опубликовать{% endif %}
+    </button>
+    <a href="{% url 'collection_detail' collection.pk %}" class="btn btn-ghost btn-sm"
+       {% if not collection.is_published %}style="pointer-events:none;opacity:.4"{% endif %}>
+      Просмотр
+    </a>
+  </div>
+</div>

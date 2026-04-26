@@ -1,0 +1,165 @@
+{% extends "core/base.html" %}
+{% block title %}Найти книгу — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="max-width:760px;padding-top:32px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h1 style="font-size:22px;margin:0">Найти книгу с AI</h1>
+    {% if chat %}
+    <button class="btn btn-ghost btn-sm"
+            hx-post="{% url 'discovery_clear' %}"
+            hx-target="#discovery-messages"
+            hx-swap="innerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+      Очистить
+    </button>
+    {% endif %}
+  </div>
+
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+    Опишите, что хотите прочитать — жанр, настроение, похожие книги. AI подберёт из каталога.
+  </p>
+
+  {# ═══ БЫСТРЫЕ ЧИПЫ (preset-запросы) ═══════════════════════════════════ #}
+  <div id="disc-quick-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+    {% for chip in quick_chips|default:"" %}{% endfor %}
+    <button type="button" class="disc-chip" data-prompt="Что-то меланхоличное, задумчивое, про одиночество">🌧 Меланхоличное</button>
+    <button type="button" class="disc-chip" data-prompt="Затягивающая книга, чтобы оторваться невозможно было с первой главы">🎢 Затянет с первой главы</button>
+    <button type="button" class="disc-chip" data-prompt="Книга, которую можно прочитать за один вечер (короткая, до 200 страниц)">📚 На один вечер</button>
+    <button type="button" class="disc-chip" data-prompt="Популярная книга, которую сейчас все обсуждают">🔥 Обсуждают все</button>
+    <button type="button" class="disc-chip" data-prompt="Научпоп или интеллектуальная литература, чтобы узнать что-то новое">🎓 Чтобы стать умнее</button>
+    <button type="button" class="disc-chip" data-prompt="Что-то уютное и лёгкое, для отдыха">☕ Уютное</button>
+    <button type="button" class="disc-chip" data-prompt="Классика, которую стыдно не знать">📜 Must-read классика</button>
+  </div>
+  <style>
+    .disc-chip {
+      padding:6px 12px; font-size:12px; border-radius:999px;
+      border:1px solid var(--border); background:var(--surface);
+      cursor:pointer; transition:all .15s; color:var(--ink);
+    }
+    .disc-chip:hover { background:var(--ink); color:#fff; border-color:var(--ink); }
+    .disc-chip.active { background:var(--accent,#0a7a42); color:#fff; border-color:var(--accent,#0a7a42); }
+  </style>
+
+  {# ═══ ЛЕНТА СООБЩЕНИЙ ═══════════════════════════════════════════════════ #}
+  <div id="discovery-messages" style="min-height:200px;margin-bottom:16px">
+    {% if messages %}
+      {% for msg in messages %}
+      <div style="margin-bottom:12px;{% if msg.role == 'user' %}text-align:right{% endif %}">
+        <div style="display:inline-block;max-width:85%;padding:10px 14px;border-radius:12px;
+                    font-size:13px;line-height:1.5;text-align:left;
+                    {% if msg.role == 'user' %}background:var(--accent);color:#fff{% else %}background:var(--surface){% endif %}">
+          {{ msg.content|linebreaksbr }}
+        </div>
+        {% if msg.role == 'assistant' %}
+          {% if msg.books %}
+          <div style="display:grid;gap:10px;margin-top:8px;max-width:85%">
+            {% for item in msg.books %}
+              {% include "ai_chat/_book_card.html" with book=item.book reason=item.reason price=item.price message_id=msg.msg_id %}
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if msg.followup_options %}
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-width:85%">
+            {% for opt in msg.followup_options %}
+              <button type="button" class="disc-chip" data-prompt="{{ opt.prompt }}">{{ opt.label }}</button>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="font-size:13px;color:var(--ghost);text-align:center;padding:40px 0">
+        Начните диалог — например, кликните один из чипов выше или опишите своими словами.
+      </p>
+    {% endif %}
+  </div>
+
+  {# ═══ ФОРМА ВВОДА ═══════════════════════════════════════════════════════ #}
+  <form id="discovery-form"
+        hx-post="{% url 'discovery_send' %}"
+        hx-target="#discovery-messages"
+        hx-swap="beforeend"
+        hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+        hx-indicator="#disc-spinner"
+        hx-on::after-request="this.querySelector('input[name=message]').value=''; document.getElementById('discovery-messages').scrollIntoView({block:'end',behavior:'smooth'});"
+        style="display:flex;gap:6px;align-items:center">
+    <input id="disc-input" class="form-input" type="text" name="message"
+           placeholder="Опишите, какую книгу ищете..."
+           autocomplete="off" required style="flex:1">
+    <button type="button" id="disc-voice-btn" class="btn btn-ghost"
+            title="Голосовой ввод" style="padding:8px 10px">🎙</button>
+    <button type="submit" class="btn btn-primary">Найти</button>
+    <span id="disc-spinner" class="htmx-indicator"
+          style="font-size:12px;color:var(--muted)">Думаю…</span>
+  </form>
+
+  <style>
+    .htmx-indicator { display:none; }
+    .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display:inline; }
+    #disc-voice-btn.listening { background:var(--err,#b32020); color:#fff; animation:pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.6 } }
+  </style>
+</div>
+
+{# ═══ JS: чипы подставляют prompt и авто-сабмитят форму ═════════════════════ #}
+<script>
+(function initDiscoveryUI(){
+  const input = document.getElementById('disc-input');
+  const form  = document.getElementById('discovery-form');
+
+  // Делегируем клик — чипы и в presets, и в follow-up работают одинаково
+  document.addEventListener('click', function(e){
+    const chip = e.target.closest('.disc-chip');
+    if (!chip) return;
+    const prompt = chip.dataset.prompt;
+    if (!prompt) return;
+    input.value = prompt;
+    // Подсветим временно
+    chip.classList.add('active');
+    setTimeout(() => chip.classList.remove('active'), 1200);
+    // Авто-сабмит формы через htmx
+    if (window.htmx) window.htmx.trigger(form, 'submit');
+    else form.requestSubmit();
+  });
+
+  // ─── Голосовой ввод через Web Speech API ────────────────────────────
+  const voiceBtn = document.getElementById('disc-voice-btn');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    voiceBtn.style.display = 'none';
+    return;
+  }
+  let rec = null, listening = false;
+  voiceBtn.addEventListener('click', () => {
+    if (listening) { rec && rec.stop(); return; }
+    rec = new SR();
+    rec.lang = 'ru-RU';
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.onstart = () => {
+      listening = true;
+      voiceBtn.classList.add('listening');
+      voiceBtn.textContent = '⏺';
+    };
+    rec.onresult = (ev) => {
+      let t = '';
+      for (let i=ev.resultIndex; i<ev.results.length; i++) t += ev.results[i][0].transcript;
+      input.value = t;
+    };
+    rec.onerror = () => { listening = false; voiceBtn.classList.remove('listening'); voiceBtn.textContent = '🎙'; };
+    rec.onend   = () => {
+      listening = false;
+      voiceBtn.classList.remove('listening');
+      voiceBtn.textContent = '🎙';
+      if (input.value.trim()) {
+        if (window.htmx) window.htmx.trigger(form, 'submit');
+        else form.requestSubmit();
+      }
+    };
+    try { rec.start(); } catch(e) { /* already started */ }
+  });
+})();
+</script>
+{% endblock %}

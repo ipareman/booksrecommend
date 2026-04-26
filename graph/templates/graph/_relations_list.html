@@ -1,0 +1,33 @@
+{% if relations %}
+<div style="display:flex;flex-direction:column;gap:0">
+  {% for rel in relations %}
+  <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+    <span style="font-size:11px;color:var(--ghost);min-width:90px">{{ rel.get_relation_type_display }}</span>
+    {% if book and rel.book_from == book %}
+      <a href="{% url 'book_detail' rel.book_to.pk %}" class="lnk" style="font-size:13px;flex:1">
+        {{ rel.book_to.title }}
+      </a>
+    {% else %}
+      <a href="{% url 'book_detail' rel.book_from.pk %}" class="lnk" style="font-size:13px;flex:1">
+        {{ rel.book_from.title }}
+      </a>
+      <span style="font-size:10px;color:var(--ghost)">(обратная)</span>
+    {% endif %}
+    {% if rel.is_auto %}
+      <span style="font-size:10px;color:var(--ghost);background:var(--bg-alt);padding:2px 5px;border-radius:3px">авто</span>
+    {% endif %}
+    <button class="btn btn-ghost btn-sm"
+            hx-post="{% url 'graph_remove_relation' rel.pk %}"
+            hx-target="#relations-list"
+            hx-swap="innerHTML"
+            hx-confirm="Удалить связь?"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+            style="padding:2px 6px;font-size:14px;line-height:1;color:var(--ghost)">
+      &times;
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p style="font-size:13px;color:var(--ghost)">Нет связей</p>
+{% endif %}

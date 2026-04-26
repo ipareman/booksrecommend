@@ -1,0 +1,117 @@
+{% extends "core/base.html" %}
+{% block title %}Строка — каталог книг{% endblock %}
+
+{% block content %}
+{# Floating blobs + ink wash spots (viewport-fixed background) #}
+<div class="bg-blobs">
+  <div class="bg-blob bg-blob--1"></div>
+  <div class="bg-blob bg-blob--2"></div>
+  <div class="bg-blob bg-blob--3"></div>
+  <div class="ink-spot ink-spot--1"></div>
+  <div class="ink-spot ink-spot--2"></div>
+  <div class="ink-spot ink-spot--3"></div>
+  <div class="ink-spot ink-spot--4"></div>
+  <div class="ink-spot ink-spot--5"></div>
+</div>
+
+{% include "social/_ticker.html" %}
+
+<div class="wrap page ink-wash-container" style="padding-top:40px"
+     x-data="{ hasQuery: {{ query|yesno:'true,false' }} }"
+     @htmx:after-request.window="hasQuery = document.getElementById('search-input').value.trim().length > 0">
+
+  {# ── ПОИСК ──────────────────────────────────────────────────────────────── #}
+  <div style="max-width:520px;margin:0 auto 48px" x-data="{ aiMode: false }">
+    <h1 style="font-size:28px;text-align:center;margin-bottom:20px">Найти книгу</h1>
+
+    {# Обычный поиск (GET + HTMX) #}
+    <form method="get" action="{% url 'search' %}" id="search-form" x-show="!aiMode">
+      <div x-data="{ open: false }" @click.outside="open = false" style="position:relative">
+        <div hx-get="{% url 'search_autocomplete' %}"
+             hx-trigger="keyup from:#search-input delay:200ms"
+             hx-target="#autocomplete-dropdown"
+             hx-include="#search-form"
+             @htmx:after-request="open = document.getElementById('autocomplete-dropdown').innerHTML.trim() !== ''">
+          <input id="search-input"
+                 class="form-input form-input--search"
+                 type="text" name="q"
+                 placeholder="Название, автор, жанр, описание..."
+                 value="{{ query|default:'' }}"
+                 autocomplete="off" autofocus
+                 hx-get="{% url 'search' %}"
+                 hx-trigger="input changed delay:400ms[event.target.value.trim().length > 0], search"
+                 hx-target="#search-results-htmx"
+                 hx-swap="innerHTML"
+                 hx-include="#search-form"
+                 hx-indicator="#search-spinner"
+                 @input="hasQuery = $el.value.trim().length > 0"
+                 @focus="if ($el.value.length >= 2) open = true"
+                 @keydown.escape="open = false">
+          <span id="search-spinner" class="htmx-indicator"
+                style="position:absolute;right:12px;top:50%;transform:translateY(-50%)">
+            <span class="spinner"></span>
+          </span>
+        </div>
+        <div id="autocomplete-dropdown" x-show="open" x-transition x-cloak
+             style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;
+                    background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+                    box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden">
+        </div>
+      </div>
+    </form>
+
+    {# AI-поиск (POST → redirect на каталог) #}
+    <form method="post" action="{% url 'ai_search' %}" id="ai-search-form" x-show="aiMode" x-cloak>
+      {% csrf_token %}
+      <input class="form-input form-input--search"
+             type="text" name="q"
+             placeholder="Опишите, что хотите почитать..."
+             autocomplete="off">
+      <div style="text-align:center;margin-top:12px">
+        <button type="submit" class="btn btn-primary" style="font-size:13px;min-width:180px">
+          Найти с помощью AI
+        </button>
+      </div>
+    </form>
+
+    {# Toggle #}
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px">
+      <span style="font-size:12px;color:var(--muted)" x-show="aiMode" x-cloak>AI разберёт запрос на фильтры</span>
+      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--muted);user-select:none">
+        <span>AI-поиск</span>
+        <div style="position:relative;width:36px;height:20px" @click="aiMode = !aiMode">
+          <div :style="'width:36px;height:20px;border-radius:10px;transition:background .2s;background:' + (aiMode ? 'var(--accent)' : 'var(--border)')"></div>
+          <div :style="'position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);left:' + (aiMode ? '18px' : '2px')"></div>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  {# ── AI DISCOVERY ────────────────────────────────────────────────────────── #}
+  {% if user.is_authenticated %}
+  <div style="text-align:center;margin-bottom:32px">
+    <a href="{% url 'discovery_chat' %}" class="btn btn-secondary"
+       style="font-size:13px;gap:6px;display:inline-flex;align-items:center">
+      ✨ Не знаете, что почитать? Спросите AI
+    </a>
+  </div>
+  {% endif %}
+
+  {# ── РЕЗУЛЬТАТЫ ПОИСКА (HTMX) #}
+  <div id="search-results">
+    <div id="search-results-htmx" x-show="hasQuery">
+      {% if query %}{% include "search/_results.html" %}{% endif %}
+    </div>
+    <div x-show="!hasQuery">
+      {% include "core/_home_sections.html" %}
+    </div>
+  </div>
+
+</div>
+
+{# ── ОНБОРДИНГ-МОДАЛ (только авторизованным при первом входе) ─────────────── #}
+{% if user.is_authenticated and not user.profile.onboarding_done %}
+{% include "core/_onboarding_modal.html" %}
+{% endif %}
+
+{% endblock %}

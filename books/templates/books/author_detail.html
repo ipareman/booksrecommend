@@ -1,0 +1,191 @@
+{% extends "core/base.html" %}
+{% block title %}{{ author.name }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px"
+     x-data="{ editing: false, filtersOpen: false }">
+
+  <a href="{% url 'catalog' %}" class="lnk-muted" style="font-size:12px;display:inline-block;margin-bottom:20px">← Каталог</a>
+
+  {# ── ШАПКА АВТОРА — инлайн-редактирование ────────────────────────────────── #}
+  {% if user.is_staff %}
+  <form method="post" action="{% url 'author_edit' author.pk %}">
+    {% csrf_token %}
+  {% endif %}
+
+  {# Полоска режима редактирования #}
+  {% if user.is_staff %}
+  <div x-show="editing" x-cloak>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;
+              border:1px solid #292929;border-radius:8px">
+    <span style="font-size:13px;color:#000000;flex:1">✏ Режим редактирования</span>
+      <div>
+            <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+    <button type="button" @click="editing=false" class="btn btn-secondary btn-sm">Отмена</button>
+      </div>
+
+    </div>
+
+  </div>
+  {% endif %}
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;
+              gap:20px;margin-bottom:20px;flex-wrap:wrap">
+    <div style="flex:1;min-width:0">
+
+      {# Имя: вид — h1 | ред — input #}
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+        <h1 x-show="!editing" style="font-size:26px;margin:0">{{ author.name }}</h1>
+        {% if user.is_staff %}
+        <input x-show="editing" x-cloak
+               class="form-input" type="text" name="name" required
+               value="{{ author.name }}"
+               style="font-size:22px;font-family:'Mltsvfont';font-weight:400;flex:1">
+        <button x-show="!editing" type="button" @click="editing=true"
+                class="btn btn-secondary btn-sm" title="Редактировать автора">✏</button>
+        {% endif %}
+      </div>
+
+      {# Год рождения: вид — текст | ред — input #}
+      {% if author.birth_year %}
+      <p x-show="!editing" style="font-size:13px;color:var(--ghost)">{{ author.birth_year }} г.р.</p>
+      {% endif %}
+      {% if user.is_staff %}
+      <div x-show="editing" x-cloak style="margin-bottom:8px">
+        <input class="form-input" type="number" name="birth_year"
+               value="{{ author.birth_year|default:'' }}" placeholder="Год рождения"
+               max="2100" style="max-width:160px">
+      </div>
+      {% endif %}
+
+      {# Биография: вид — параграф | ред — textarea #}
+      {% if author.bio %}
+      <p x-show="!editing"
+         style="font-size:14px;color:var(--muted);margin-top:10px;max-width:580px;line-height:1.75">{{ author.bio }}</p>
+      {% endif %}
+      {% if user.is_staff %}
+      <div x-show="editing" x-cloak style="margin-top:8px">
+        <textarea class="form-input" name="bio" rows="5"
+                  placeholder="Краткая биография..."
+                  style="max-width:580px">{{ author.bio }}</textarea>
+      </div>
+      {% endif %}
+
+    </div>
+    <div style="flex-shrink:0">
+      {% include "books/_subscribe_btn.html" with author=author is_subscribed=is_subscribed %}
+      {% if user.is_authenticated and not user.profile.telegram_chat_id %}
+        <p style="font-size:11px;color:var(--ghost);margin-top:6px;max-width:180px;line-height:1.5">
+          Укажите Telegram в <a href="{% url 'profile' %}" class="lnk-muted">профиле</a>,
+          чтобы получать уведомления
+        </p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if user.is_staff %}</form>{% endif %}
+
+  <hr class="divider" style="margin-bottom:20px">
+
+  {# ── ФИЛЬТРЫ + КНИГИ ────────────────────────────────────────────────────── #}
+  <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px">
+      <input class="form-input" type="text" name="search" form="filter-form"
+             placeholder="Поиск по книгам автора..."
+             value="{{ f.search|default:'' }}"
+             hx-get="{% url 'author_detail' author.id %}"
+             hx-trigger="input changed delay:400ms"
+             hx-target="#book-list"
+             hx-include="#filter-form"
+             hx-swap="innerHTML">
+    </div>
+    <span style="font-size:13px;color:var(--ghost)">{{ total }} книг</span>
+    <select class="form-input form-select" style="width:auto" name="ordering" form="filter-form"
+            hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+            hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+      <option value="-avg_rating"       {% if f.ordering == '-avg_rating'       %}selected{% endif %}>По рейтингу</option>
+      <option value="-rating_count"     {% if f.ordering == '-rating_count'     %}selected{% endif %}>По популярности</option>
+      <option value="-publication_year" {% if f.ordering == '-publication_year' %}selected{% endif %}>Новее</option>
+      <option value="publication_year"  {% if f.ordering == 'publication_year'  %}selected{% endif %}>Старше</option>
+    </select>
+  </div>
+
+  <button class="filter-toggle-btn" @click="filtersOpen = !filtersOpen">
+    Фильтры <span x-text="filtersOpen ? '&#9650;' : '&#9660;'"></span>
+  </button>
+
+  <div class="catalog-layout">
+    <aside class="catalog-sidebar" :class="{ 'catalog-sidebar--open': filtersOpen }">
+      <form id="filter-form" method="get" action="{% url 'author_detail' author.id %}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <span class="filter-label">Фильтры</span>
+          {% if has_filters %}<a href="{% url 'author_detail' author.id %}" class="lnk-muted" style="font-size:11px">Сбросить</a>{% endif %}
+        </div>
+
+        {% if all_genres %}
+        <div style="margin-bottom:18px">
+          <p class="filter-label">Жанр</p>
+          <div style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:5px">
+            {% for genre in all_genres %}
+            <label class="form-check">
+              <input type="checkbox" name="genre" value="{{ genre.id }}"
+                     {% if genre.id|stringformat:"s" in selected_genres %}checked{% endif %}
+                     hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+              {{ genre.name }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div style="margin-bottom:18px">
+          <p class="filter-label">Год</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <input class="form-input" type="number" name="year_from"
+                   style="font-size:12px;padding:5px 8px"
+                   placeholder="{{ agg.min_year|default:'от' }}" value="{{ f.year_from|default:'' }}"
+                   hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+            <input class="form-input" type="number" name="year_to"
+                   style="font-size:12px;padding:5px 8px"
+                   placeholder="{{ agg.max_year|default:'до' }}" value="{{ f.year_to|default:'' }}"
+                   hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+          </div>
+        </div>
+
+        <div style="margin-bottom:18px">
+          <p class="filter-label">Страниц</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <input class="form-input" type="number" name="pages_from"
+                   style="font-size:12px;padding:5px 8px"
+                   placeholder="{{ agg.min_pages|default:'от' }}" value="{{ f.pages_from|default:'' }}"
+                   hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+            <input class="form-input" type="number" name="pages_to"
+                   style="font-size:12px;padding:5px 8px"
+                   placeholder="{{ agg.max_pages|default:'до' }}" value="{{ f.pages_to|default:'' }}"
+                   hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+          </div>
+        </div>
+
+        <div>
+          <p class="filter-label">Рейтинг ≥ <span id="rl-val-a">{{ f.rating_min|default:"—" }}</span></p>
+          <input type="range" name="rating_min" min="0" max="5" step="0.5"
+                 value="{{ f.rating_min|default:'0' }}"
+                 style="width:100%;accent-color:var(--ink)"
+                 oninput="document.getElementById('rl-val-a').textContent=+this.value||'—'"
+                 hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                 hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+        </div>
+      </form>
+    </aside>
+
+    <div id="book-list">
+      {% include "books/_book_list.html" %}
+    </div>
+  </div>
+</div>{# /x-data editing #}
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "core/base.html" %}
+{% block title %}Создать клуб — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:620px;margin:0 auto">
+  <div class="club-panel">
+    <h1 style="font-size:22px;margin-bottom:10px">Создать книжный клуб</h1>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:24px">Можно начать с открытого круга, а можно сразу собрать приватное пространство по invite-ссылке.</p>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <label class="form-label">Название</label>
+      <input class="form-input" type="text" name="name" required
+             style="width:100%;margin-bottom:16px" placeholder="Клуб медленного чтения">
+
+      <label class="form-label">Описание</label>
+      <textarea class="form-input form-textarea" name="description" rows="4"
+                style="width:100%;margin-bottom:16px" placeholder="Какой у клуба ритм, настроение и правила?"></textarea>
+
+      <div class="club-inline-form" style="align-items:flex-end;margin-bottom:16px">
+        <label class="club-inline-form__field" style="max-width:160px">
+          <span>Лимит участников</span>
+          <input class="form-input" type="number" name="max_members" min="2" max="500" value="50">
+        </label>
+        <label class="form-check" style="padding-bottom:8px">
+          <input type="checkbox" name="is_public" checked>
+          <span>Открытый клуб</span>
+        </label>
+      </div>
+
+      <label class="form-label">Обложка</label>
+      <input class="form-input" type="file" name="cover_image" accept="image/*"
+             style="margin-bottom:24px">
+
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <a href="{% url 'clubs_list' %}" class="btn btn-ghost">Отмена</a>
+        <button type="submit" class="btn btn-primary">Создать</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

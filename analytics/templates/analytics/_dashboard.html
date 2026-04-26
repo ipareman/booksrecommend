@@ -1,0 +1,512 @@
+{% comment %}
+Аналитика: основной partial. Вставляется в #analytics-pane через HTMX
+(см. admin_panel.html). Данные — из analytics.compute.get_dashboard().
+Графики: Chart.js (загружается из static при первом рендере).
+{% endcomment %}
+{% load static %}
+
+<div class="analytics-wrap">
+
+  {# Верхний бар: «обновлено / обновить сейчас» #}
+  <div class="analytics-topbar">
+    <div style="font-size:12px;color:var(--ghost);line-height:1.5">
+      {% if d.from_cache %}
+        Данные из кеша · обновлено {{ d.generated_at|slice:":16" }} UTC
+      {% else %}
+        Пересчитано только что
+      {% endif %}
+    </div>
+    <button class="btn btn-ghost btn-sm"
+            hx-post="{% url 'admin_analytics_refresh' %}"
+            hx-target="#analytics-pane"
+            hx-swap="innerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+            hx-indicator="#analytics-spinner">
+      ⟳ Обновить сейчас
+    </button>
+    <span id="analytics-spinner" class="htmx-indicator" style="font-size:12px;color:var(--muted)">считаю…</span>
+  </div>
+
+  {# БЛОК A: 4 KPI-карточки #}
+  <div class="kpi-grid">
+    {% for key, item in d.kpis.items %}
+    {# k-ключ определяет иконку/подпись; item — значения #}
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-label">
+          {% if key == "users" %}👥 Пользователи
+          {% elif key == "books" %}📚 Книги
+          {% elif key == "reviews" %}✍ Отзывы+рецензии
+          {% elif key == "clicks" %}🛒 Клики «купить»
+          {% endif %}
+        </span>
+        <span class="kpi-delta {% if item.delta_n > 0 %}kpi-delta--up{% elif item.delta_n < 0 %}kpi-delta--down{% endif %}">
+          {% if item.delta_n > 0 %}↑{% elif item.delta_n < 0 %}↓{% else %}·{% endif %}
+          {{ item.delta_p }}%
+        </span>
+      </div>
+      <div class="kpi-value">{{ item.total }}</div>
+      <div class="kpi-sub">за 7 дней: <b>{{ item.recent }}</b></div>
+      <div class="kpi-spark-wrap"><canvas class="kpi-spark" data-spark="{{ key }}"></canvas></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# БЛОК B: большой график регистраций + БЛОК C: воронка (side-by-side) #}
+  <div class="analytics-row-2">
+
+    <section class="analytics-card">
+      <div class="card-head">
+        <h3>Регистрации · 30 дней</h3>
+        <div style="display:flex;gap:10px;align-items:baseline">
+          <span class="card-total">{{ d.registrations.total }}</span>
+          <a href="{% url 'analytics_detail_registrations' %}" class="lnk" style="font-size:12px">подробнее →</a>
+        </div>
+      </div>
+      <div class="chart-box big-chart-box"><canvas id="regMainChart"></canvas></div>
+    </section>
+
+    <section class="analytics-card">
+      <div class="card-head">
+        <h3>Воронка · 30 дней</h3>
+        <div style="display:flex;gap:10px;align-items:baseline">
+          <span class="card-total">{{ d.funnel.total_users }}</span>
+          <a href="{% url 'analytics_detail_funnel' %}" class="lnk" style="font-size:12px">подробнее →</a>
+        </div>
+      </div>
+      <div class="funnel">
+        {% for step in d.funnel.steps %}
+        <div class="funnel-row">
+          <div class="funnel-label">
+            <span class="funnel-count">{{ step.n }}</span>
+            <span>{{ step.label }}</span>
+          </div>
+          <div class="funnel-bar-outer">
+            <div class="funnel-bar" style="width:{{ step.w|floatformat:1 }}%"></div>
+          </div>
+          <div class="funnel-pct">
+            <b>{{ step.pct_base|floatformat:0 }}%</b>
+            {% if not forloop.first %}<span>({{ step.pct_prev|floatformat:0 }}% от пред.)</span>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+  </div>
+
+  {# БЛОК D: Топ-магазины + БЛОК E: Топ-книги (side-by-side) #}
+  <div class="analytics-row-2">
+
+    <section class="analytics-card">
+      <div class="card-head">
+        <h3>Топ-магазины по кликам · 30 дней</h3>
+        <div style="display:flex;gap:10px;align-items:baseline">
+          <span class="card-total">{{ d.stores.total_clicks }}</span>
+          <a href="{% url 'analytics_detail_stores' %}" class="lnk" style="font-size:12px">подробнее →</a>
+        </div>
+      </div>
+      {% if d.stores.rows %}
+      <div class="top-list">
+        {% for r in d.stores.rows %}
+        <div class="top-row">
+          <span class="top-icon">{{ r.icon }}</span>
+          <span class="top-name">{{ r.name }}</span>
+          <div class="top-bar-outer">
+            <div class="top-bar" style="width:{{ r.pct|floatformat:1 }}%"></div>
+          </div>
+          <span class="top-n">{{ r.clicks }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty">Пока ни одного клика. Когда пользователи начнут нажимать «Купить» — появятся данные.</p>
+      {% endif %}
+    </section>
+
+    <section class="analytics-card">
+      <div class="card-head">
+        <h3>Топ-книги по активности · 30 дней</h3>
+        <a href="{% url 'analytics_detail_books' %}" class="lnk" style="font-size:12px">подробнее →</a>
+      </div>
+      {% if d.top_books.rows %}
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Книга</th>
+            <th class="num">✍</th>
+            <th class="num">📄</th>
+            <th class="num">🛒</th>
+            <th class="num">score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in d.top_books.rows %}
+          <tr>
+            <td>
+              <a href="{% url 'book_detail' r.id %}" class="lnk">{{ r.title }}</a>
+              <div class="small-ghost">{{ r.authors }}</div>
+            </td>
+            <td class="num">{{ r.reviews }}</td>
+            <td class="num">{{ r.critiques }}</td>
+            <td class="num">{{ r.clicks }}</td>
+            <td class="num"><b>{{ r.score }}</b></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">Активности за месяц не набрано.</p>
+      {% endif %}
+    </section>
+
+  </div>
+
+  {# БЛОК F: Модерация + БЛОК G: AI (side-by-side) #}
+  <div class="analytics-row-2">
+
+    <section class="analytics-card">
+      <div class="card-head">
+        <h3>Модерация · 7 дней</h3>
+        <div style="display:flex;gap:10px;align-items:baseline">
+          <span class="card-total">{{ d.moderation.total_7d }}</span>
+          <a href="{% url 'analytics_detail_moderation' %}" class="lnk" style="font-size:12px">подробнее →</a>
+        </div>
+      </div>
+      <div class="mod-stats">
+        <div class="mod-badge">
+          <span class="mod-n">{{ d.moderation.pending_reviews }}</span>
+          <span class="mod-l">отзывов ждут</span>
+        </div>
+        <div class="mod-badge">
+          <span class="mod-n">{{ d.moderation.pending_critiques }}</span>
+          <span class="mod-l">рецензий ждут</span>
+        </div>
+      </div>
+      <div class="mod-actions">
+        {% for action, n in d.moderation.action_counts.items %}
+        <div class="mod-action-row">
+          <span>{{ action }}</span><b>{{ n }}</b>
+        </div>
+        {% empty %}
+        <p class="empty small">За неделю действий не было.</p>
+        {% endfor %}
+      </div>
+      {% if d.moderation.top_moderators %}
+      <div class="mod-top">
+        <p class="small-ghost">Активные модераторы:</p>
+        {% for m in d.moderation.top_moderators %}
+        <span class="mod-pill">{{ m.username }} · {{ m.n }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="analytics-card">
+      <div class="card-head">
+        <h3>AI · 7 дней</h3>
+        {% if d.ai.enabled %}
+          <a href="{% url 'ai_admin_dashboard' %}" class="lnk" style="font-size:12px">подробнее →</a>
+        {% endif %}
+      </div>
+      {% if d.ai.enabled %}
+      <div class="ai-grid">
+        <div class="ai-cell"><b>{{ d.ai.total }}</b><span>вызовов</span></div>
+        <div class="ai-cell"><b>{{ d.ai.tokens }}</b><span>токенов</span></div>
+        <div class="ai-cell"><b>{{ d.ai.avg_latency }}<small>ms</small></b><span>ср. задержка</span></div>
+        <div class="ai-cell {% if d.ai.error_rate > 5 %}ai-cell--warn{% endif %}">
+          <b>{{ d.ai.error_rate }}%</b><span>ошибки · {{ d.ai.errors }}</span>
+        </div>
+      </div>
+      {% else %}
+      <p class="empty">AI-модуль не подключён.</p>
+      {% endif %}
+    </section>
+
+  </div>
+
+  {# БЛОК H: Retention-когорты 8×8 #}
+  <section class="analytics-card">
+    <div class="card-head">
+      <h3>Retention-когорты · 8 недель</h3>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="small-ghost">строка: неделя регистрации · столбец: неделя с регистрации</span>
+        <a href="{% url 'analytics_detail_cohorts' %}" class="lnk" style="font-size:12px">подробнее →</a>
+      </div>
+    </div>
+    <div class="cohort-wrap">
+      <table class="cohort">
+        <thead>
+          <tr>
+            <th>когорта</th>
+            <th class="cohort-size">размер</th>
+            {% for wk in d.cohorts.depth_labels %}
+            <th>W{{ wk }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in d.cohorts.rows %}
+          <tr>
+            <th>{{ row.label }}</th>
+            <td class="cohort-size">{{ row.cohort_size }}</td>
+            {% for cell in row.cells %}
+              {% if cell.future %}
+                <td class="cohort-cell cohort-cell--future"></td>
+              {% else %}
+                <td class="cohort-cell"
+                    data-pct="{{ cell.pct|floatformat:0 }}"
+                    title="{{ cell.n }} активны / {{ row.cohort_size }} ({{ cell.pct }}%)"
+                    style="--pct: {{ cell.pct|floatformat:1 }};">
+                  {{ cell.pct|floatformat:0 }}%
+                </td>
+              {% endif %}
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="small-ghost" style="margin-top:10px">
+      Активность = поиск, отзыв/рецензия, обновление прогресса чтения. Неделя 0 = та же, что регистрация.
+    </p>
+  </section>
+
+</div>
+
+{# Стили. Все используют CSS-переменные дизайн-системы #}
+<style>
+  .analytics-wrap { display:flex; flex-direction:column; gap:16px; margin-top:4px; }
+  .analytics-topbar {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 14px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius);
+  }
+
+  /* ─ Карточки ─────────────────────────────────────────── */
+  .analytics-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px 18px; min-width:0;
+  }
+  .analytics-card .card-head {
+    display:flex; justify-content:space-between; align-items:baseline;
+    border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:12px;
+  }
+  .analytics-card .card-head h3 { font-size:13px; font-weight:600; margin:0;
+                                   text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .analytics-card .card-total { font-family:'Mltsvfont'; font-size:18px; color:var(--ink); }
+
+  .analytics-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:860px) { .analytics-row-2 { grid-template-columns:1fr; } }
+
+  /* ─ KPI ──────────────────────────────────────────────── */
+  .kpi-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; }
+  @media (max-width:860px) { .kpi-grid { grid-template-columns:repeat(2, 1fr); } }
+  .kpi-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:14px 16px;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .kpi-top { display:flex; justify-content:space-between; align-items:baseline; font-size:12px; }
+  .kpi-label { color:var(--muted); }
+  .kpi-delta { font-size:11px; color:var(--ghost); }
+  .kpi-delta--up   { color:#0a7a42; }
+  .kpi-delta--down { color:#b32020; }
+  .kpi-value { font-family:'Mltsvfont'; font-size:28px; color:var(--ink); line-height:1.1; }
+  .kpi-sub   { font-size:11px; color:var(--ghost); }
+  .kpi-spark { width:100%; height:28px; margin-top:6px; }
+
+  /* ─ Воронка ──────────────────────────────────────────── */
+  .funnel { display:flex; flex-direction:column; gap:8px; }
+  .funnel-row { display:grid; grid-template-columns:minmax(140px, 1fr) 2fr minmax(80px, auto); gap:10px; align-items:center; }
+  .funnel-label { display:flex; gap:8px; align-items:baseline; font-size:13px; }
+  .funnel-count { font-family:'Mltsvfont'; font-size:16px; color:var(--ink); min-width:28px; }
+  .funnel-bar-outer { background:#f2ecdf; border-radius:6px; height:16px; overflow:hidden; }
+  .funnel-bar { background:var(--ink); height:100%; border-radius:6px; }
+  .funnel-pct { font-size:11px; color:var(--muted); text-align:right; }
+  .funnel-pct b { color:var(--ink); font-weight:600; }
+  .funnel-pct span { display:block; font-size:10px; color:var(--ghost); }
+
+  /* ─ Top-list (магазины) ──────────────────────────────── */
+  .top-list { display:flex; flex-direction:column; gap:6px; }
+  .top-row {
+    display:grid; grid-template-columns:24px 1fr 2fr 40px; gap:10px; align-items:center;
+    font-size:13px; padding:4px 0;
+  }
+  .top-icon { font-size:16px; }
+  .top-name { color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .top-bar-outer { background:#f2ecdf; border-radius:4px; height:8px; overflow:hidden; }
+  .top-bar { background:var(--ink); height:100%; }
+  .top-n { text-align:right; color:var(--muted); font-size:12px; }
+
+  /* ─ Таблица top-books ────────────────────────────────── */
+  .tbl { width:100%; border-collapse:collapse; font-size:13px; }
+  .tbl th { text-align:left; color:var(--muted); font-size:11px; text-transform:uppercase;
+            letter-spacing:.04em; border-bottom:1px solid var(--border); padding:6px 8px;
+            font-weight:600; }
+  .tbl td { border-bottom:1px solid var(--border); padding:8px; vertical-align:top; }
+  .tbl td.num, .tbl th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .tbl .small-ghost { font-size:11px; color:var(--ghost); margin-top:2px; }
+
+  /* ─ Модерация ────────────────────────────────────────── */
+  .mod-stats { display:flex; gap:12px; margin-bottom:12px; }
+  .mod-badge {
+    flex:1; background:#fff8e1; border:1px solid #f2d28a; border-radius:var(--radius);
+    padding:10px 12px; display:flex; flex-direction:column; gap:2px;
+  }
+  .mod-n { font-family:'Mltsvfont'; font-size:22px; color:var(--ink); }
+  .mod-l { font-size:11px; color:var(--muted); }
+  .mod-actions { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+  .mod-action-row { display:flex; justify-content:space-between; font-size:12px;
+                    padding:4px 0; border-bottom:1px dashed var(--border); }
+  .mod-action-row b { color:var(--ink); font-weight:600; }
+  .mod-top { margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .mod-pill { background:#fff; border:1px solid var(--border); padding:3px 8px;
+              font-size:11px; border-radius:10px; color:var(--muted); }
+
+  /* ─ AI ───────────────────────────────────────────────── */
+  .ai-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
+  .ai-cell {
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:10px 12px; display:flex; flex-direction:column; gap:2px;
+  }
+  .ai-cell b { font-family:'Mltsvfont'; font-size:20px; color:var(--ink); }
+  .ai-cell b small { font-size:11px; font-family:inherit; color:var(--ghost); margin-left:2px; }
+  .ai-cell span { font-size:11px; color:var(--muted); }
+  .ai-cell--warn { background:#fff5e6; border-color:#e5a552; }
+
+  /* ─ Cohort-тепловая карта ───────────────────────────── */
+  .cohort-wrap { overflow-x:auto; }
+  .cohort { border-collapse:separate; border-spacing:2px; width:auto; font-size:12px; }
+  .cohort thead th {
+    font-size:10px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.04em; padding:4px 6px; font-weight:600; white-space:nowrap;
+  }
+  .cohort tbody th {
+    text-align:right; color:var(--muted); padding:4px 8px; font-weight:500;
+    font-size:11px; white-space:nowrap;
+  }
+  .cohort .cohort-size {
+    text-align:center; font-variant-numeric:tabular-nums; color:var(--ghost);
+    font-size:11px; padding:2px 6px;
+  }
+  .cohort-cell {
+    width:42px; height:30px; text-align:center; font-size:11px;
+    font-variant-numeric:tabular-nums; border-radius:3px; color:#fff;
+    /* Фон вычисляется через --pct (0..100), линейная интерполяция
+       от светлого к тёмно-чернильному. */
+    background: color-mix(in srgb, var(--ink) calc(var(--pct) * 1%), #f2ecdf);
+    text-shadow: 0 0 2px rgba(0,0,0,.3);
+  }
+  .cohort-cell[data-pct="0"] { color:var(--ghost); text-shadow:none; }
+  .cohort-cell--future { background:repeating-linear-gradient(
+      45deg, #f2ecdf, #f2ecdf 4px, #e8ddc3 4px, #e8ddc3 8px); }
+
+  /* ─ «Пусто» ─────────────────────────────────────────── */
+  .analytics-wrap .empty { color:var(--muted); font-size:12px; padding:20px 0; text-align:center; }
+  .analytics-wrap .empty.small { padding:6px 0; }
+  .small-ghost { font-size:11px; color:var(--ghost); }
+
+  /* ─ Canvas / Chart.js ──────────────────────────────── */
+  .chart-box { position:relative; height:200px; width:100%; }
+  .big-chart-box { height:220px; }
+  .kpi-spark-wrap { height:32px; margin-top:6px; position:relative; }
+  .kpi-spark { width:100%; height:100%; display:block; }
+
+  /* HTMX индикатор */
+  .htmx-indicator { display:none; }
+  .htmx-request .htmx-indicator { display:inline; }
+</style>
+
+<script id="analytics-dashboard-data" type="application/json">{{ d.chart_js_payload|safe }}</script>
+
+<script src="{% static 'js/chart.umd.js' %}"></script>
+<script>
+(function waitChart(){
+  if (!window.Chart) { setTimeout(waitChart, 30); return; }
+
+  var cs = getComputedStyle(document.documentElement);
+  var ink    = (cs.getPropertyValue('--ink')    || '#111').trim();
+  var border = (cs.getPropertyValue('--border') || '#e6dfca').trim();
+  var muted  = (cs.getPropertyValue('--muted')  || '#7a6f55').trim();
+
+  var el = document.getElementById('analytics-dashboard-data');
+  if (!el) return;
+  var data = JSON.parse(el.textContent);
+
+  // ── Большой график регистраций ──────────────────────────
+  var regCanvas = document.getElementById('regMainChart');
+  if (regCanvas && data.reg && data.reg.values && data.reg.values.length) {
+    // Убиваем предыдущий инстанс если есть (при refresh)
+    var prev = Chart.getChart(regCanvas);
+    if (prev) prev.destroy();
+    new Chart(regCanvas, {
+      type: 'line',
+      data: {
+        labels: data.reg.labels,
+        datasets: [{
+          label: 'Регистрации',
+          data: data.reg.values,
+          borderColor: ink,
+          backgroundColor: 'rgba(20,20,20,.10)',
+          fill: true,
+          tension: 0.28,
+          pointRadius: 2,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: border, drawBorder:false },
+               ticks: { color: muted, font:{size:10}, maxRotation:0,
+                        autoSkip:true, maxTicksLimit:10 } },
+          y: { beginAtZero: true,
+               grid: { color: border, drawBorder:false },
+               ticks: { color: muted, font:{size:10}, precision:0 } }
+        }
+      }
+    });
+  }
+
+  // ── KPI-спарклайны (4 маленьких line-чарта без осей) ────
+  if (data.sparks) {
+    Object.keys(data.sparks).forEach(function(key){
+      var canvas = document.querySelector('canvas.kpi-spark[data-spark="' + key + '"]');
+      if (!canvas) return;
+      var sp = data.sparks[key];
+      if (!sp.values || !sp.values.length) return;
+      var prev = Chart.getChart(canvas);
+      if (prev) prev.destroy();
+      new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: sp.labels,
+          datasets: [{
+            data: sp.values,
+            borderColor: ink,
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.3,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display:false },
+                     tooltip: { enabled: true,
+                                displayColors: false,
+                                backgroundColor: ink,
+                                titleFont: {size:11}, bodyFont:{size:11} } },
+          scales: { x: { display:false }, y: { display:false } },
+          elements: { line: { borderJoinStyle: 'round' } },
+        }
+      });
+    });
+  }
+})();
+</script>

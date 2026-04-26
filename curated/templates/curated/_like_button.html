@@ -1,0 +1,21 @@
+{# Кнопка лайка подборки. Рендерится на detail-странице и при htmx-toggle. #}
+<div id="collection-like-{{ collection.pk }}" class="col-like">
+  {% if user.is_authenticated %}
+    <button type="button"
+            class="col-like__btn {% if is_liked %}col-like__btn--active{% endif %}"
+            hx-post="{% url 'collection_like_toggle' collection.pk %}"
+            hx-target="#collection-like-{{ collection.pk }}"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+            aria-label="{% if is_liked %}Убрать из понравившихся{% else %}Добавить в понравившиеся{% endif %}"
+            title="{% if is_liked %}Убрать из понравившихся{% else %}Добавить в понравившиеся{% endif %}">
+      <span class="col-like__heart" aria-hidden="true">{% if is_liked %}♥{% else %}♡{% endif %}</span>
+      <span class="col-like__count">{{ likes_count }}</span>
+    </button>
+  {% else %}
+    <a href="{% url 'login' %}" class="col-like__btn" title="Войдите, чтобы поставить лайк">
+      <span class="col-like__heart" aria-hidden="true">♡</span>
+      <span class="col-like__count">{{ likes_count }}</span>
+    </a>
+  {% endif %}
+</div>

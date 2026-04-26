@@ -1,0 +1,43 @@
+{% load recaptcha_tags %}
+{# Форма с reCAPTCHA для запроса цены. Отправляется через HTMX. #}
+<form id="price-captcha-form-{{ book.id }}"
+      style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+  {% csrf_token %}
+
+  {# reCAPTCHA widget — рендерится только если RECAPTCHA_SITE_KEY задан #}
+  {% recaptcha_widget %}
+
+  <button type="button"
+          class="btn btn-secondary btn-sm"
+          onclick="submitPriceForm({{ book.id }}, this)" style="margin-left:auto">
+    Запросить цену
+  </button>
+</form>
+
+<script>
+function submitPriceForm(bookId, btn) {
+  const form     = document.getElementById('price-captcha-form-' + bookId);
+  const response = form.querySelector('[name="g-recaptcha-response"]');
+
+  // Если reCAPTCHA не подключена — просто отправляем
+  const token = response ? response.value : '';
+
+  const formData = new FormData();
+  formData.append('csrfmiddlewaretoken', form.querySelector('[name=csrfmiddlewaretoken]').value);
+  formData.append('g-recaptcha-response', token);
+
+  btn.disabled = true;
+  btn.textContent = 'Отправляю...';
+
+  fetch('/books/' + bookId + '/request-price/', {
+    method: 'POST',
+    body: formData,
+    headers: { 'HX-Request': 'true' }
+  })
+  .then(r => r.text())
+  .then(html => {
+    document.getElementById('price-block-' + bookId).outerHTML = html;
+  })
+  .catch(() => { btn.disabled = false; btn.textContent = 'Запросить цену'; });
+}
+</script>

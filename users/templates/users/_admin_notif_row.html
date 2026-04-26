@@ -1,0 +1,43 @@
+{# Одна строка матрицы «уведомления × каналы». HTMX swap target. #}
+<tr id="notif-row-{{ row.event }}">
+  <td style="padding:12px 14px;font-size:13px">
+    <div style="font-weight:600">{{ row.label }}</div>
+    <div style="font-size:11px;color:var(--ghost);font-family:ui-monospace,Menlo,monospace;margin-top:2px">{{ row.event }}</div>
+  </td>
+  <td style="text-align:center;padding:12px 8px">
+    <button type="button"
+            class="notif-toggle {% if row.telegram %}notif-toggle--on{% endif %}"
+            hx-post="{% url 'admin_notif_toggle' %}"
+            hx-vals='{"event":"{{ row.event }}","channel":"telegram"}'
+            hx-target="#notif-row-{{ row.event }}"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+            aria-label="Telegram: {% if row.telegram %}вкл{% else %}выкл{% endif %}">
+      {% if row.telegram %}✓{% else %}—{% endif %}
+    </button>
+  </td>
+  <td style="text-align:center;padding:12px 8px">
+    <button type="button"
+            class="notif-toggle {% if row.max %}notif-toggle--on{% endif %}"
+            hx-post="{% url 'admin_notif_toggle' %}"
+            hx-vals='{"event":"{{ row.event }}","channel":"max"}'
+            hx-target="#notif-row-{{ row.event }}"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+            aria-label="MAX: {% if row.max %}вкл{% else %}выкл{% endif %}">
+      {% if row.max %}✓{% else %}—{% endif %}
+    </button>
+  </td>
+  <td style="text-align:center;padding:12px 8px">
+    <button type="button"
+            class="notif-toggle {% if row.email %}notif-toggle--on{% endif %}"
+            hx-post="{% url 'admin_notif_toggle' %}"
+            hx-vals='{"event":"{{ row.event }}","channel":"email"}'
+            hx-target="#notif-row-{{ row.event }}"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+            aria-label="Email: {% if row.email %}вкл{% else %}выкл{% endif %}">
+      {% if row.email %}✓{% else %}—{% endif %}
+    </button>
+  </td>
+</tr>

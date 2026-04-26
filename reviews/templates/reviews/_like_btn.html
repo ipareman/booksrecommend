@@ -1,0 +1,14 @@
+{% if user.is_authenticated %}
+<button hx-post="{% url 'review_like' review.pk %}"
+        hx-target="this"
+        hx-swap="outerHTML"
+        hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+        class="btn btn-secondary btn-sm"
+        style="font-size:11px;padding:3px 10px;line-height:1.4">
+  {% if liked %}❤️{% else %}🤍{% endif %} {{ likes_count }}
+</button>
+{% else %}
+<span style="font-size:11px;color:var(--ghost)">
+  {% if likes_count %}❤️ {{ likes_count }}{% endif %}
+</span>
+{% endif %}

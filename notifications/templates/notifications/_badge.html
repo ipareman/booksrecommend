@@ -1,0 +1,20 @@
+{% comment %}
+  HTMX-фрагмент бейджа уведомлений. Рендерится:
+  - как дочерний элемент навбара в base.html (initial render);
+  - как ответ view `notifications_badge` при polling'е (hx-swap='outerHTML').
+
+  Важно: сам <span> подписан на hx-trigger каждые 10с, swap='outerHTML' —
+  он же сам себя заменяет новой копией, сохраняя polling живым.
+
+  `notifications_unread` прокидывается:
+  - из context-processor (initial render);
+  - или из view badge_partial (HTMX-ответ).
+{% endcomment %}
+<span id="notif-badge"
+      hx-get="{% url 'notifications_badge' %}"
+      hx-trigger="every 10s"
+      hx-swap="outerHTML">
+  {% if notifications_unread %}
+    <span style="position:absolute;top:-4px;right:-8px;background:var(--err);color:#fff;font-size:10px;min-width:16px;height:16px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 4px">{{ notifications_unread }}</span>
+  {% endif %}
+</span>

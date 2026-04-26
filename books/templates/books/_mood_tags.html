@@ -1,0 +1,25 @@
+<div id="mood-tags" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+  {% for bm in moods %}
+  <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+               background:var(--surface);border:1px solid var(--border);border-radius:999px;
+               font-size:12px;color:var(--ink);cursor:default"
+        title="{{ bm.mood.get_category_display }}: {{ bm.mood.name }} ({{ bm.vote_count }} голосов)">
+    {{ bm.mood.icon }} {{ bm.mood.name }}
+    {% if bm.vote_count > 0 %}
+    <span style="font-size:10px;color:var(--ghost)">{{ bm.vote_count }}</span>
+    {% endif %}
+    {% if user.is_authenticated %}
+    <button style="background:none;border:none;cursor:pointer;font-size:10px;
+                   color:var(--muted);padding:0 2px;line-height:1"
+            hx-post="{% url 'vote_mood' book.pk bm.mood.pk %}"
+            hx-target="#mood-tags"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+            title="Согласен">+1</button>
+    {% endif %}
+  </span>
+  {% endfor %}
+  {% if not moods %}
+  <span style="font-size:12px;color:var(--ghost)">Настроение пока не определено</span>
+  {% endif %}
+</div>

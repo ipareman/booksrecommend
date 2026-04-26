@@ -1,0 +1,40 @@
+{% if critiques %}
+  {% for critique in critiques %}
+  <a href="{% url 'critique_detail' critique.pk %}" class="critique-list-card" style="display:block;text-decoration:none;color:var(--ink)">
+    <div style="display:flex;gap:14px">
+      {% if critique.cover_image %}
+        <img src="{{ critique.cover_image.url }}" alt=""
+             style="width:60px;height:80px;object-fit:cover;border-radius:3px;flex-shrink:0">
+      {% endif %}
+      <div style="flex:1;min-width:0">
+        <div class="critique-list-card__title">{{ critique.title }}</div>
+        <div class="critique-list-card__meta">
+          <span>{{ critique.user.username }}</span>
+          <span>{{ critique.stars_display }}</span>
+          <span>{{ critique.created_at|date:"d.m.Y" }}</span>
+          {% if critique.likes_count %}<span>&hearts; {{ critique.likes_count }}</span>{% endif %}
+          {% if scope == 'all' and critique.book_id != book.id %}<span style="color:var(--ghost)">изд.: {{ critique.book.publisher|default:"—" }}</span>{% endif %}
+        </div>
+        <div class="critique-list-card__excerpt">{{ critique.body_excerpt }}</div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+
+  {% if has_more_critiques %}
+  {# Stable id вместо closest div — append-семантика идентична reviews. #}
+  <div id="load-more-critiques" style="text-align:center;padding:12px 0">
+    <button class="btn btn-secondary btn-sm"
+            hx-get="{% url 'critiques_page' book.pk %}?page={{ next_page }}"
+            hx-target="#load-more-critiques" hx-swap="outerHTML"
+            hx-indicator="#critiques-spinner">
+      Показать ещё
+    </button>
+    <span id="critiques-spinner" class="htmx-indicator">
+      <span class="spinner" style="display:inline-block;width:14px;height:14px"></span>
+    </span>
+  </div>
+  {% endif %}
+{% else %}
+  <p class="empty">Рецензий пока нет</p>
+{% endif %}

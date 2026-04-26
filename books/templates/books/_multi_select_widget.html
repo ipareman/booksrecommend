@@ -1,0 +1,95 @@
+{# Виджет: список с чекбоксами + поиск + создание нового элемента. #}
+{# Параметры: widget_type, label, search_placeholder, new_placeholder, new_btn_label, #}
+{# create_fn, search_model, selected_model, new_name_model, show_new_model, new_list_model, items #}
+<div style="margin-bottom:24px">
+  <label class="form-label">{{ label }}</label>
+
+  {# Чипы выбранных — из Django queryset #}
+  <div style="display:flex;flex-wrap:wrap;gap:6px;min-height:10px;margin-bottom:8px">
+    {% for item in items %}
+    <template x-if="{{ selected_model }}.includes({{ item.pk }})">
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+                   background:var(--accent);color:#fff;border-radius:999px;font-size:12px">
+        {{ item.name }}
+        <button type="button"
+                @click="{{ selected_model }} = {{ selected_model }}.filter(id => id !== {{ item.pk }})"
+                style="background:none;border:none;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:0">×</button>
+      </span>
+    </template>
+    {% endfor %}
+    {# Чипы только что созданных через fetch #}
+<template x-for="item in {{ new_list_model }}" :key="item.id">
+  <template x-if="{{ selected_model }}.includes(item.id)">
+    <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+                 background:var(--accent);color:#fff;border-radius:999px;font-size:12px">
+      <span x-text="item.name"></span>
+      <button type="button"
+              @click="{{ selected_model }} = {{ selected_model }}.filter(id => id !== item.id)"
+              style="background:none;border:none;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:0">×</button>
+    </span>
+  </template>
+</template>
+  </div>
+
+  {# Поиск #}
+  <input class="form-input" type="text" x-model="{{ search_model }}"
+         placeholder="{{ search_placeholder }}" style="margin-bottom:6px" autocomplete="off">
+
+  {# Список: x-show на div-обёртке, не на label — иначе Alpine сбрасывает display:flex. #}
+  <div style="border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto">
+
+    {% for item in items %}
+    <div data-name="{{ item.name|lower }}"
+         x-show="!{{ search_model }} || $el.dataset.name.includes({{ search_model }}.toLowerCase())"
+         :style="{{ selected_model }}.includes({{ item.pk }}) ? 'background:var(--surface)' : ''">
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                    cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">
+        <input type="checkbox" name="{{ widget_type }}" value="{{ item.pk }}"
+               {% if form_id %}form="{{ form_id }}"{% endif %}
+               :checked="{{ selected_model }}.includes({{ item.pk }})"
+               @change="{{ selected_model }}.includes({{ item.pk }})
+                 ? {{ selected_model }} = {{ selected_model }}.filter(id => id !== {{ item.pk }})
+                 : {{ selected_model }}.push({{ item.pk }})">
+        {{ item.name }}
+      </label>
+    </div>
+    {% endfor %}
+
+    {# Только что созданные через fetch — тоже фильтруются поиском #}
+    <template x-for="item in {{ new_list_model }}" :key="item.id">
+      <div :style="(!{{ search_model }} || item.name.toLowerCase().includes({{ search_model }}.toLowerCase()) ? '' : 'display:none;') + ({{ selected_model }}.includes(item.id) ? 'background:var(--surface)' : '')">
+        <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                      cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">
+          <input type="checkbox" :name="'{{ widget_type }}'" :value="item.id"
+                 {% if form_id %}form="{{ form_id }}"{% endif %}
+                 :checked="{{ selected_model }}.includes(item.id)"
+                 @change="{{ selected_model }}.includes(item.id)
+                   ? {{ selected_model }} = {{ selected_model }}.filter(id => id !== item.id)
+                   : {{ selected_model }}.push(item.id)">
+          <span x-text="item.name"></span>
+        </label>
+      </div>
+    </template>
+
+    {# «Список пуст» — скрываем если есть только что созданные элементы #}
+    {% if not items %}
+    <p x-show="{{ new_list_model }}.length === 0"
+       style="padding:12px;font-size:13px;color:var(--ghost);margin:0">Список пуст</p>
+    {% endif %}
+
+  </div>
+
+  {# Кнопка создать новый #}
+  <div style="margin-top:8px">
+    <button type="button" @click="{{ show_new_model }} = !{{ show_new_model }}"
+            class="btn btn-secondary btn-sm">{{ new_btn_label }}</button>
+    <div x-show="{{ show_new_model }}" x-cloak
+         style="display:flex;gap:8px;margin-top:8px;align-items:center">
+      <input class="form-input" type="text" x-model="{{ new_name_model }}"
+             placeholder="{{ new_placeholder }}" style="max-width:280px"
+             @keydown.enter.prevent="{{ create_fn }}()">
+      <button type="button" class="btn btn-secondary btn-sm"
+              @click="{{ create_fn }}()">Создать</button>
+    </div>
+  </div>
+</div>

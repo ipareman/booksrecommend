@@ -1,0 +1,39 @@
+{% extends "core/base.html" %}
+{% block title %}Рекомендации от друзей — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:640px;margin:0 auto">
+
+  <h1 style="font-size:22px;margin-bottom:24px">Рекомендации от друзей</h1>
+
+  {% for rec in recs %}
+  <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <a href="{% url 'user_profile_public' rec.from_user.username %}"
+         class="lnk" style="font-weight:600;font-size:14px">{{ rec.from_user.username }}</a>
+      <span style="font-size:12px;color:var(--ghost)">{{ rec.created_at|timesince }} назад</span>
+    </div>
+    <a href="{% url 'book_detail' rec.book.pk %}"
+       style="display:flex;align-items:center;gap:10px;padding:8px 10px;
+              background:var(--surface);border-radius:var(--radius);text-decoration:none;color:var(--ink)">
+      {% if rec.book.cover_image %}
+        <img src="{{ rec.book.cover_image.url }}" alt=""
+             style="width:36px;height:54px;object-fit:cover;border-radius:3px" loading="lazy">
+      {% endif %}
+      <div>
+        <div style="font-size:14px;font-weight:500">{{ rec.book.title }}</div>
+        <div style="font-size:12px;color:var(--muted)">
+          {% for a in rec.book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </div>
+      </div>
+    </a>
+    {% if rec.message %}
+    <p style="font-size:13px;color:var(--muted);margin-top:8px;font-style:italic">&laquo;{{ rec.message }}&raquo;</p>
+    {% endif %}
+  </div>
+  {% empty %}
+  <p class="empty" style="padding:40px 0;text-align:center">Вам пока не рекомендовали книги</p>
+  {% endfor %}
+
+</div>
+{% endblock %}

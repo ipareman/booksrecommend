@@ -1,0 +1,197 @@
+{% extends "core/base.html" %}
+{% block title %}Граф связей — Администратор — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
+    <div>
+      <a href="{% url 'admin_panel' %}" class="lnk-muted" style="font-size:13px">&larr; Панель</a>
+      <h1 style="font-size:22px;margin-top:4px">Граф связей — управление</h1>
+    </div>
+    <form method="post" action="{% url 'graph_generate_auto' %}">
+      {% csrf_token %}
+      <button class="btn btn-secondary btn-sm"
+              onclick="return confirm('Сгенерировать автосвязи для всех книг?')">
+        ⟳ Автосвязи для всех книг
+      </button>
+    </form>
+  </div>
+
+  <div class="home-grid" style="gap:32px;align-items:flex-start">
+
+    {# ── ЛЕВАЯ КОЛОНКА: поиск книги ─────────────────────────────────────── #}
+    <div>
+      <p class="section-label" style="margin-bottom:10px">Выбрать книгу</p>
+
+      <form method="get" action="" id="book-search-form" style="margin-bottom:12px">
+        <input class="form-input" type="text" name="q" value="{{ q }}"
+               placeholder="Название или автор..."
+               autocomplete="off"
+               hx-get="{% url 'graph_admin' %}"
+               hx-trigger="input changed delay:300ms"
+               hx-target="#book-search-results"
+               hx-select="#book-search-results"
+               hx-swap="outerHTML"
+               hx-include="#book-search-form"
+               style="width:100%">
+        {% if selected_book %}
+          <input type="hidden" name="book_id" value="{{ selected_book.pk }}">
+        {% endif %}
+      </form>
+
+      <div id="book-search-results">
+        {% if search_books %}
+          {% for book in search_books %}
+          <a href="?q={{ q }}&book_id={{ book.pk }}"
+             class="graph-book-row {% if selected_book and selected_book.pk == book.pk %}graph-book-row--active{% endif %}">
+            {% if book.cover_image %}
+              <img src="{{ book.cover_image.url }}" alt="" style="width:26px;height:38px;object-fit:cover;border-radius:2px;flex-shrink:0">
+            {% else %}
+              <div style="width:26px;height:38px;background:var(--bg-alt);border-radius:2px;flex-shrink:0"></div>
+            {% endif %}
+            <div>
+              <div style="font-size:13px;font-weight:500">{{ book.title }}</div>
+              <div style="font-size:11px;color:var(--ghost)">{{ book.authors.all|join:", " }}</div>
+            </div>
+          </a>
+          {% endfor %}
+        {% elif q %}
+          <p style="font-size:13px;color:var(--ghost)">Ничего не найдено</p>
+        {% else %}
+          <p style="font-size:13px;color:var(--ghost)">Введите название для поиска</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── ПРАВАЯ КОЛОНКА: управление связями ─────────────────────────────── #}
+    <div>
+      {% if selected_book %}
+
+      {# Выбранная книга #}
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;
+                  padding:12px;background:var(--bg-alt);border-radius:var(--radius)">
+        {% if selected_book.cover_image_image %}
+          <img src="{{ selected_book.cover_image_image.url }}" alt=""
+               style="width:36px;height:52px;object-fit:cover;border-radius:2px;flex-shrink:0">
+        {% endif %}
+        <div style="flex:1;min-width:0">
+          <a href="{% url 'book_detail' selected_book.pk %}" class="lnk"
+             style="font-size:15px;font-weight:600">{{ selected_book.title }}</a>
+          <div style="font-size:12px;color:var(--ghost);margin-top:2px">
+            {{ selected_book.authors.all|join:", " }}
+          </div>
+        </div>
+        <a href="{% url 'book_graph' selected_book.pk %}" class="btn btn-ghost btn-sm">Граф →</a>
+      </div>
+
+      {# Добавить связь #}
+      <div style="margin-bottom:20px;padding:14px;border:1px solid var(--border);border-radius:var(--radius)">
+        <p class="section-label" style="margin-bottom:10px">Добавить связь</p>
+
+        <form id="add-rel-form"
+              hx-post="{% url 'graph_admin_add' %}"
+              hx-target="#relations-list"
+              hx-swap="innerHTML"
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+              style="display:flex;flex-direction:column;gap:8px">
+          <input type="hidden" name="book_from_id" value="{{ selected_book.pk }}">
+          <input type="hidden" name="book_to_id" id="book-to-id">
+
+          {# Поиск целевой книги #}
+          <div style="position:relative">
+            <input id="book-to-input" class="form-input" type="text"
+                   placeholder="Книга-цель (название)..."
+                   autocomplete="off"
+                   hx-get="{% url 'graph_search_books' %}"
+                   hx-trigger="focus, input changed delay:250ms"
+                   hx-target="#book-to-dropdown"
+                   hx-swap="innerHTML"
+                   name="q"
+                   style="width:100%"
+                   onfocus="document.getElementById('book-to-dropdown').style.display='block'"
+                   oninput="if(!this.value){document.getElementById('book-to-id').value='';document.getElementById('book-to-label').textContent=''}">
+            <div id="book-to-dropdown"
+                 style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:100;
+                        background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+                        box-shadow:0 4px 16px rgba(0,0,0,.08);max-height:220px;overflow-y:auto">
+            </div>
+          </div>
+
+          {# Показать выбранную #}
+          <div id="book-to-selected" style="display:none;font-size:12px;color:var(--muted);padding:2px 0">
+            Выбрана: <span id="book-to-label" style="color:var(--ink);font-weight:500"></span>
+            <button type="button" onclick="clearBookTo()" class="lnk-muted" style="margin-left:6px">×</button>
+          </div>
+
+          <select name="relation_type" class="form-input" required>
+            {% for value, label in relation_types %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+
+          <button id="add-rel-btn" class="btn btn-primary btn-sm" type="submit" disabled>
+            Добавить связь
+          </button>
+        </form>
+      </div>
+
+      {# Список связей #}
+      <div>
+        <p class="section-label" style="margin-bottom:10px">
+          Связи книги ({{ relations|length }})
+        </p>
+        <div id="relations-list">
+          {% include "graph/_relations_list.html" %}
+        </div>
+      </div>
+
+      {% else %}
+      <div style="text-align:center;padding:60px 0;color:var(--ghost)">
+        <div style="font-size:40px;margin-bottom:12px;opacity:.4">↖</div>
+        <p style="font-size:14px">Выберите книгу слева для управления связями</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function selectBookTo(id, title) {
+  document.getElementById('book-to-id').value = id;
+  document.getElementById('book-to-input').value = title;
+  document.getElementById('book-to-label').textContent = title;
+  document.getElementById('book-to-selected').style.display = 'block';
+  document.getElementById('book-to-dropdown').style.display = 'none';
+  document.getElementById('add-rel-btn').disabled = false;
+}
+
+function clearBookTo() {
+  document.getElementById('book-to-id').value = '';
+  document.getElementById('book-to-input').value = '';
+  document.getElementById('book-to-label').textContent = '';
+  document.getElementById('book-to-selected').style.display = 'none';
+  document.getElementById('add-rel-btn').disabled = true;
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const dropdown = document.getElementById('book-to-dropdown');
+  const input = document.getElementById('book-to-input');
+  if (dropdown && input && !input.contains(e.target) && !dropdown.contains(e.target)) {
+    dropdown.style.display = 'none';
+  }
+});
+
+// Clear book_to after successful add
+document.body.addEventListener('htmx:afterRequest', function(e) {
+  if (e.detail.elt && e.detail.elt.id === 'add-rel-form' && e.detail.successful) {
+    clearBookTo();
+    document.querySelector('#add-rel-form select[name=relation_type]').selectedIndex = 0;
+  }
+});
+</script>
+{% endblock %}

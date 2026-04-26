@@ -1,0 +1,61 @@
+{% load static %}
+{# Модалка с reCAPTCHA перед запросом цены #}
+<div id="price-captcha-modal-{{ book.id }}"
+     onclick="if(event.target===this)this.style.display='none'"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+            z-index:1100;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:10px;padding:24px;max-width:380px;width:100%;
+              box-shadow:0 20px 60px rgba(0,0,0,.2)">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-weight:700;font-size:15px">Подтвердите, что вы человек</div>
+        <div style="font-size:12px;color:var(--ghost);margin-top:2px">Чтобы запросить актуальные цены</div>
+      </div>
+      <button onclick="document.getElementById('price-captcha-modal-{{ book.id }}').style.display='none'"
+              style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--ghost)">×</button>
+    </div>
+
+    <form id="price-form-{{ book.id }}"
+          hx-post="{% url 'request_price' book.id %}"
+          hx-target="#price-block-{{ book.id }}"
+          hx-swap="outerHTML"
+          hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+
+      {% if recaptcha_public_key %}
+        <div class="g-recaptcha"
+             data-sitekey="{{ recaptcha_public_key }}"
+             data-callback="onCaptchaDone{{ book.id }}"
+             style="margin-bottom:16px"></div>
+      {% else %}
+        {# DEV режим — капча отключена, сразу передаём пустой токен #}
+        <input type="hidden" name="g-recaptcha-response" value="dev-skip">
+        <p style="font-size:11px;color:var(--ghost);margin-bottom:12px">
+          ⚠️ reCAPTCHA не настроена (dev-режим)
+        </p>
+      {% endif %}
+
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" class="btn btn-secondary btn-sm"
+                onclick="document.getElementById('price-captcha-modal-{{ book.id }}').style.display='none'">
+          Отмена
+        </button>
+        <button type="submit" id="price-submit-{{ book.id }}"
+                class="btn btn-primary btn-sm"
+                {% if recaptcha_public_key %}disabled{% endif %}
+                onclick="document.getElementById('price-captcha-modal-{{ book.id }}').style.display='none'">
+          Запросить
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if recaptcha_public_key %}
+<script>
+function onCaptchaDone{{ book.id }}(token) {
+  const btn = document.getElementById('price-submit-{{ book.id }}');
+  if (btn) btn.disabled = false;
+}
+</script>
+{% endif %}

@@ -1,0 +1,37 @@
+{% extends "core/base.html" %}
+{% block title %}Вход — Строка{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-box__title">
+      <h1 class="auth-box__h">Вход</h1>
+      <p class="auth-box__sub">Введите данные аккаунта</p>
+    </div>
+    <hr class="divider" style="margin-bottom:24px">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Логин</label>
+        <input class="form-input" type="text" name="username"
+               value="{{ form.username.value|default:'' }}" autofocus autocomplete="username">
+        {% if form.username.errors %}<p class="form-error">{{ form.username.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Пароль</label>
+        <input class="form-input" type="password" name="password" autocomplete="current-password">
+        {% if form.password.errors %}<p class="form-error">{{ form.password.errors.0 }}</p>{% endif %}
+      </div>
+      {% if form.non_field_errors %}
+        <p class="form-error" style="margin-bottom:12px">{{ form.non_field_errors.0 }}</p>
+      {% endif %}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <button type="submit" class="btn btn-primary">Войти</button>
+        <div style="display:flex;flex-direction:column;gap:6px;text-align:right">
+          <a href="{% url 'register' %}" class="lnk-muted" style="font-size:13px">Нет аккаунта?</a>
+          <a href="{% url 'password_reset' %}" class="lnk-muted" style="font-size:12px">Забыли пароль?</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "core/base.html" %}
+{% block title %}Активность @{{ target_user.username }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap" style="max-width:860px;margin:24px auto;padding:0 16px">
+
+  {# ── Заголовок + переход обратно в профиль ───────────────────────────── #}
+  <div style="display:flex;align-items:center;justify-content:space-between;
+              gap:12px;flex-wrap:wrap;margin-bottom:16px">
+    <div>
+      <div style="color:var(--muted,#666);font-size:12px;margin-bottom:4px">
+        <a href="{% url 'user_profile_public' target_user.username %}" class="lnk">
+          ← Профиль @{{ target_user.username }}
+        </a>
+      </div>
+      <h1 style="margin:0;font-size:24px">
+        Активность @{{ target_user.username }}
+        <span style="color:var(--muted,#666);font-size:14px;font-weight:400;margin-left:6px">
+          {{ total }}
+        </span>
+      </h1>
+    </div>
+
+    {# ── Сортировка ───────────────────────────────────────────────────── #}
+    <form method="get" style="display:flex;gap:8px;align-items:center">
+      {% if category != 'all' %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+      <label style="font-size:12px;color:var(--muted,#666)">Сортировка:</label>
+      <select name="order" onchange="this.form.submit()"
+              style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;
+                     background:var(--surface,#fff);font-size:13px">
+        <option value="-date" {% if order == '-date' %}selected{% endif %}>Новые сверху</option>
+        <option value="date"  {% if order == 'date'  %}selected{% endif %}>Старые сверху</option>
+      </select>
+    </form>
+  </div>
+
+  {# ── Фильтры-чипы ─────────────────────────────────────────────────── #}
+  <div class="act-filters" role="tablist"
+       style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;
+              padding-bottom:12px;border-bottom:1px solid var(--border)">
+    {% for c in categories %}
+      <a href="?category={{ c.code }}{% if order != '-date' %}&order={{ order }}{% endif %}"
+         class="act-chip {% if category == c.code %}act-chip--active{% endif %}"
+         style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
+                border-radius:99px;font-size:13px;text-decoration:none;
+                border:1px solid {% if category == c.code %}var(--accent,#4b6cb7){% else %}var(--border){% endif %};
+                background:{% if category == c.code %}var(--accent,#4b6cb7){% else %}var(--surface,#fff){% endif %};
+                color:{% if category == c.code %}#fff{% else %}var(--ink,#222){% endif %}">
+        {{ c.label }}
+        <span style="font-size:11px;opacity:.75">{{ c.count }}</span>
+      </a>
+    {% endfor %}
+  </div>
+
+  {# ── Список ───────────────────────────────────────────────────────── #}
+  <div class="act-list">
+    {% for item in items %}
+      {% include "users/_activity_item.html" with item=item %}
+    {% empty %}
+      <div style="padding:48px 16px;text-align:center;color:var(--muted,#666);
+                  border:1px dashed var(--border);border-radius:10px">
+        {% if category == 'all' %}
+          Пока ничего — {{ target_user.username }} ещё не оставил(а) следов.
+        {% else %}
+          В этой категории пока пусто.
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ── Пагинация ────────────────────────────────────────────────────── #}
+  {% if page_obj.paginator.num_pages > 1 %}
+  <nav class="act-paginator"
+       style="display:flex;justify-content:center;gap:6px;margin-top:20px;flex-wrap:wrap">
+    {% if page_obj.has_previous %}
+      <a class="btn btn-sm"
+         href="?category={{ category }}&order={{ order }}&page={{ page_obj.previous_page_number }}">
+        ← Назад
+      </a>
+    {% endif %}
+    <span style="align-self:center;color:var(--muted,#666);font-size:13px;padding:0 8px">
+      {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+    </span>
+    {% if page_obj.has_next %}
+      <a class="btn btn-sm"
+         href="?category={{ category }}&order={{ order }}&page={{ page_obj.next_page_number }}">
+        Вперёд →
+      </a>
+    {% endif %}
+  </nav>
+  {% endif %}
+
+</div>
+{% endblock %}

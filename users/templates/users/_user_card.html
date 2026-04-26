@@ -1,0 +1,101 @@
+{# Одна карточка пользователя в grid-списке. id нужен для hx-target #}
+<div id="user-card-{{ u.id }}"
+     style="display:grid;grid-template-columns:1fr auto auto;gap:8px 16px;
+            align-items:center;padding:12px 14px;
+            border:1px solid var(--border);border-radius:var(--radius);
+            background:var(--bg)">
+
+  <div style="min-width:0">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap">
+      <a href="{% url 'user_profile_public' u.username %}" class="lnk" style="font-size:13px;font-weight:600">{{ u.username }}</a>
+      {% if u.is_staff %}<span class="badge badge-admin">admin</span>{% endif %}
+      {% if u.profile.is_currently_blocked %}
+        <span class="badge badge-blocked">Заблокирован</span>
+        {% if u.profile.blocked_until %}
+          <span style="font-size:11px;color:var(--ghost)">до {{ u.profile.blocked_until|date:"d.m.Y H:i" }}</span>
+        {% endif %}
+      {% else %}
+        <span class="badge badge-active">Активен</span>
+      {% endif %}
+    </div>
+    <div style="font-size:12px;color:var(--ghost)">
+      {{ u.email|default:"—" }} · зарег. {{ u.date_joined|date:"d.m.Y" }}
+    </div>
+  </div>
+
+  <div style="font-size:12px;color:var(--muted);white-space:nowrap">
+    {{ u.reviews.count }} отзывов
+  </div>
+
+  <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+    {% if not u.is_staff %}
+      {# История блокировок — доступна всегда #}
+      <button class="btn btn-ghost btn-sm"
+              hx-get="{% url 'admin_user_block_history' u.id %}"
+              hx-target="#user-card-{{ u.id }}"
+              hx-swap="outerHTML"
+              title="История блокировок">
+        История
+      </button>
+
+      {# Уведомление пользователю #}
+      <button class="btn btn-ghost btn-sm"
+              hx-get="{% url 'admin_notify_form' u.id %}"
+              hx-target="#user-card-{{ u.id }}"
+              hx-swap="outerHTML"
+              title="Отправить уведомление">
+        📢 Уведомление
+      </button>
+
+      {% if u.profile.is_currently_blocked %}
+        <details style="position:relative">
+          <summary class="btn btn-ghost btn-sm" style="list-style:none;cursor:pointer">
+            Разблокировать
+          </summary>
+          <form style="position:absolute;right:0;top:calc(100% + 4px);z-index:10;
+                       background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+                       padding:10px;min-width:260px;box-shadow:0 4px 16px rgba(0,0,0,.08)"
+                hx-post="{% url 'admin_unblock_user' u.id %}"
+                hx-target="#user-card-{{ u.id }}"
+                hx-swap="outerHTML"
+                hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+            <label style="display:block;font-size:12px;margin-bottom:4px">Причина разблокировки (опц.)</label>
+            <textarea name="unblock_reason" rows="2" maxlength="500"
+                      style="width:100%;font-size:12px;padding:6px;border:1px solid var(--border);
+                             border-radius:4px;resize:vertical"></textarea>
+            <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;width:100%">
+              Разблокировать
+            </button>
+          </form>
+        </details>
+      {% else %}
+        <details style="position:relative">
+          <summary class="btn btn-danger btn-sm" style="list-style:none;cursor:pointer">
+            Заблокировать
+          </summary>
+          <form style="position:absolute;right:0;top:calc(100% + 4px);z-index:10;
+                       background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+                       padding:10px;min-width:280px;box-shadow:0 4px 16px rgba(0,0,0,.08)"
+                hx-post="{% url 'admin_block_user' u.id %}"
+                hx-target="#user-card-{{ u.id }}"
+                hx-swap="outerHTML"
+                hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+            <label style="display:block;font-size:12px;margin-bottom:4px">Причина блокировки</label>
+            <textarea name="reason" rows="3" maxlength="1000" required
+                      placeholder="Опишите причину: спам, оскорбления и т.д."
+                      style="width:100%;font-size:12px;padding:6px;border:1px solid var(--border);
+                             border-radius:4px;resize:vertical"></textarea>
+
+            <label style="display:block;font-size:12px;margin:8px 0 4px">Срок (дней или YYYY-MM-DDTHH:MM)</label>
+            <input type="text" name="blocked_until" placeholder="например 7 (дней) или пусто = бессрочно"
+                   style="width:100%;font-size:12px;padding:6px;border:1px solid var(--border);border-radius:4px">
+
+            <button type="submit" class="btn btn-danger btn-sm" style="margin-top:8px;width:100%">
+              Заблокировать
+            </button>
+          </form>
+        </details>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>

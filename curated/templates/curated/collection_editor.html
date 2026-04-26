@@ -1,0 +1,53 @@
+{% extends "core/base.html" %}
+{% block title %}Редактор: {{ collection.title }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px"
+     x-data="{ fabOpen: false }">
+
+  {# ── ШАПКА ────────────────────────────────────────────────────────────────── #}
+  <div id="editor-header">
+    {% include "curated/_editor_header.html" %}
+  </div>
+
+  {# ── ВЫБРАННЫЕ КНИГИ (desktop: видна, mobile: в FAB) ──────────────────── #}
+  <div class="selected-strip" id="selected-books">
+    {% include "curated/_selected_books.html" %}
+  </div>
+
+  {# ── ПОИСК КНИГ ──────────────────────────────────────────────────────────── #}
+  <div style="margin-bottom:20px">
+    <input class="form-input" type="text" placeholder="Поиск книг для добавления..."
+           hx-get="{% url 'collection_search_books' collection.pk %}"
+           hx-trigger="input changed delay:300ms"
+           hx-target="#search-results"
+           hx-swap="innerHTML"
+           name="q" autocomplete="off"
+           style="width:100%;max-width:400px">
+  </div>
+
+  {# ── РЕЗУЛЬТАТЫ ПОИСКА (плитка) ──────────────────────────────────────────── #}
+  <div id="search-results"
+       hx-get="{% url 'collection_search_books' collection.pk %}"
+       hx-trigger="load, refreshSearch from:body"
+       hx-swap="innerHTML">
+    <span class="spinner"></span>
+  </div>
+
+  {# ── FAB (только mobile) ─────────────────────────────────────────────────── #}
+  <button class="fab" id="fab-btn" @click="fabOpen = !fabOpen"
+          x-html="fabOpen ? '&times;' : '&#9776;'">
+  </button>
+
+  {# ── Панель подборки (mobile, по нажатию FAB) ─────────────────────────── #}
+  <div class="fab-panel" x-show="fabOpen" x-cloak x-transition
+       @click.outside="fabOpen = false">
+    <h3 style="font-size:15px;font-weight:600;margin-bottom:12px">В подборке</h3>
+    <div id="selected-books-mobile">
+      {% include "curated/_selected_books.html" %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,25 @@
+<div class="edition-book-row" id="edition-book-{{ book.pk }}">
+  <div class="edition-book-row__cover">
+    {% if book.cover_image %}
+      <img src="{{ book.cover_image.url }}" alt="">
+    {% else %}
+      <div class="edition-book-row__no-cover">—</div>
+    {% endif %}
+  </div>
+  <div class="edition-book-row__info">
+    <a href="{% url 'book_detail' book.pk %}" class="edition-book-row__title" target="_blank">{{ book.title }}</a>
+    <div class="edition-book-row__meta">
+      {% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      {% if book.publisher %} · {{ book.publisher.name }}{% endif %}
+      {% if book.publication_year %} · {{ book.publication_year }}{% endif %}
+      {% if book.isbn %} · ISBN {{ book.isbn }}{% endif %}
+    </div>
+  </div>
+  <button class="btn btn-ghost btn-sm"
+          title="Убрать из группы"
+          hx-post="{% url 'edition_remove_book' edition.pk book.pk %}"
+          hx-target="#edition-book-{{ book.pk }}"
+          hx-swap="outerHTML"
+          hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+          hx-confirm="Убрать эту книгу из группы?">×</button>
+</div>

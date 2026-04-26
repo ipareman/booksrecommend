@@ -1,0 +1,18 @@
+{% if books %}
+  {% for book in books %}
+    {% with index=forloop.counter %} {% include "core/_book_row.html" %} {% endwith %}
+  {% endfor %}
+  {% if books.has_other_pages %}
+  <div style="display:flex;gap:16px;padding:16px 0;font-size:13px;align-items:center">
+    {% if books.has_previous %}
+      <a href="?page={{ books.previous_page_number }}&{{ query_string }}" class="btn btn-secondary btn-sm">← Назад</a>
+    {% endif %}
+    <span style="color:var(--ghost)">{{ books.number }} / {{ books.paginator.num_pages }}</span>
+    {% if books.has_next %}
+      <a href="?page={{ books.next_page_number }}&{{ query_string }}" class="btn btn-secondary btn-sm">Далее →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+{% else %}
+  <p class="empty">Ничего не найдено</p>
+{% endif %}

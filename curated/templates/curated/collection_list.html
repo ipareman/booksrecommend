@@ -1,0 +1,44 @@
+{% extends "core/base.html" %}
+{% block title %}Подборки — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+    <h1 style="font-size:22px">Подборки</h1>
+    {% if user.is_authenticated %}
+      <a href="{% url 'collection_create' %}" class="btn btn-primary btn-sm">+ Создать</a>
+    {% endif %}
+  </div>
+
+  <div class="collection-grid">
+    {% for col in collections %}
+    <a href="{% url 'collection_detail' col.pk %}" class="collection-card">
+      <div class="collection-card__covers">
+        {% for item in col.items.all|slice:":4" %}
+          {% if item.book.cover_image %}
+            <img src="{{ item.book.cover_image.url }}" alt="" loading="lazy">
+          {% else %}
+            <div class="collection-card__placeholder">{{ item.book.title|truncatechars:20 }}</div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div class="collection-card__info">
+        <div class="collection-card__title">{{ col.title }}</div>
+        <div class="collection-card__count">
+          {{ col.num_books }} {{ col.num_books|pluralize:"книга,книги,книг" }}
+          {% if col.num_likes %}
+            <span style="margin-left:8px;color:{% if col.pk in liked_ids %}var(--err){% else %}var(--ghost){% endif %}">
+              {% if col.pk in liked_ids %}♥{% else %}♡{% endif %} {{ col.num_likes }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <p class="empty" style="grid-column:1/-1;text-align:center;padding:48px 0">
+      Подборок пока нет
+    </p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

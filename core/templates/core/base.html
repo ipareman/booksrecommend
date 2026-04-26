@@ -1,0 +1,155 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Строка{% endblock %}</title>
+  {# Тема (dark/light) применяется ДО загрузки CSS, чтобы не было вспышки светлого фона. #}
+  {# Источники в порядке приоритета: localStorage → системная prefers-color-scheme. #}
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('theme');
+        if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          saved = 'dark';
+        }
+        if (saved === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (e) { /* приватный режим / SSR — ок, остаёмся на светлой */ }
+    })();
+  </script>
+  {# Кеш-бустинг: к URL CSS приклеиваем unix-time старта процесса — #}
+  {# при каждом рестарте Django URL меняется, браузер обязан перекачать файл. #}
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v={% now 'U' %}">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav__inner" x-data="{ navOpen: false }">
+      <a href="{% url 'home' %}" class="nav__logo">Строка</a>
+      <button class="nav__hamburger" @click="navOpen = !navOpen" aria-label="Меню">
+        <span x-show="!navOpen">&#9776;</span>
+        <span x-show="navOpen" x-cloak>&#10005;</span>
+      </button>
+      <div class="nav__links" :class="{ 'nav__links--open': navOpen }">
+        {# Переключатель темы. Чистый JS, без Alpine — работает даже до загрузки JS-фреймворков. #}
+        <button type="button" class="theme-toggle"
+                aria-label="Переключить тему"
+                title="Переключить тему"
+                onclick="(function(){var d=document.documentElement;var dark=d.getAttribute('data-theme')==='dark';if(dark){d.removeAttribute('data-theme');try{localStorage.setItem('theme','light')}catch(e){}}else{d.setAttribute('data-theme','dark');try{localStorage.setItem('theme','dark')}catch(e){}}})()">
+          <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+        </button>
+        <a href="{% url 'catalog' %}"
+           class="nav__link {% if request.resolver_match.url_name == 'catalog' %}nav__link--active{% endif %}">
+          Каталог
+        </a>
+        <a href="{% url 'collections_list' %}"
+           class="nav__link {% if request.resolver_match.url_name == 'collections_list' %}nav__link--active{% endif %}">
+          Подборки
+        </a>
+        <a href="{% url 'clubs_list' %}"
+           class="nav__link {% if request.resolver_match.url_name == 'clubs_list' %}nav__link--active{% endif %}">
+          Клубы
+        </a>
+        <a href="{% url 'leaderboard' %}"
+           class="nav__link {% if request.resolver_match.url_name == 'leaderboard' %}nav__link--active{% endif %}">
+          Топ
+        </a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'notifications_list' %}"
+             class="nav__link {% if request.resolver_match.url_name == 'notifications_list' %}nav__link--active{% endif %}"
+             style="position:relative">
+            Уведомления{% include "notifications/_badge.html" %}
+          </a>
+          <a href="{% url 'friend_list' %}"
+             class="nav__link {% if request.resolver_match.url_name == 'friend_list' %}nav__link--active{% endif %}"
+             style="position:relative">
+            Друзья{% if social_unread %}<span style="position:absolute;top:-4px;right:-8px;background:var(--err);color:#fff;font-size:10px;min-width:16px;height:16px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 4px">{{ social_unread }}</span>{% endif %}
+          </a>
+          <a href="{% url 'profile' %}"
+             class="nav__link {% if request.resolver_match.url_name == 'profile' %}nav__link--active{% endif %}">
+            {{ user.username }}
+          </a>
+          {% if user.is_staff %}
+            <a href="{% url 'admin_panel' %}"
+               class="nav__link {% if request.resolver_match.url_name == 'admin_panel' %}nav__link--active{% endif %}">
+              Панель
+            </a>
+          {% endif %}
+          <form method="post" action="{% url 'logout' %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="nav__link" style="background:none;border:none;cursor:pointer;font-size:13px;padding:0;font-family:inherit">
+              Выйти
+            </button>
+          </form>
+        {% else %}
+          <a href="{% url 'login' %}" class="nav__link">Войти</a>
+          <a href="{% url 'register' %}" class="btn btn-primary btn-sm">Регистрация</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>
+
+{# ── Django flash-сообщения (messages framework) ────────────────────────────── #}
+{# Тематика сайта (.toast в main.css). Каждый тост живёт 5с, прогресс-бар сверху. #}
+{# Наведение курсора ставит CSS-анимацию на паузу, клик по × или по телу закрывает. #}
+{% if messages and not suppress_toasts %}
+<div class="toasts"
+     x-data="{
+       items: [{% for m in messages %}{id:{{ forloop.counter }},text:'{{ m|escapejs }}',level:'{{ m.tags|default:'info'|escapejs }}'}{% if not forloop.last %},{% endif %}{% endfor %}],
+       dismiss(id) { this.items = this.items.filter(x => x.id !== id); }
+     }">
+  <template x-for="m in items" :key="m.id">
+    <div class="toast" :class="'toast--' + (m.level || 'info')"
+         x-transition:enter-start="toast-enter-start" x-transition:enter-end="toast-enter-end"
+         x-transition:leave-start="toast-leave-start" x-transition:leave-end="toast-leave-end"
+         x-init="setTimeout(() => dismiss(m.id), 5000)"
+         @click="dismiss(m.id)"
+         role="status">
+      <div class="toast__bar"></div>
+      <button type="button" class="toast__close"
+              aria-label="Закрыть"
+              @click.stop="dismiss(m.id)">&times;</button>
+      <div class="toast__body" x-text="m.text"></div>
+    </div>
+  </template>
+</div>
+{% endif %}
+
+<main>{% block content %}{% endblock %}</main>
+
+<script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+<script src="https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js" defer></script>
+{% if recaptcha_public_key %}<script src="https://www.google.com/recaptcha/api.js" async defer></script>{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        var cls = e.target.className;
+        if (cls.indexOf('reveal-scale') !== -1) e.target.classList.add('reveal-scale--visible');
+        else if (cls.indexOf('reveal-left') !== -1) e.target.classList.add('reveal-left--visible');
+        else if (cls.indexOf('stagger') !== -1) e.target.classList.add('stagger--visible');
+        else e.target.classList.add('reveal--visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal, .reveal-scale, .reveal-left, .stagger').forEach(function(el) {
+    obs.observe(el);
+  });
+});
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

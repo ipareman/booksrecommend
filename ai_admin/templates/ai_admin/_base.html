@@ -1,0 +1,19 @@
+{% extends "core/base.html" %}
+
+{% block title %}AI-админка — {% block ai_title %}{% endblock %}{% endblock %}
+
+{% block content %}
+<div class="wrap" style="padding:24px 0 48px">
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:12px">
+    <a href="{% url 'ai_admin_dashboard' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'ai_admin_dashboard' %}btn-primary{% else %}btn-secondary{% endif %}">Дашборд</a>
+    <a href="{% url 'ai_admin_tasks' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'ai_admin_tasks' %}btn-primary{% else %}btn-secondary{% endif %}">Celery</a>
+    <a href="{% url 'ai_admin_config' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'ai_admin_config' %}btn-primary{% else %}btn-secondary{% endif %}">Настройки</a>
+    <span style="flex:1"></span>
+    <a href="{% url 'admin_panel' %}" class="btn btn-sm btn-secondary">← Админ-панель</a>
+  </div>
+
+  {% block ai_content %}{% endblock %}
+
+</div>
+{% endblock %}

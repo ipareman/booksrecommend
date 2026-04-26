@@ -1,0 +1,49 @@
+{% load static %}
+{% with tags=book.tags.all %}
+
+{% if tags %}
+<div style="padding:20px 0">
+  <p style="font-size:12px;color:var(--ghost);margin-bottom:16px">
+    Характеристики книги по мнению читателей
+  </p>
+
+  {# Облако тегов: размер шрифта пропорционален счётчику #}
+  {% with max_count=tags.0.count %}
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;line-height:1.2">
+    {% for tag in tags %}
+    {% with size_factor=tag.count|floatformat:0 %}
+    <span style="
+      display:inline-block;
+      padding:6px 14px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:999px;
+      color:var(--text);
+      font-size:{% widthratio tag.count max_count 8 %}px;
+      font-size:calc(11px + {% widthratio tag.count max_count 6 %}px);
+      opacity:{% widthratio tag.count max_count 10 %};
+      opacity:calc(0.55 + {% widthratio tag.count max_count 5 %} * 0.09);
+      transition:all .15s;
+      cursor:default;
+    "
+    title="{{ tag.count }} упомин.">
+      {{ tag.name }}
+    </span>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% endwith %}
+</div>
+
+{% else %}
+<div style="padding:32px 0;text-align:center">
+  <p style="font-size:14px;color:var(--muted)">
+    Теги появятся после того, как читатели оставят отзывы
+  </p>
+  <p style="font-size:12px;color:var(--ghost);margin-top:6px">
+    ИИ анализирует каждый одобренный отзыв и выделяет характерную черту книги
+  </p>
+</div>
+{% endif %}
+
+{% endwith %}

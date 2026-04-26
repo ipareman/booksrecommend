@@ -1,0 +1,156 @@
+{% comment %}
+  Одна карточка активности. Принимает переменную `item` вида:
+    { "kind": "review"|"critique"|"comment"|"review_like"|"critique_like"|
+              "friendship"|"recommend"|"add_to_list"|"join_club",
+      "date": datetime, "category": "...", "obj": <model>,
+      "other_user": <User|None>  — только для friendship }
+
+  Все стили inline, чтобы не цеплять новый CSS; используем существующие
+  переменные --border / --surface / --muted / --ghost / --accent / --ink.
+{% endcomment %}
+<article class="act-card act-card--{{ item.kind }}"
+         style="display:flex;gap:12px;padding:14px 16px;border:1px solid var(--border);
+                border-radius:var(--radius,10px);background:var(--surface,#fff);
+                margin-bottom:10px">
+
+  {# Иконка kind'а #}
+  <div class="act-card__icon"
+       style="font-size:22px;line-height:1;min-width:28px;text-align:center;padding-top:2px">
+    {% if item.kind == 'review' %}★
+    {% elif item.kind == 'critique' %}📝
+    {% elif item.kind == 'comment' %}💬
+    {% elif item.kind == 'review_like' or item.kind == 'critique_like' %}❤
+    {% elif item.kind == 'friendship' %}🤝
+    {% elif item.kind == 'recommend' %}📤
+    {% elif item.kind == 'add_to_list' %}📚
+    {% elif item.kind == 'join_club' %}👥
+    {% else %}•{% endif %}
+  </div>
+
+  <div class="act-card__body" style="flex:1;min-width:0">
+
+    {# ───────── REVIEW ───────── #}
+    {% if item.kind == 'review' %}
+      {% with r=item.obj %}
+      <div style="font-size:14px;color:var(--ink);line-height:1.4">
+        Написал(а) отзыв на
+        <a href="{% url 'book_detail' r.book.pk %}" class="lnk" style="font-weight:600">{{ r.book.title }}</a>
+        — <span title="Оценка">{{ r.stars_display }}</span>
+      </div>
+      {% if r.text %}
+      <div style="margin-top:6px;color:var(--muted);font-size:13px;line-height:1.45">
+        {{ r.text|truncatechars:220 }}
+      </div>
+      {% endif %}
+      {% endwith %}
+
+    {# ───────── CRITIQUE ───────── #}
+    {% elif item.kind == 'critique' %}
+      {% with c=item.obj %}
+      <div style="font-size:14px;color:var(--ink);line-height:1.4">
+        Опубликовал(а) рецензию
+        <a href="{% url 'critique_detail' c.pk %}" class="lnk" style="font-weight:600">«{{ c.title }}»</a>
+        на <a href="{% url 'book_detail' c.book.pk %}" class="lnk">{{ c.book.title }}</a>
+        — <span title="Итоговая оценка">{{ c.stars_display }}</span>
+      </div>
+      <div style="margin-top:6px;color:var(--muted);font-size:13px;line-height:1.45">
+        {{ c.body_excerpt|truncatechars:220 }}
+      </div>
+      {% endwith %}
+
+    {# ───────── COMMENT ───────── #}
+    {% elif item.kind == 'comment' %}
+      {% with cc=item.obj %}
+      <div style="font-size:14px;color:var(--ink);line-height:1.4">
+        {% if cc.parent_id %}
+          Ответил(а)
+          {% if cc.parent.user %}<a href="{% url 'user_profile_public' cc.parent.user.username %}" class="lnk">@{{ cc.parent.user.username }}</a>{% endif %}
+          в рецензии
+        {% else %}
+          Прокомментировал(а) рецензию
+        {% endif %}
+        <a href="{% url 'critique_detail' cc.critique.pk %}#comment-{{ cc.pk }}"
+           class="lnk" style="font-weight:600">«{{ cc.critique.title }}»</a>
+      </div>
+      <div style="margin-top:6px;color:var(--muted);font-size:13px;line-height:1.45;
+                  padding:8px 10px;background:var(--bg-accent,#f6f8ff);border-radius:6px;
+                  border-left:3px solid var(--accent,#4b6cb7)">
+        {{ cc.text|truncatechars:280 }}
+      </div>
+      {% endwith %}
+
+    {# ───────── REVIEW LIKE ───────── #}
+    {% elif item.kind == 'review_like' %}
+      {% with l=item.obj %}
+      <div style="font-size:14px;color:var(--ink);line-height:1.4">
+        Отметил(а) полезным отзыв
+        {% if l.review.user %}<a href="{% url 'user_profile_public' l.review.user.username %}" class="lnk">@{{ l.review.user.username }}</a>{% endif %}
+        на <a href="{% url 'book_detail' l.review.book.pk %}" class="lnk" style="font-weight:600">{{ l.review.book.title }}</a>
+      </div>
+      {% endwith %}
+
+    {# ───────── CRITIQUE LIKE ───────── #}
+    {% elif item.kind == 'critique_like' %}
+      {% with l=item.obj %}
+      <div style="font-size:14px;color:var(--ink);line-height:1.4">
+        Лайкнул(а) рецензию
+        <a href="{% url 'critique_detail' l.critique.pk %}" class="lnk" style="font-weight:600">«{{ l.critique.title }}»</a>
+        {% if l.critique.user %}от <a href="{% url 'user_profile_public' l.critique.user.username %}" class="lnk">@{{ l.critique.user.username }}</a>{% endif %}
+      </div>
+      {% endwith %}
+
+    {# ───────── FRIENDSHIP ───────── #}
+    {% elif item.kind == 'friendship' %}
+      {% with other=item.other_user %}
+      <div style="font-size:14px;color:var(--ink);line-height:1.4">
+        Подружился(лась) с
+        <a href="{% url 'user_profile_public' other.username %}" class="lnk" style="font-weight:600">@{{ other.username }}</a>
+      </div>
+      {% endwith %}
+
+    {# ───────── RECOMMENDATION ───────── #}
+    {% elif item.kind == 'recommend' %}
+      {% with rec=item.obj %}
+      <div style="font-size:14px;color:var(--ink);line-height:1.4">
+        Рекомендовал(а)
+        <a href="{% url 'book_detail' rec.book.pk %}" class="lnk" style="font-weight:600">{{ rec.book.title }}</a>
+        для <a href="{% url 'user_profile_public' rec.to_user.username %}" class="lnk">@{{ rec.to_user.username }}</a>
+      </div>
+      {% if rec.message %}
+      <div style="margin-top:6px;color:var(--muted);font-size:13px;line-height:1.45">
+        «{{ rec.message|truncatechars:220 }}»
+      </div>
+      {% endif %}
+      {% endwith %}
+
+    {# ───────── ADD TO LIST ───────── #}
+    {% elif item.kind == 'add_to_list' %}
+      {% with ev=item.obj %}
+      <div style="font-size:14px;color:var(--ink);line-height:1.4">
+        Добавил(а)
+        {% if ev.book %}<a href="{% url 'book_detail' ev.book.pk %}" class="lnk" style="font-weight:600">{{ ev.book.title }}</a>{% else %}книгу{% endif %}
+        {% if ev.metadata.list_name %}в список «{{ ev.metadata.list_name }}»{% endif %}
+      </div>
+      {% endwith %}
+
+    {# ───────── JOIN CLUB ───────── #}
+    {% elif item.kind == 'join_club' %}
+      {% with ev=item.obj %}
+      <div style="font-size:14px;color:var(--ink);line-height:1.4">
+        Вступил(а) в клуб
+        {% if ev.metadata.club_id %}
+          <a href="{% url 'club_detail' ev.metadata.club_id %}" class="lnk" style="font-weight:600">{{ ev.metadata.club_name|default:"клуб" }}</a>
+        {% else %}
+          <span style="font-weight:600">{{ ev.metadata.club_name|default:"клуб" }}</span>
+        {% endif %}
+      </div>
+      {% endwith %}
+
+    {% endif %}
+
+    <div class="act-card__meta"
+         style="margin-top:6px;color:var(--ghost,#999);font-size:12px">
+      {{ item.date|date:"d.m.Y H:i" }} · {{ item.date|timesince }} назад
+    </div>
+  </div>
+</article>

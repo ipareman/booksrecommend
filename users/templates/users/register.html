@@ -1,0 +1,36 @@
+{% extends "core/base.html" %}
+{% block title %}Регистрация — Строка{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-box__title">
+      <h1 class="auth-box__h">Регистрация</h1>
+      <p class="auth-box__sub">Создайте аккаунт</p>
+    </div>
+    <hr class="divider" style="margin-bottom:24px">
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="form-group">
+        <label class="form-label">{{ field.label }}</label>
+        <input class="form-input"
+               type="{{ field.field.widget.input_type }}"
+               name="{{ field.html_name }}"
+               value="{{ field.value|default:'' }}"
+               {% if forloop.first %}autofocus{% endif %}>
+        {% if field.errors %}<p class="form-error">{{ field.errors.0 }}</p>{% endif %}
+      </div>
+      {% endfor %}
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" name="email" required
+               placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+        <a href="{% url 'login' %}" class="lnk-muted" style="font-size:13px">Уже есть аккаунт?</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

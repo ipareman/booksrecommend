@@ -1,0 +1,92 @@
+{# Шапка публичного профиля: аватар-буквица, имя, bio, статус «сейчас читает» #}
+<div class="pp-header">
+  <div class="pp-header__avatar">
+    {{ target_user.username|make_list|first|upper }}
+  </div>
+
+  <div class="pp-header__main">
+    <div class="pp-header__name-row">
+      <h1 class="pp-header__name">{{ target_user.username }}</h1>
+
+      {% if target_user.is_staff %}
+        <span class="badge badge-admin">Администратор</span>
+      {% endif %}
+
+      {% if reader_rank %}
+        <span class="pp-rank-pill" title="Уровень читателя">
+          <span class="pp-rank-pill__icon">{{ reader_rank.icon }}</span>
+          <span class="pp-rank-pill__title">{{ reader_rank.title }}</span>
+        </span>
+      {% endif %}
+    </div>
+
+    <div class="pp-header__meta">
+      <span>На сайте с {{ target_user.date_joined|date:"d.m.Y" }}</span>
+      {% if reading_streak.current %}
+        <span class="pp-streak" title="Дней подряд с активностью">
+          🔥 {{ reading_streak.current }} д.
+        </span>
+      {% endif %}
+    </div>
+
+    {% if target_profile and target_profile.bio %}
+      <blockquote class="pp-bio">
+        {{ target_profile.bio }}
+      </blockquote>
+    {% endif %}
+
+    {% if reader_rank and reader_rank.next_title %}
+      <div class="pp-rank-progress" title="До звания «{{ reader_rank.next_title }}» осталось {{ reader_rank.next_need }}">
+        <div class="pp-rank-progress__bar" style="width:{{ reader_rank.progress_percent }}%"></div>
+        <div class="pp-rank-progress__label">
+          До «{{ reader_rank.next_title }}»: {{ reader_rank.next_need }}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="pp-header__actions">
+    {% if is_own_profile %}
+      <a href="{% url 'profile' %}" class="btn btn-secondary btn-sm">
+        Редактировать профиль
+      </a>
+    {% elif user.is_authenticated %}
+      {% include "social/_friend_btn.html" with target_user=target_user %}
+      <a href="{% url 'chat_dm' target_user.pk %}" class="btn btn-secondary btn-sm">Написать</a>
+    {% endif %}
+  </div>
+</div>
+
+{# ── «Сейчас читает» — живой сигнал ─────────────────────────────────────────── #}
+{% if current_reading %}
+<div class="pp-now-reading">
+  <div class="pp-section-label">Сейчас читает</div>
+  <div class="pp-now-reading__list">
+    {% for item in current_reading %}
+    <a href="{% url 'book_detail' item.book.pk %}" class="pp-reading-card">
+      {% if item.book.cover_image %}
+        <img src="{{ item.book.cover_image.url }}" alt="" class="pp-reading-card__cover" loading="lazy">
+      {% else %}
+        <div class="pp-reading-card__cover pp-reading-card__cover--empty">
+          {{ item.book.title|truncatechars:24 }}
+        </div>
+      {% endif %}
+      <div class="pp-reading-card__info">
+        <div class="pp-reading-card__title">{{ item.book.title }}</div>
+        <div class="pp-reading-card__authors">
+          {% for a in item.book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </div>
+        <div class="pp-reading-card__progress">
+          <div class="pp-reading-card__bar">
+            <div class="pp-reading-card__bar-fill" style="width:{{ item.percent }}%"></div>
+          </div>
+          <div class="pp-reading-card__numbers">
+            {{ item.current_page }}/{{ item.total_pages }} стр. · {{ item.percent }}%
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

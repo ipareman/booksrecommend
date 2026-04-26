@@ -1,0 +1,24 @@
+<div id="price-alert-{{ book.id }}">
+  {% if alert %}
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:12px;color:var(--muted)">
+      🔔 Уведомлю при цене ниже <b>{{ alert.threshold }} ₽</b>
+    </span>
+    <button class="btn btn-ghost btn-sm" style="color:var(--err)"
+            hx-post="{% url 'price_alert_delete' book.pk %}"
+            hx-target="#price-alert-{{ book.id }}"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>Отменить</button>
+  </div>
+  {% else %}
+  <form style="display:flex;gap:6px;align-items:center"
+        hx-post="{% url 'price_alert_save' book.pk %}"
+        hx-target="#price-alert-{{ book.id }}"
+        hx-swap="outerHTML"
+        hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+    <input class="form-input" type="number" name="threshold" step="0.01" min="1"
+           placeholder="Порог, ₽" style="width:110px">
+    <button type="submit" class="btn btn-secondary btn-sm">Уведомить</button>
+  </form>
+  {% endif %}
+</div>

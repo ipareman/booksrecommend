@@ -1,0 +1,90 @@
+{% extends "core/base.html" %}
+{% block title %}Друзья — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:640px;margin:0 auto">
+
+  <h1 style="font-size:22px;margin-bottom:24px">Друзья</h1>
+
+  {% if incoming %}
+  <div style="margin-bottom:28px">
+    <h2 style="font-size:15px;font-weight:600;color:var(--muted);margin-bottom:12px">
+      Входящие заявки ({{ incoming|length }})
+    </h2>
+    {% for fs in incoming %}
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <a href="{% url 'user_profile_public' fs.from_user.username %}" class="lnk" style="font-weight:500;flex:1">
+        {{ fs.from_user.username }}
+      </a>
+      <div id="friend-btn-{{ fs.from_user.pk }}">
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm"
+                  hx-post="{% url 'friend_accept' fs.pk %}"
+                  hx-target="#friend-btn-{{ fs.from_user.pk }}"
+                  hx-swap="outerHTML"
+                  hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+            Принять
+          </button>
+          <button class="btn btn-ghost btn-sm"
+                  hx-post="{% url 'friend_reject' fs.pk %}"
+                  hx-target="#friend-btn-{{ fs.from_user.pk }}"
+                  hx-swap="outerHTML"
+                  hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+            Отклонить
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if friends %}
+  <div style="margin-bottom:28px">
+    <h2 style="font-size:15px;font-weight:600;color:var(--muted);margin-bottom:12px">
+      Мои друзья ({{ friends|length }})
+    </h2>
+    {% for friend in friends %}
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <a href="{% url 'user_profile_public' friend.username %}" class="lnk" style="font-weight:500;flex:1">
+        {{ friend.username }}
+      </a>
+      <a href="{% url 'joint_recs' friend.pk %}" class="btn btn-ghost btn-sm">Книга для двоих</a>
+      <a href="{% url 'chat_dm' friend.pk %}" class="btn btn-ghost btn-sm">Написать</a>
+      <button class="btn btn-secondary btn-sm"
+              hx-post="{% url 'friend_remove' friend.pk %}"
+              hx-target="closest div"
+              hx-swap="outerHTML"
+              hx-confirm="Удалить из друзей?"
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+        Удалить
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    {% if not incoming %}
+    <p class="empty" style="padding:40px 0;text-align:center">
+      У вас пока нет друзей. Найдите пользователей и отправьте им заявку.
+    </p>
+    {% endif %}
+  {% endif %}
+
+  {% if outgoing %}
+  <div>
+    <h2 style="font-size:15px;font-weight:600;color:var(--muted);margin-bottom:12px">
+      Отправленные заявки ({{ outgoing|length }})
+    </h2>
+    {% for fs in outgoing %}
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <a href="{% url 'user_profile_public' fs.to_user.username %}" class="lnk" style="font-weight:500;flex:1">
+        {{ fs.to_user.username }}
+      </a>
+      <span style="font-size:12px;color:var(--ghost)">Ожидание</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

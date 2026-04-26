@@ -1,0 +1,4 @@
+{% load chat_extras %}
+{% for msg in new_messages %}
+<div class="ai-chat-msg ai-chat-msg--{{ msg.role }} fade-up">{{ msg.content|link_chapters:book }}</div>
+{% endfor %}

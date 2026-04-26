@@ -1,0 +1,40 @@
+<div id="telegram-block">
+  {% if saved %}
+    <p style="font-size:12px;color:#16a34a;margin-bottom:10px">✓ Сохранено</p>
+  {% endif %}
+
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <span style="font-size:13px;color:var(--muted)">@</span>
+    <input class="form-input" type="text" id="tg-input"
+           style="max-width:200px;font-size:13px;padding:6px 10px"
+           placeholder="username"
+           value="{{ profile.telegram_username|default:'' }}">
+    <button class="btn btn-secondary btn-sm"
+            hx-post="{% url 'save_telegram' %}"
+            hx-vals="js:{telegram_username:document.getElementById('tg-input').value}"
+            hx-target="#telegram-block"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+      Сохранить
+    </button>
+  </div>
+
+  {% if profile.telegram_chat_id %}
+    <p style="font-size:12px;color:var(--ghost);margin-top:8px">
+      ✓ Бот подключён — уведомления активны
+    </p>
+  {% elif profile.telegram_username and telegram_bot_username %}
+    <p style="font-size:12px;color:var(--muted);margin-top:8px">
+      Напишите
+      <a href="https://t.me/{{ telegram_bot_username }}" target="_blank" class="lnk">
+        @{{ telegram_bot_username }}
+      </a>
+      команду <code style="font-size:11px;background:var(--surface);padding:1px 5px;border-radius:3px">/start</code>,
+      чтобы активировать уведомления
+    </p>
+  {% elif not telegram_bot_username %}
+    <p style="font-size:12px;color:var(--ghost);margin-top:8px">
+      Укажите username — и вы будете получать уведомления о новых книгах авторов
+    </p>
+  {% endif %}
+</div>

@@ -1,0 +1,47 @@
+{% extends "core/base.html" %}
+{% block title %}Уведомления — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap" style="max-width:760px;margin:24px auto;padding:0 16px">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+    <h1 style="margin:0;font-size:24px">Уведомления
+      {% if unread_count %}
+        <span style="color:var(--err);font-size:14px;margin-left:6px">({{ unread_count }} новых)</span>
+      {% endif %}
+    </h1>
+
+    <div style="display:flex;gap:8px;align-items:center">
+      <a href="?filter=all"
+         class="btn btn-sm {% if filter_mode != 'unread' %}btn-primary{% endif %}">
+        Все
+      </a>
+      <a href="?filter=unread"
+         class="btn btn-sm {% if filter_mode == 'unread' %}btn-primary{% endif %}">
+        Непрочитанные
+      </a>
+      {% if unread_count %}
+        <form method="post" action="{% url 'notifications_mark_all_read' %}" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm">Прочитать всё</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="notif-list" style="background:var(--surface,#fff);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+    {% for n in notifications %}
+      {% include "notifications/_item.html" with n=n %}
+    {% empty %}
+      <div style="padding:48px 16px;text-align:center;color:var(--fg-muted)">
+        {% if filter_mode == 'unread' %}
+          Нет непрочитанных уведомлений.
+        {% else %}
+          Уведомлений пока нет.
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

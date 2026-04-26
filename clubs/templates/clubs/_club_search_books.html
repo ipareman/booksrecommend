@@ -1,0 +1,47 @@
+<div class="club-search-results">
+{% for book in books %}
+  <form class="club-book-pick" id="club-book-option-{{ book.pk }}"
+        hx-post="{% url 'club_add_book' club.pk %}"
+        hx-target="#club-books-list"
+        hx-swap="innerHTML">
+    {% csrf_token %}
+    <input type="hidden" name="book_id" value="{{ book.pk }}">
+
+    <div class="club-book-pick__row">
+      {% if book.cover_image %}
+        <img src="{{ book.cover_image.url }}" alt="{{ book.title }}"
+             class="book-tile__cover" loading="lazy">
+      {% else %}
+        <div class="book-tile__cover book-tile__cover--empty">
+          {{ book.title|truncatechars:30 }}
+        </div>
+      {% endif %}
+
+      <div style="flex:1;min-width:0">
+        <div class="book-tile__title">{{ book.title }}</div>
+        <div class="book-tile__authors">
+          {% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </div>
+      </div>
+
+      <div class="club-book-pick__controls">
+        <label class="club-inline-form__field">
+          <span>Старт</span>
+          <input class="form-input" type="date" name="start_date">
+        </label>
+        <label class="club-inline-form__field">
+          <span>Финиш</span>
+          <input class="form-input" type="date" name="end_date">
+        </label>
+        <label class="form-check club-book-pick__check">
+          <input type="checkbox" name="is_current">
+          <span>текущая</span>
+        </label>
+        <button class="btn btn-secondary btn-sm" type="submit">Добавить</button>
+      </div>
+    </div>
+  </form>
+{% empty %}
+  <p class="empty" style="text-align:center;padding:24px 0">Книги не найдены</p>
+{% endfor %}
+</div>

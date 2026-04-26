@@ -1,0 +1,73 @@
+{% extends "core/base.html" %}
+{% block title %}Книжные клубы — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px">
+    <div>
+      <h1 style="font-size:22px">Книжные клубы</h1>
+      <p style="font-size:13px;color:var(--muted);margin-top:6px">Обсуждения, общие циклы чтения, голосования и встречные ритмы.</p>
+    </div>
+    {% if user.is_authenticated %}
+      <a href="{% url 'club_create' %}" class="btn btn-primary btn-sm">+ Создать клуб</a>
+    {% endif %}
+  </div>
+
+  {% if my_clubs %}
+  <section style="margin-bottom:28px">
+    <div class="section-head">
+      <div class="section-title" style="font-size:18px">Мои клубы</div>
+      <div class="section-meta">{{ my_clubs|length }} в вашем круге</div>
+    </div>
+    <div class="club-grid">
+      {% for club in my_clubs %}
+      <a href="{% url 'club_detail' club.pk %}" class="club-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
+          <div class="club-card__title" style="margin-bottom:0">{{ club.name }}</div>
+          {% if club.is_public %}
+            <span class="club-chip">Открытый</span>
+          {% else %}
+            <span class="club-chip club-chip--ink">Приватный</span>
+          {% endif %}
+        </div>
+        {% if club.description %}
+          <div class="club-card__desc">{{ club.description }}</div>
+        {% endif %}
+        <div class="club-card__meta">
+          <span>{{ club.num_members }} участников</span>
+          <span style="color:var(--accent);font-weight:600">Вы внутри</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section>
+    <div class="section-head">
+      <div class="section-title" style="font-size:18px">Открытые клубы</div>
+      <div class="section-meta">К которым можно присоединиться сразу</div>
+    </div>
+    <div class="club-grid">
+      {% for club in clubs %}
+      <a href="{% url 'club_detail' club.pk %}" class="club-card">
+        <div class="club-card__title">{{ club.name }}</div>
+        {% if club.description %}
+          <div class="club-card__desc">{{ club.description }}</div>
+        {% endif %}
+        <div class="club-card__meta">
+          <span>{{ club.num_members }} участников</span>
+          {% if club.pk in my_club_ids %}
+            <span style="color:var(--accent);font-weight:600">Вы участник</span>
+          {% else %}
+            <span>Открыт для входа</span>
+          {% endif %}
+        </div>
+      </a>
+      {% empty %}
+      <p class="empty" style="grid-column:1/-1;text-align:center;padding:48px 0">Публичных клубов пока нет</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% load static %}
+
+{% if pending %}
+{# Поллинг каждые 2 секунды пока задача не готова #}
+<div id="ai-recs-block"
+     hx-get="{% url 'ai_recs_status' %}?task_id={{ task_id }}"
+     hx-trigger="every 2s"
+     hx-target="#ai-recs-block"
+     hx-swap="outerHTML"
+     style="padding:32px 0;text-align:center">
+  <span class="spinner" style="display:inline-block;width:20px;height:20px;
+        border:2px solid var(--border);border-top-color:var(--accent);
+        border-radius:50%;animation:spin 0.8s linear infinite"></span>
+  <p style="margin-top:12px;font-size:13px;color:var(--muted)">
+    ИИ подбирает книги для вас…
+  </p>
+</div>
+
+{% elif ai_recs %}
+<div id="ai-recs-block">
+  <div style="display:flex;align-items:center;justify-content:space-between;
+              margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <p style="font-size:12px;color:var(--ghost);margin:0">
+      ✨ Подобрано ИИ на основе ваших списков и предпочтений
+    </p>
+    <button class="btn btn-secondary btn-sm"
+            hx-post="{% url 'ai_recs_refresh' %}"
+            hx-target="#ai-recs-block"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+      ↻ Обновить
+    </button>
+  </div>
+
+  {% for item in ai_recs %}
+  <div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)">
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <a href="{% url 'book_detail' item.book.pk %}" class="lnk"
+           style="font-weight:600;font-size:14px">{{ item.book.title }}</a>
+        <span style="font-size:12px;color:var(--ghost)">
+          {{ item.book.authors.all|join:", " }}
+        </span>
+      </div>
+      {% if item.reason %}
+      <p style="font-size:12px;color:var(--muted);margin:4px 0 0">
+        {{ item.reason }}
+      </p>
+      {% endif %}
+    </div>
+    <div style="flex-shrink:0;text-align:right">
+      <span style="font-size:12px;color:var(--accent)">
+        {{ item.book.stars_display }}
+      </span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div id="ai-recs-block" style="padding:24px 0;text-align:center">
+  <p style="font-size:14px;color:var(--muted);margin-bottom:12px">
+    AI-рекомендации ещё не сгенерированы
+  </p>
+  <button class="btn btn-primary btn-sm"
+          hx-post="{% url 'ai_recs_refresh' %}"
+          hx-target="#ai-recs-block"
+          hx-swap="outerHTML"
+          hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+    Сгенерировать рекомендации
+  </button>
+</div>
+{% endif %}

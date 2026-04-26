@@ -1,0 +1,60 @@
+{% extends "analytics/_detail_base.html" %}
+
+{% block title %}Модерация · Аналитика{% endblock %}
+{% block crumb %}Модерация{% endblock %}
+{% block page_title %}Журнал модерации{% endblock %}
+
+{% block filters %}
+<form class="an-filters"
+      hx-get="{% url 'analytics_detail_moderation' %}"
+      hx-target="#moderation-results"
+      hx-swap="outerHTML"
+      hx-push-url="true"
+      hx-trigger="change from:select, input changed delay:300ms from:input[type=text]"
+      hx-indicator="#mod-spinner"
+      onsubmit="return false">
+  <label>
+    Период (дней)
+    <select name="days">
+      <option value="7"   {% if d.days == 7   %}selected{% endif %}>7</option>
+      <option value="14"  {% if d.days == 14  %}selected{% endif %}>14</option>
+      <option value="30"  {% if d.days == 30  %}selected{% endif %}>30</option>
+      <option value="60"  {% if d.days == 60  %}selected{% endif %}>60</option>
+      <option value="90"  {% if d.days == 90  %}selected{% endif %}>90</option>
+      <option value="180" {% if d.days == 180 %}selected{% endif %}>180</option>
+      <option value="365" {% if d.days == 365 %}selected{% endif %}>365</option>
+    </select>
+  </label>
+  <label>
+    Действие
+    <select name="action">
+      <option value="">— все —</option>
+      {% for value, label in d.action_choices %}
+        <option value="{{ value }}" {% if d.action == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Модератор
+    <input type="text" name="moderator" value="{{ d.moderator }}" placeholder="username" autocomplete="off">
+  </label>
+  <label style="flex:1;min-width:180px">
+    Поиск (объект / заметка)
+    <input type="text" name="q" value="{{ d.q }}" placeholder="Название / текст..." autocomplete="off">
+  </label>
+  <span id="mod-spinner" class="htmx-indicator"
+        style="font-size:12px;color:var(--muted);align-self:center">ищу…</span>
+  {% if d.q or d.action or d.moderator or d.days != 30 %}
+    <a href="{% url 'analytics_detail_moderation' %}" class="btn btn-ghost btn-sm">Сбросить</a>
+  {% endif %}
+</form>
+<style>
+  .htmx-indicator { display:none; }
+  .htmx-request .htmx-indicator,
+  .htmx-request.htmx-indicator { display:inline; }
+</style>
+{% endblock %}
+
+{% block detail_content %}
+  {% include "analytics/_detail_moderation_results.html" %}
+{% endblock %}

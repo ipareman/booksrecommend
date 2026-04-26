@@ -1,0 +1,63 @@
+{% load static %}
+
+{% if pending %}
+  {# Поллинг каждые 2 сек пока задача не завершится #}
+  <div id="price-block-{{ book.id }}"
+       hx-get="{% url 'price_status' book.id %}?task_id={{ task_id }}"
+       hx-trigger="every 2s"
+       hx-target="#price-block-{{ book.id }}"
+       hx-swap="outerHTML"
+       style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+              border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);margin-left:auto">
+    <span class="spinner"></span>
+    <span style="font-size:13px;color:var(--muted)">Запрашиваю цены...</span>
+  </div>
+
+{% elif book.avg_price %}
+  <div id="price-block-{{ book.id }}"
+       style="display:flex;align-items:center;gap:14px;padding:10px 14px;
+              border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);margin-left:auto">
+    <div>
+      <div class="price-block__avg">≈ {{ book.avg_price }} ₽</div>
+      <div class="price-block__label">средняя по магазинам</div>
+    </div>
+    {% if book.price_last_requested %}
+    <div>
+      <div style="font-size:11px;color:var(--ghost)">обновлено</div>
+      <div style="font-size:11px;color:var(--ghost)">{{ book.price_last_requested|date:"d.m.Y H:i" }}</div>
+    </div>
+    {% endif %}
+    <button class="btn btn-ghost btn-sm"
+            onclick="openPriceChart({{ book.id }}, '{{ book.title|escapejs }}')"
+            title="История цен">📈</button>
+    {% if user.is_authenticated %}
+    <button class="btn btn-ghost btn-sm"
+            onclick="document.getElementById('price-captcha-modal-{{ book.id }}').style.display='flex'"
+            title="Обновить цену">↻</button>
+    {% endif %}
+  </div>
+  {% include "books/_price_captcha_modal.html" with book=book %}
+
+{% elif captcha_error %}
+  <div id="price-block-{{ book.id }}">
+    <p style="font-size:12px;color:var(--err);margin-bottom:8px;margin-left:auto;">Капча не пройдена. Попробуйте ещё раз.</p>
+    <button class="btn btn-secondary btn-sm" style="margin-left:auto"
+            onclick="document.getElementById('price-captcha-modal-{{ book.id }}').style.display='flex'">
+      Запросить цену
+    </button>
+    {% include "books/_price_captcha_modal.html" with book=book %}
+  </div>
+
+{% else %}
+  <div id="price-block-{{ book.id }}" style="margin-left:auto">
+    {% if user.is_authenticated %}
+    <button class="btn btn-secondary btn-sm"
+            onclick="document.getElementById('price-captcha-modal-{{ book.id }}').style.display='flex'" style=margin-left:auto;>
+      Запросить цену
+    </button>
+    {% include "books/_price_captcha_modal.html" with book=book %}
+    {% else %}
+      <span style="font-size:12px;color:var(--ghost)">Войдите, чтобы узнать цену</span>
+    {% endif %}
+  </div>
+{% endif %}

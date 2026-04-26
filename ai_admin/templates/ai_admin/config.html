@@ -1,0 +1,136 @@
+{% extends "ai_admin/_base.html" %}
+
+{% block ai_title %}Настройки{% endblock %}
+
+{% block ai_content %}
+<h1 style="margin:0 0 20px;font-size:24px">Настройки AI</h1>
+
+<form method="post" style="display:flex;flex-direction:column;gap:24px;max-width:700px"
+      x-data="{ provider: '{{ cfg.provider|default:'openrouter' }}' }">
+  {% csrf_token %}
+
+  <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:20px">
+    <h3 style="margin:0 0 12px;font-size:14px">Провайдер LLM</h3>
+    <p style="font-size:12px;color:var(--ghost);margin:0 0 16px">
+      OpenRouter — дефолт (креды берутся из settings). AI Tunnel — доступ к моделям из РФ,
+      base_url фиксирован. Custom — свой OpenAI-совместимый endpoint.
+    </p>
+
+    <label style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
+      <span style="font-size:12px;color:var(--ghost)">Провайдер</span>
+      <select name="provider" x-model="provider"
+              style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:inherit">
+        {% for value, label in provider_choices %}
+        <option value="{{ value }}" {% if cfg.provider == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <div x-show="provider !== 'openrouter'" x-cloak
+         style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+      <label style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:var(--ghost)">API-ключ (custom_api_key)</span>
+        <input type="password" name="custom_api_key" value="{{ cfg.custom_api_key }}"
+               autocomplete="new-password"
+               placeholder="sk-…"
+               style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:inherit;font-family:monospace;font-size:12px">
+      </label>
+
+      <label x-show="provider === 'custom'" x-cloak
+             style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:var(--ghost)">Base URL (custom endpoint)</span>
+        <input type="url" name="custom_base_url" value="{{ cfg.custom_base_url }}"
+               placeholder="https://api.example.com/v1/"
+               style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:inherit;font-family:monospace;font-size:12px">
+      </label>
+
+      <p x-show="provider === 'aitunnel'" x-cloak
+         style="font-size:12px;color:var(--ghost);margin:0">
+        Для AI Tunnel используется base_url <code>https://api.aitunnel.ru/v1/</code>.
+        Список моделей и креды — в личном кабинете aitunnel.ru.
+      </p>
+    </div>
+  </div>
+
+  <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:20px">
+    <h3 style="margin:0 0 12px;font-size:14px">Модели</h3>
+    <p style="font-size:12px;color:var(--ghost);margin:0 0 16px">
+      Оставь поле пустым, чтобы использовать дефолт из settings.py.
+    </p>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <label style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:var(--ghost)">Main (дефолт: <code>{{ defaults.main }}</code>)</span>
+        <input type="text" name="model_main" value="{{ cfg.model_main }}"
+               placeholder="{{ defaults.main }}"
+               style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:inherit;font-family:monospace;font-size:12px">
+      </label>
+
+      <label style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:var(--ghost)">Light (дефолт: <code>{{ defaults.light }}</code>)</span>
+        <input type="text" name="model_light" value="{{ cfg.model_light }}"
+               placeholder="{{ defaults.light }}"
+               style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:inherit;font-family:monospace;font-size:12px">
+      </label>
+
+      <label style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:var(--ghost)">Fallback (дефолт: <code>{{ defaults.fallback }}</code>)</span>
+        <input type="text" name="model_fallback" value="{{ cfg.model_fallback }}"
+               placeholder="{{ defaults.fallback }}"
+               style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:inherit;font-family:monospace;font-size:12px">
+      </label>
+    </div>
+  </div>
+
+  <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:20px">
+    <h3 style="margin:0 0 12px;font-size:14px">Фичи</h3>
+    <p style="font-size:12px;color:var(--ghost);margin:0 0 16px">
+      Отключённая фича вернёт ошибку «Фича X отключена в админке».
+    </p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      {% for field, label, enabled in feature_rows %}
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer">
+        <input type="checkbox" name="{{ field }}" {% if enabled %}checked{% endif %}>
+        <span style="font-size:13px">{{ label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── Dry-run mode ─────────────────────────────────────────────────────── #}
+  <div style="background:var(--bg-2);border:1px solid {% if cfg.dry_run_mode %}#f59e0b{% else %}var(--border){% endif %};
+              border-radius:12px;padding:20px">
+    <h3 style="margin:0 0 12px;font-size:14px">
+      {% if cfg.dry_run_mode %}🟡 {% endif %}Сухой режим (dry-run)
+    </h3>
+    <p style="font-size:12px;color:var(--ghost);margin:0 0 16px;line-height:1.6">
+      Когда включён — <strong>любой</strong> LLM-вызов возвращает фейковый ответ,
+      реальный запрос к API не делается. Токены не тратятся, но запись в
+      <a href="{% url 'ai_admin_dashboard' %}" class="lnk">AIUsageLog</a> попадает со статусом
+      <code>dry_run</code>. Удобно при массовом импорте книг, чтобы случайно не сжечь бюджет.
+    </p>
+    <label style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg);
+                  border:1px solid var(--border);border-radius:8px;cursor:pointer">
+      <input type="checkbox" name="dry_run_mode" {% if cfg.dry_run_mode %}checked{% endif %}>
+      <span style="font-size:13px">
+        Включить сухой режим —
+        <span style="color:var(--ghost)">LLM не будет вызываться ни одной фичей</span>
+      </span>
+    </label>
+    {% if cfg.dry_run_mode %}
+    <p style="margin:12px 0 0;padding:10px 12px;background:rgba(245,158,11,.12);
+              border:1px solid #f59e0b;border-radius:6px;font-size:12px;color:#f59e0b">
+      ⚠ Сейчас ВКЛЮЧЁН. Все AI-фичи возвращают заглушку. Не забудьте выключить
+      после массовых операций.
+    </p>
+    {% endif %}
+  </div>
+
+  <div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+  </div>
+
+</form>
+
+{% endblock %}

@@ -1,0 +1,567 @@
+{% extends "core/base.html" %}
+{% block title %}{% if editing %}Редактировать{% else %}Написать{% endif %} рецензию — {{ book.title }}{% endblock %}
+
+{% block content %}
+<div class="critique-form-page">
+
+  <a href="{% url 'book_detail' book.pk %}" class="lnk-muted" style="font-size:12px;display:inline-block;margin-bottom:20px">
+    ← {{ book.title }}
+  </a>
+
+  <h1 style="font-size:24px;margin-bottom:24px">
+    {% if editing %}Редактировать рецензию{% else %}Написать рецензию{% endif %}
+  </h1>
+
+  {% if error %}
+    <div style="padding:10px 14px;margin-bottom:16px;border-radius:var(--radius);background:#fef2f2;border:1px solid #fecaca;color:var(--err);font-size:13px">
+      {{ error }}
+    </div>
+  {% endif %}
+
+  <form method="post"
+        action="{% if editing %}{% url 'critique_edit' critique.pk %}{% else %}{% url 'critique_create' book.pk %}{% endif %}"
+        enctype="multipart/form-data"
+        x-data="critiqueForm()"
+        @submit="syncBeforeSubmit()"
+        style="max-width:1180px;width:100%">
+    {% csrf_token %}
+
+    {# Заголовок #}
+    <div class="form-group">
+      <label class="form-label">Заголовок рецензии *</label>
+      {{ form.title }}
+    </div>
+
+    {# Обложка #}
+    <div class="form-group">
+      <label class="form-label">Обложка рецензии (необязательно)</label>
+      {{ form.cover_image }}
+      {% if critique and critique.cover_image %}
+        <div style="margin-top:8px">
+          <img src="{{ critique.cover_image.url }}" alt="" style="height:80px;border-radius:var(--radius)">
+        </div>
+      {% endif %}
+    </div>
+
+    {# ── ПЕРЕКЛЮЧАТЕЛЬ РЕДАКТОРА ──────────────────────────────────────────── #}
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">Текст рецензии *</label>
+
+      <div class="editor-mode-switch"
+           style="display:inline-flex;gap:0;border:1px solid var(--border);border-radius:8px;
+                  overflow:hidden;margin-bottom:10px">
+        <button type="button"
+                class="editor-mode-switch__btn"
+                :class="{'editor-mode-switch__btn--active': mode==='html'}"
+                @click="switchMode('html')">
+          Rich-текст
+        </button>
+        <button type="button"
+                class="editor-mode-switch__btn"
+                :class="{'editor-mode-switch__btn--active': mode==='markdown'}"
+                @click="switchMode('markdown')">
+          Markdown
+        </button>
+      </div>
+
+      {# Скрытое поле тип-редактора — прилетает в POST #}
+      <input type="hidden" name="body_format" x-model="mode">
+
+      {# Скрытое поле с Markdown-исходником (когда режим markdown) #}
+      <input type="hidden" name="body_source" x-ref="bodySourceHidden">
+
+      {# Скрытое textarea (CKEditor его использует как target) — остаётся невидимым #}
+      {{ form.body }}
+
+      {# ── CKEditor (режим html) ─────────────────────────────────────────── #}
+      <div x-show="mode==='html'" x-cloak>
+        <div id="ckeditor-container" class="ck-editor-wrap"></div>
+      </div>
+
+      {# ── MARKDOWN-РЕДАКТОР (режим markdown) — Obsidian-style split ─────── #}
+      <div x-show="mode==='markdown'" x-cloak class="md-editor">
+
+        {# Панель форматирования #}
+        <div class="md-toolbar">
+          <button type="button" class="md-btn" title="Заголовок 2"
+                  @click="wrapLine('## ')">H2</button>
+          <button type="button" class="md-btn" title="Заголовок 3"
+                  @click="wrapLine('### ')">H3</button>
+          <span class="md-sep"></span>
+          <button type="button" class="md-btn" title="Жирный  (Ctrl+B)"
+                  @click="wrap('**','**')"><b>B</b></button>
+          <button type="button" class="md-btn" title="Курсив  (Ctrl+I)"
+                  @click="wrap('_','_')"><i>I</i></button>
+          <button type="button" class="md-btn" title="Зачёркнуто"
+                  @click="wrap('~~','~~')"><s>S</s></button>
+          <button type="button" class="md-btn" title="Код (inline)"
+                  @click="wrap('`','`')">&lt;/&gt;</button>
+          <span class="md-sep"></span>
+          <button type="button" class="md-btn" title="Ссылка  (Ctrl+K)"
+                  @click="insertLink()">🔗</button>
+          <button type="button" class="md-btn" title="Картинка"
+                  @click="wrap('![alt](', ')')">🖼</button>
+          <span class="md-sep"></span>
+          <button type="button" class="md-btn" title="Маркированный список"
+                  @click="wrapLine('- ')">•</button>
+          <button type="button" class="md-btn" title="Нумерованный список"
+                  @click="wrapLine('1. ')">1.</button>
+          <button type="button" class="md-btn" title="Цитата"
+                  @click="wrapLine('> ')">❝</button>
+          <button type="button" class="md-btn" title="Блок кода"
+                  @click="insertCodeBlock()">{% templatetag openbrace %}{% templatetag openbrace %} {% templatetag closebrace %}{% templatetag closebrace %}</button>
+          <button type="button" class="md-btn" title="Горизонтальная линия"
+                  @click="insertAtNewline('\n---\n')">—</button>
+
+          <span class="md-toolbar__spacer"></span>
+
+          <label class="md-toolbar__preview-toggle">
+            <input type="checkbox" x-model="previewVisible">
+            Превью
+          </label>
+        </div>
+
+        {# Сам двухколоночный layout (как в Obsidian) #}
+        <div class="md-split" :class="{'md-split--solo': !previewVisible}">
+          <textarea class="md-source"
+                    x-ref="mdSource"
+                    x-model="mdText"
+                    @input.debounce.150ms="renderPreview()"
+                    @keydown="onKeydown($event)"
+                    spellcheck="true"
+                    placeholder="Пишите в Markdown…&#10;&#10;# Заголовок&#10;**жирный**   _курсив_   `код`&#10;&#10;- список&#10;- элементы&#10;&#10;> цитата&#10;&#10;[ссылка](https://)"></textarea>
+
+          <div x-show="previewVisible" class="md-preview critique-body" x-ref="mdPreview"
+               x-html="mdPreviewHtml"></div>
+        </div>
+
+        <div class="md-hint">
+          <b>Ctrl+B</b> жирный · <b>Ctrl+I</b> курсив · <b>Ctrl+K</b> ссылка · <b>Tab</b> отступ · <b>Ctrl+/</b> спрятать/показать превью
+        </div>
+      </div>
+    </div>
+
+    {# Динамические критерии #}
+    <div class="form-group">
+      <label class="form-label">Критерии оценки (необязательно)</label>
+      <p style="font-size:12px;color:var(--ghost);margin-bottom:12px">
+        Добавьте свои критерии и поставьте каждому оценку
+      </p>
+
+      <template x-for="(criterion, index) in criteria" :key="index">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+          <input type="text"
+                 class="form-input"
+                 :name="'criterion_name_' + index"
+                 x-model="criterion.name"
+                 placeholder="Название критерия (Сюжет, Персонажи...)"
+                 style="flex:1;min-width:180px">
+
+          <div class="star-pick" style="flex-shrink:0">
+            <template x-for="star in [1,2,3,4,5]">
+              <button type="button"
+                      class="star-pick__star"
+                      :class="{'star-pick__star--on': star <= criterion.rating}"
+                      @click="criterion.rating = star">&#9733;</button>
+            </template>
+          </div>
+          <input type="hidden" :name="'criterion_rating_' + index" :value="criterion.rating">
+
+          <button type="button" @click="criteria.splice(index, 1)"
+                  class="btn btn-ghost btn-sm" style="color:var(--err)">&#10005;</button>
+        </div>
+      </template>
+
+      <button type="button" @click="criteria.push({name:'', rating:0})"
+              class="btn btn-secondary btn-sm" style="margin-top:4px">
+        + Добавить критерий
+      </button>
+    </div>
+
+    {# Финальная оценка #}
+    <div class="form-group">
+      <label class="form-label">Итоговая оценка *</label>
+      <div class="star-pick" x-data="{ finalRating: {{ form.initial.final_rating|default:'0' }} }">
+        <template x-for="star in [1,2,3,4,5]">
+          <button type="button"
+                  class="star-pick__star"
+                  :class="{'star-pick__star--on': star <= finalRating}"
+                  @click="finalRating = star"
+                  style="font-size:28px">&#9733;</button>
+        </template>
+        <input type="hidden" name="final_rating" :value="finalRating">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;padding-top:8px">
+      <button type="submit" class="btn btn-primary">
+        {% if editing %}Сохранить{% else %}Отправить на модерацию{% endif %}
+      </button>
+      <a href="{% url 'book_detail' book.pk %}" class="btn btn-secondary">Отмена</a>
+    </div>
+  </form>
+</div>
+
+{# ── СТИЛИ MARKDOWN-РЕДАКТОРА ─────────────────────────────────────────── #}
+<style>
+  [x-cloak]{display:none!important}
+
+  .editor-mode-switch__btn{
+    padding:7px 14px;font-size:13px;border:none;background:transparent;cursor:pointer;
+    color:var(--muted);transition:background .15s,color .15s;
+  }
+  .editor-mode-switch__btn--active{
+    background:var(--ink);color:var(--bg,#fff);
+  }
+  .editor-mode-switch__btn:not(.editor-mode-switch__btn--active):hover{
+    background:var(--surface);color:var(--ink);
+  }
+
+  /* === Markdown editor === */
+  .md-editor{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--bg,#fff)}
+  .md-toolbar{
+    display:flex;align-items:center;gap:2px;flex-wrap:wrap;
+    padding:6px 8px;border-bottom:1px solid var(--border);background:var(--surface);
+  }
+  .md-toolbar__spacer{flex:1}
+  .md-toolbar__preview-toggle{
+    font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:0 6px;
+  }
+  .md-btn{
+    border:none;background:transparent;padding:4px 9px;border-radius:5px;cursor:pointer;
+    font-size:13px;color:var(--ink);min-width:28px;height:28px;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .md-btn:hover{background:var(--border)}
+  .md-btn:active{transform:translateY(1px)}
+  .md-sep{width:1px;height:18px;background:var(--border);margin:0 4px}
+
+  .md-split{display:grid;grid-template-columns:1fr 1fr;min-height:70vh}
+  .md-split--solo{grid-template-columns:1fr}
+  @media (max-width:700px){
+    .md-split{grid-template-columns:1fr;min-height:60vh}
+    .md-split .md-preview{border-left:none;border-top:1px solid var(--border)}
+  }
+
+  .md-source{
+    border:none;outline:none;resize:vertical;padding:22px 28px;
+    font-family:ui-monospace,"SF Mono","Consolas","Liberation Mono",monospace;
+    font-size:15px;line-height:1.65;background:var(--bg,#fff);color:var(--ink);
+    min-height:70vh;tab-size:2;
+  }
+  .md-preview{
+    padding:22px 28px;border-left:1px solid var(--border);overflow-y:auto;
+    background:var(--bg,#fff);color:var(--ink);font-size:15px;line-height:1.7;
+  }
+  .md-preview :first-child{margin-top:0}
+  .md-preview h1,.md-preview h2,.md-preview h3{margin:.8em 0 .4em;font-weight:600}
+  .md-preview h1{font-size:22px}
+  .md-preview h2{font-size:19px}
+  .md-preview h3{font-size:16px}
+  .md-preview p{margin:.6em 0}
+  .md-preview ul,.md-preview ol{padding-left:22px;margin:.4em 0}
+  .md-preview blockquote{
+    border-left:3px solid var(--border);margin:.6em 0;padding:.2em .8em;color:var(--muted)
+  }
+  .md-preview code{
+    background:var(--surface);padding:2px 5px;border-radius:3px;font-size:.9em;
+    font-family:ui-monospace,monospace;
+  }
+  .md-preview pre{
+    background:var(--surface);padding:10px 12px;border-radius:6px;overflow-x:auto;
+  }
+  .md-preview pre code{background:transparent;padding:0}
+  .md-preview a{color:var(--link,#2563eb);text-decoration:underline}
+  .md-preview img{max-width:100%;border-radius:4px}
+  .md-preview hr{border:none;border-top:1px solid var(--border);margin:1.2em 0}
+  .md-preview table{border-collapse:collapse;margin:.6em 0}
+  .md-preview th,.md-preview td{border:1px solid var(--border);padding:4px 8px}
+
+  .md-hint{
+    padding:6px 10px;border-top:1px solid var(--border);background:var(--surface);
+    font-size:11px;color:var(--muted);
+  }
+  .md-hint b{color:var(--ink);font-weight:600}
+
+  /* === CKEditor: крупное окно === */
+  .ck-editor-wrap .ck-editor__main > .ck-editor__editable,
+  .ck.ck-editor__main > .ck-editor__editable{
+    min-height:68vh !important;
+    font-size:15px;
+    line-height:1.7;
+    padding:16px 22px;
+  }
+  .ck.ck-content{font-size:15px;line-height:1.7}
+  .ck.ck-editor{border-radius:8px;overflow:hidden}
+
+  /* Страница рецензии — расширяем wrap, чтобы редактор реально был во всю ширину */
+  .critique-form-page{max-width:1180px;margin:0 auto;padding:32px 16px}
+  @media (min-width:1280px){
+    .critique-form-page{max-width:1320px}
+  }
+</style>
+
+{% endblock %}
+
+{% block extra_scripts %}
+{# marked.js для клиентского live-preview. Версия 9.x — stable, 30KB. Безопасный рендер + sanitize. #}
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+<script>
+function critiqueForm() {
+  return {
+    // ── Reactive state ─────────────────────────────────────────────────
+    mode: {% if editing and critique.body_format == 'markdown' %}'markdown'{% else %}'html'{% endif %},
+    mdText: '{% if editing and critique.body_format == 'markdown' %}{{ critique.body_source|default:""|escapejs }}{% endif %}',
+    mdPreviewHtml: '',
+    previewVisible: true,
+    ckeditor: null,
+
+    criteria: [
+      {% if editing and critique %}
+        {% for c in critique.criteria.all %}
+          {name: '{{ c.name|escapejs }}', rating: {{ c.rating }}},
+        {% endfor %}
+      {% endif %}
+    ],
+
+    // ── Инициализация ──────────────────────────────────────────────────
+    init() {
+      // marked настройка (без GFM breaks, безопасно)
+      if (window.marked) {
+        marked.setOptions({
+          breaks: true,   // \n → <br>  (чтобы было как в Obsidian)
+          gfm: true,
+        });
+      }
+
+      // CKEditor поднимаем сразу — даже если пользователь сразу переключит в Markdown,
+      // инстанс будет готов на случай возврата.
+      this.initCKEditor();
+
+      // Если editing + режим markdown — заполнить превью
+      if (this.mode === 'markdown') {
+        this.renderPreview();
+      }
+
+      // Ctrl+/ — тумблер превью
+      window.addEventListener('keydown', (e) => {
+        if (this.mode !== 'markdown') return;
+        if (e.ctrlKey && e.key === '/') {
+          e.preventDefault();
+          this.previewVisible = !this.previewVisible;
+        }
+      });
+    },
+
+    initCKEditor() {
+      const target = document.getElementById('ckeditor-container');
+      if (!target || this.ckeditor) return;
+
+      ClassicEditor
+        .create(target, {
+          toolbar: ['heading', '|', 'bold', 'italic', 'link', '|',
+                    'bulletedList', 'numberedList', 'blockQuote', '|',
+                    'imageUpload', 'insertTable', '|', 'undo', 'redo'],
+          heading: {
+            options: [
+              { model: 'paragraph', title: 'Текст' },
+              { model: 'heading2', view: 'h2', title: 'Заголовок 2' },
+              { model: 'heading3', view: 'h3', title: 'Заголовок 3' },
+            ]
+          },
+          language: 'ru',
+        })
+        .then((editor) => {
+          this.ckeditor = editor;
+          // Если был существующий HTML (editing + format=html) — подгрузить
+          const existing = document.getElementById('id_body').value;
+          {% if editing and critique.body_format == 'html' %}
+            if (existing) editor.setData(existing);
+          {% endif %}
+          editor.model.document.on('change:data', () => {
+            // Держим скрытый textarea в синке
+            document.getElementById('id_body').value = editor.getData();
+          });
+        })
+        .catch((err) => console.error('CKEditor init:', err));
+    },
+
+    // ── Смена режима ────────────────────────────────────────────────────
+    switchMode(m) {
+      if (m === this.mode) return;
+      this.mode = m;
+      if (m === 'markdown') {
+        this.$nextTick(() => {
+          this.renderPreview();
+          if (this.$refs.mdSource) this.$refs.mdSource.focus();
+        });
+      } else if (m === 'html' && this.ckeditor) {
+        this.ckeditor.editing.view.focus();
+      }
+    },
+
+    // ── Live preview ────────────────────────────────────────────────────
+    renderPreview() {
+      if (!window.marked) { this.mdPreviewHtml = this.escapeHtml(this.mdText); return; }
+      try {
+        // Клиентский рендер — только для превью. На сервере рендерится заново.
+        this.mdPreviewHtml = marked.parse(this.mdText || '');
+      } catch (e) {
+        this.mdPreviewHtml = this.escapeHtml(this.mdText);
+      }
+    },
+
+    escapeHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    },
+
+    // ── Тулбар: работа с selection в textarea ──────────────────────────
+    wrap(before, after) {
+      const ta = this.$refs.mdSource;
+      if (!ta) return;
+      const s = ta.selectionStart, e = ta.selectionEnd;
+      const sel = this.mdText.slice(s, e);
+      this.mdText = this.mdText.slice(0, s) + before + sel + after + this.mdText.slice(e);
+      this.$nextTick(() => {
+        ta.focus();
+        ta.setSelectionRange(s + before.length, e + before.length);
+        this.renderPreview();
+      });
+    },
+
+    wrapLine(prefix) {
+      const ta = this.$refs.mdSource;
+      if (!ta) return;
+      const pos = ta.selectionStart;
+      // найти начало строки
+      const lineStart = this.mdText.lastIndexOf('\n', pos - 1) + 1;
+      this.mdText = this.mdText.slice(0, lineStart) + prefix + this.mdText.slice(lineStart);
+      this.$nextTick(() => {
+        ta.focus();
+        ta.setSelectionRange(pos + prefix.length, pos + prefix.length);
+        this.renderPreview();
+      });
+    },
+
+    insertAtNewline(txt) {
+      const ta = this.$refs.mdSource;
+      if (!ta) return;
+      const pos = ta.selectionStart;
+      this.mdText = this.mdText.slice(0, pos) + txt + this.mdText.slice(pos);
+      this.$nextTick(() => {
+        ta.focus();
+        const newPos = pos + txt.length;
+        ta.setSelectionRange(newPos, newPos);
+        this.renderPreview();
+      });
+    },
+
+    insertLink() {
+      const ta = this.$refs.mdSource;
+      if (!ta) return;
+      const s = ta.selectionStart, e = ta.selectionEnd;
+      const sel = this.mdText.slice(s, e) || 'текст';
+      const url = prompt('URL ссылки:', 'https://');
+      if (url === null) return;
+      const inserted = `[${sel}](${url})`;
+      this.mdText = this.mdText.slice(0, s) + inserted + this.mdText.slice(e);
+      this.$nextTick(() => {
+        ta.focus();
+        const pos = s + inserted.length;
+        ta.setSelectionRange(pos, pos);
+        this.renderPreview();
+      });
+    },
+
+    insertCodeBlock() {
+      const ta = this.$refs.mdSource;
+      if (!ta) return;
+      const s = ta.selectionStart, e = ta.selectionEnd;
+      const sel = this.mdText.slice(s, e);
+      const block = '```\n' + (sel || 'код') + '\n```';
+      this.mdText = this.mdText.slice(0, s) + block + this.mdText.slice(e);
+      this.$nextTick(() => {
+        ta.focus();
+        const posStart = s + 4;                             // после ```\n
+        const posEnd   = posStart + (sel ? sel.length : 3); // 'код' = 3
+        ta.setSelectionRange(posStart, posEnd);
+        this.renderPreview();
+      });
+    },
+
+    // ── Keyboard shortcuts в textarea ──────────────────────────────────
+    onKeydown(ev) {
+      // Ctrl+B / Ctrl+I / Ctrl+K
+      if (ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
+        const k = ev.key.toLowerCase();
+        if (k === 'b') { ev.preventDefault(); this.wrap('**', '**'); return; }
+        if (k === 'i') { ev.preventDefault(); this.wrap('_', '_');   return; }
+        if (k === 'k') { ev.preventDefault(); this.insertLink();     return; }
+      }
+      // Tab — вставить два пробела
+      if (ev.key === 'Tab') {
+        ev.preventDefault();
+        const ta = ev.target;
+        const s = ta.selectionStart, e = ta.selectionEnd;
+        this.mdText = this.mdText.slice(0, s) + '  ' + this.mdText.slice(e);
+        this.$nextTick(() => {
+          ta.setSelectionRange(s + 2, s + 2);
+          this.renderPreview();
+        });
+        return;
+      }
+      // Enter — авто-продолжение списков ("- " и "1. ")
+      if (ev.key === 'Enter' && !ev.shiftKey) {
+        const ta = ev.target;
+        const pos = ta.selectionStart;
+        const lineStart = this.mdText.lastIndexOf('\n', pos - 1) + 1;
+        const line = this.mdText.slice(lineStart, pos);
+        const bullet = line.match(/^(\s*)([-*]|\d+\.)\s/);
+        if (bullet) {
+          // Если строка — пустой маркер, снимаем его (выход из списка)
+          if (line.replace(bullet[0], '').trim() === '') {
+            ev.preventDefault();
+            this.mdText = this.mdText.slice(0, lineStart) + this.mdText.slice(pos);
+            this.$nextTick(() => {
+              ta.setSelectionRange(lineStart, lineStart);
+              this.renderPreview();
+            });
+            return;
+          }
+          ev.preventDefault();
+          let next = '\n' + bullet[1] + bullet[2] + ' ';
+          // нумерованный список — инкремент
+          if (/^\d+\./.test(bullet[2])) {
+            const n = parseInt(bullet[2], 10);
+            next = '\n' + bullet[1] + (n + 1) + '. ';
+          }
+          this.mdText = this.mdText.slice(0, pos) + next + this.mdText.slice(pos);
+          this.$nextTick(() => {
+            const p = pos + next.length;
+            ta.setSelectionRange(p, p);
+            this.renderPreview();
+          });
+        }
+      }
+    },
+
+    // ── Подготовка перед submit: синхронизация hidden-полей ─────────────
+    syncBeforeSubmit() {
+      if (this.mode === 'markdown') {
+        // в hidden body_source — исходник
+        this.$refs.bodySourceHidden.value = this.mdText;
+        // в hidden body — отрендеренный (для UX fallback; сервер всё равно сам отрендерит)
+        const bodyTa = document.getElementById('id_body');
+        if (bodyTa && window.marked) bodyTa.value = marked.parse(this.mdText || '');
+      } else {
+        // html: CKEditor уже положил данные в #id_body через change:data
+        this.$refs.bodySourceHidden.value = '';
+      }
+    },
+  };
+}
+</script>
+{% endblock %}

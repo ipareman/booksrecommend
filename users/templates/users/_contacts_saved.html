@@ -1,0 +1,32 @@
+<div id="contacts-form">
+  <p style="font-size:13px;color:#16a34a;margin-bottom:12px">✓ Сохранено</p>
+
+  <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Email</div>
+  <div style="font-size:14px;margin-bottom:12px">{{ user.email|default:"—" }}</div>
+
+  <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Telegram</div>
+  <div style="font-size:14px">
+    {% if profile.telegram_username %}@{{ profile.telegram_username }}{% else %}—{% endif %}
+  </div>
+
+  {% if profile.telegram_chat_id %}
+    <p style="font-size:12px;color:#16a34a;margin-top:8px">✓ Telegram-бот подключён</p>
+  {% elif profile.telegram_username %}
+    <p style="font-size:12px;color:var(--muted);margin-top:8px">
+      Напишите TG-боту команду <code style="background:var(--surface);padding:1px 5px;border-radius:3px">/start</code>
+    </p>
+  {% endif %}
+
+  <div style="font-size:13px;color:var(--muted);margin-top:12px;margin-bottom:4px">MAX</div>
+  <div style="font-size:14px">
+    {% if profile.max_username %}@{{ profile.max_username }}{% else %}—{% endif %}
+  </div>
+
+  {% if profile.max_user_id %}
+    <p style="font-size:12px;color:#16a34a;margin-top:8px">✓ MAX-бот подключён</p>
+  {% elif profile.max_username %}
+    <p style="font-size:12px;color:var(--muted);margin-top:8px">
+      Напишите MAX-боту команду <code style="background:var(--surface);padding:1px 5px;border-radius:3px">/start</code>
+    </p>
+  {% endif %}
+</div>

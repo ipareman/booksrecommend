@@ -1,0 +1,19 @@
+[
+  {"model": "books.moodtag", "pk": 1,  "fields": {"name": "уютная",              "category": "atmosphere", "icon": "🏡"}},
+  {"model": "books.moodtag", "pk": 2,  "fields": {"name": "мрачная",             "category": "atmosphere", "icon": "🌑"}},
+  {"model": "books.moodtag", "pk": 3,  "fields": {"name": "напряжённая",          "category": "atmosphere", "icon": "⚡"}},
+  {"model": "books.moodtag", "pk": 4,  "fields": {"name": "лёгкая",              "category": "atmosphere", "icon": "☀️"}},
+  {"model": "books.moodtag", "pk": 5,  "fields": {"name": "меланхоличная",        "category": "atmosphere", "icon": "🌧️"}},
+  {"model": "books.moodtag", "pk": 6,  "fields": {"name": "мистическая",          "category": "atmosphere", "icon": "🔮"}},
+  {"model": "books.moodtag", "pk": 7,  "fields": {"name": "стремительная",        "category": "pace",       "icon": "🚀"}},
+  {"model": "books.moodtag", "pk": 8,  "fields": {"name": "размеренная",          "category": "pace",       "icon": "🚶"}},
+  {"model": "books.moodtag", "pk": 9,  "fields": {"name": "медленная",            "category": "pace",       "icon": "🐌"}},
+  {"model": "books.moodtag", "pk": 10, "fields": {"name": "вдохновляющая",        "category": "emotion",    "icon": "✨"}},
+  {"model": "books.moodtag", "pk": 11, "fields": {"name": "трогательная",         "category": "emotion",    "icon": "💧"}},
+  {"model": "books.moodtag", "pk": 12, "fields": {"name": "пугающая",             "category": "emotion",    "icon": "😱"}},
+  {"model": "books.moodtag", "pk": 13, "fields": {"name": "смешная",              "category": "emotion",    "icon": "😄"}},
+  {"model": "books.moodtag", "pk": 14, "fields": {"name": "философская",          "category": "emotion",    "icon": "🤔"}},
+  {"model": "books.moodtag", "pk": 15, "fields": {"name": "лёгкое чтение",        "category": "complexity", "icon": "📖"}},
+  {"model": "books.moodtag", "pk": 16, "fields": {"name": "средняя сложность",    "category": "complexity", "icon": "📚"}},
+  {"model": "books.moodtag", "pk": 17, "fields": {"name": "требует вдумчивости",  "category": "complexity", "icon": "🧠"}}
+]

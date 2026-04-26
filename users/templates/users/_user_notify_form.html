@@ -1,0 +1,55 @@
+{# Развёрнутая карточка пользователя с формой отправки уведомления. #}
+<div id="user-card-{{ u.id }}"
+     style="padding:12px 14px;border:1px solid var(--accent);border-radius:var(--radius);
+            background:var(--bg)">
+
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <span style="font-size:18px">📢</span>
+    <strong style="font-size:14px">Отправить уведомление</strong>
+    <span style="font-size:12px;color:var(--muted)">→</span>
+    <a href="{% url 'user_profile_public' u.username %}" class="lnk" style="font-weight:600">{{ u.username }}</a>
+
+    <span style="flex:1"></span>
+
+    <button class="btn btn-ghost btn-sm"
+            hx-get="{% url 'admin_user_card' u.id %}"
+            hx-target="#user-card-{{ u.id }}"
+            hx-swap="outerHTML">
+      ✕ Отмена
+    </button>
+  </div>
+
+  <form hx-post="{% url 'admin_send_notification' u.id %}"
+        hx-target="#user-card-{{ u.id }}"
+        hx-swap="outerHTML"
+        hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+        style="display:flex;flex-direction:column;gap:10px">
+
+    <div>
+      <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">
+        Текст уведомления <span style="color:#e11">*</span>
+      </label>
+      <textarea name="text" rows="3" maxlength="300" required
+                placeholder="Например: «Спасибо за участие в опросе!» или «Ваш отзыв на модерации повторно»"
+                style="width:100%;font-size:13px;padding:8px;border:1px solid var(--border);
+                       border-radius:var(--radius);resize:vertical"></textarea>
+      <div style="font-size:11px;color:var(--ghost);margin-top:2px">
+        До 300 символов. Будет видно в ленте /notifications/ у пользователя.
+      </div>
+    </div>
+
+    <div>
+      <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">
+        Ссылка при клике (опционально)
+      </label>
+      <input type="text" name="url" maxlength="500"
+             placeholder="/books/123/ или https://... (пусто = /notifications/)"
+             style="width:100%;font-size:13px;padding:8px;border:1px solid var(--border);
+                    border-radius:var(--radius)">
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-sm" style="align-self:flex-start">
+      📢 Отправить
+    </button>
+  </form>
+</div>

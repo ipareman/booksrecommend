@@ -1,0 +1,52 @@
+<div id="quotes-{{ book.id }}">
+  {% if user.is_authenticated %}
+  <form hx-post="{% url 'quote_add' book.pk %}"
+        hx-target="#quotes-{{ book.id }}"
+        hx-swap="outerHTML"
+        hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+        style="margin-bottom:20px">
+    <textarea class="form-input" name="text" rows="2"
+              placeholder="Любимая цитата из книги..." style="margin-bottom:6px"></textarea>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input class="form-input" type="number" name="page_number"
+             placeholder="Стр." style="width:80px" min="1">
+      <button type="submit" class="btn btn-secondary btn-sm">Сохранить цитату</button>
+    </div>
+  </form>
+  {% endif %}
+
+  {% for q in quotes %}
+  <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+    <p style="font-size:14px;line-height:1.7;margin-bottom:6px;font-style:italic">
+      «{{ q.text }}»
+    </p>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--ghost)">
+        — {% if q.is_ai_generated %}{{ q.user.username }}{% else %}<a href="{% url 'user_profile_public' q.user.username %}" class="lnk">{{ q.user.username }}</a>{% endif %}{% if q.page_number %}, стр. {{ q.page_number }}{% endif %}
+      </span>
+      {% if q.is_ai_generated %}
+      <span style="font-size:10px;padding:2px 8px;background:var(--surface);border:1px solid var(--border);
+                   border-radius:999px;color:var(--ghost)">Подборка AI из текста</span>
+      {% endif %}
+      {% if q.chapter %}
+      <a href="{% url 'book_read_chapter' book.id q.chapter.order %}"
+         class="lnk" style="font-size:11px;color:var(--muted)">
+        📖 Гл. {{ q.chapter.order|add:1 }}{% if q.chapter.title %}: {{ q.chapter.title|truncatechars:40 }}{% endif %}
+      </a>
+      {% endif %}
+      {% if q.mood_tag %}
+      <span style="font-size:11px;color:var(--muted)">{{ q.mood_tag.icon }} {{ q.mood_tag.name }}</span>
+      {% endif %}
+      {% if user == q.user and not q.is_ai_generated %}
+      <button class="btn btn-ghost btn-sm" style="color:var(--err);padding:0 4px"
+              hx-post="{% url 'quote_delete' book.pk q.pk %}"
+              hx-target="#quotes-{{ book.id }}"
+              hx-swap="outerHTML"
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>✕</button>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <p class="empty">Цитат пока нет. Будьте первым!</p>
+  {% endfor %}
+</div>

@@ -1,0 +1,36 @@
+{% extends "core/base.html" %}
+{% block title %}Сообщения — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:640px;margin:0 auto">
+
+  <h1 style="font-size:22px;margin-bottom:24px">Сообщения</h1>
+
+  {% for rd in room_data %}
+  <a href="{% url 'chat_room' rd.room.pk %}" class="chat-room-item"
+     style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit">
+    <div style="width:40px;height:40px;border-radius:50%;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:16px;color:var(--accent);flex-shrink:0">
+      {{ rd.title|first|upper }}
+    </div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-weight:600;font-size:14px">{{ rd.title }}</span>
+        {% if rd.unread %}
+          <span class="chat-unread-badge">{{ rd.unread }}</span>
+        {% endif %}
+      </div>
+      {% if rd.last_msg %}
+        <p style="font-size:13px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          {{ rd.last_msg|truncatechars:60 }}
+        </p>
+      {% endif %}
+    </div>
+  </a>
+  {% empty %}
+    <p class="empty" style="padding:40px 0;text-align:center">
+      У вас пока нет сообщений
+    </p>
+  {% endfor %}
+
+</div>
+{% endblock %}

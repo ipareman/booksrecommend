@@ -1,0 +1,43 @@
+{% extends "core/base.html" %}
+{% block title %}Новая подборка — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:520px;margin:0 auto">
+
+  <h1 style="font-size:22px;margin-bottom:24px">Создать подборку</h1>
+
+  {% if source_list %}
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+              padding:14px 16px;margin-bottom:20px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Книги из списка</div>
+    <div style="font-weight:600;font-size:14px;margin-bottom:6px">«{{ source_list.name }}»</div>
+    <div style="font-size:12px;color:var(--ghost)">
+      {{ source_list.books.count }} книг{% if source_list.books.count %} будет добавлено автоматически{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if source_list %}
+      <input type="hidden" name="from_list" value="{{ source_list.pk }}">
+    {% endif %}
+
+    <label class="form-label">Название</label>
+    <input class="form-input" type="text" name="title" required
+           value="{{ default_title }}"
+           style="width:100%;margin-bottom:16px" placeholder="Например: Лучшее фэнтези 2024">
+
+    <label class="form-label">Описание</label>
+    <textarea class="form-input" name="description" rows="3"
+              style="width:100%;margin-bottom:16px" placeholder="О чём эта подборка..."></textarea>
+
+    <label class="form-label">Обложка (необязательно)</label>
+    <input class="form-input" type="file" name="cover_image" accept="image/*"
+           style="margin-bottom:24px">
+
+    <button type="submit" class="btn btn-primary">Создать и перейти к наполнению</button>
+  </form>
+
+</div>
+{% endblock %}

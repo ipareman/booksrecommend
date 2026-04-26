@@ -1,0 +1,12 @@
+{% if user.is_authenticated %}
+<button class="btn {% if liked %}btn-primary{% else %}btn-secondary{% endif %} btn-sm"
+        hx-post="{% url 'critique_like' critique.pk %}"
+        hx-target="#critique-like-wrap" hx-swap="innerHTML">
+  {% if liked %}&#10084;{% else %}&#9825;{% endif %}
+  {{ likes_count }} {% if likes_count == 1 %}лайк{% elif likes_count < 5 %}лайка{% else %}лайков{% endif %}
+</button>
+{% else %}
+<span style="font-size:13px;color:var(--ghost)">
+  &#9825; {{ likes_count }}
+</span>
+{% endif %}

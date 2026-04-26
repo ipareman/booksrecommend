@@ -1,0 +1,223 @@
+{% extends "core/base.html" %}
+{% block title %}Лидерборд — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:780px;margin:0 auto">
+
+  <div class="section-head" style="margin-bottom:20px">
+    <h1 class="section-title">Лидерборд</h1>
+    <span class="section-meta">топ-20 по XP</span>
+  </div>
+
+  {# ── Карточка моего прогресса (если авторизован) ─────────────────────── #}
+  {% if me_progress %}
+  <div class="lb-me-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:10px">
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">
+          Ваш уровень
+        </div>
+        <div style="font-size:30px;font-weight:700;line-height:1">
+          Lv {{ me_progress.level }}
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">
+          XP
+        </div>
+        <div style="font-size:18px;font-weight:600">{{ me_progress.xp }}</div>
+        <div style="font-size:11px;color:var(--muted)">
+          до Lv {{ me_progress.level|add:1 }} — {{ me_progress.xp_to_next }} XP
+        </div>
+      </div>
+    </div>
+    <div class="lb-progress">
+      <div class="lb-progress__fill" style="width:{{ me_progress.percent }}%"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Таблица топ-20 ─────────────────────────────────────────────────── #}
+  <ol class="lb-list">
+    {% for row in top %}
+    <li class="lb-row {% if row.user == user %}lb-row--me{% endif %}">
+      <span class="lb-row__rank">
+        {% if forloop.counter == 1 %}🥇
+        {% elif forloop.counter == 2 %}🥈
+        {% elif forloop.counter == 3 %}🥉
+        {% else %}<span class="lb-row__rank-num">{{ forloop.counter }}</span>
+        {% endif %}
+      </span>
+      <a href="{% url 'user_profile_public' row.user.username %}" class="lb-row__user">
+        <span class="lb-row__avatar">{{ row.user.username|make_list|first|upper }}</span>
+        <span class="lb-row__name">{{ row.user.username }}</span>
+      </a>
+      <span class="lb-row__level">Lv {{ row.level }}</span>
+      <span class="lb-row__xp">{{ row.xp }} XP</span>
+    </li>
+    {% empty %}
+    <li class="empty" style="padding:24px 0">Пока никого. Первое действие — первое место.</li>
+    {% endfor %}
+  </ol>
+
+  {# ── Если меня нет в топ-20, показываем мою отдельную строку ─────── #}
+  {% if me_row %}
+  <div style="margin-top:8px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">
+    Ваше место
+  </div>
+  <ol class="lb-list" style="margin-top:6px">
+    <li class="lb-row lb-row--me">
+      <span class="lb-row__rank"><span class="lb-row__rank-num">{{ me_row.position }}</span></span>
+      <a href="{% url 'user_profile_public' me_row.user.username %}" class="lb-row__user">
+        <span class="lb-row__avatar">{{ me_row.user.username|make_list|first|upper }}</span>
+        <span class="lb-row__name">{{ me_row.user.username }}</span>
+      </a>
+      <span class="lb-row__level">Lv {{ me_row.level }}</span>
+      <span class="lb-row__xp">{{ me_row.xp }} XP</span>
+    </li>
+  </ol>
+  {% endif %}
+
+  {# ── Объяснение системы XP ──────────────────────────────────────────── #}
+  <details class="lb-explain">
+    <summary>Как считается XP?</summary>
+    <ul>
+      <li><b>+10 XP</b> — за каждую опубликованную рецензию</li>
+      <li><b>+0.1 XP</b> — за каждую прочитанную страницу</li>
+      <li><b>+1 XP</b> — за каждый лайк, полученный на вашу рецензию</li>
+      <li><b>+2 XP</b> — за каждую книгу, добавленную в любой список</li>
+      <li><b>+25 XP</b> — за каждое полученное достижение</li>
+    </ul>
+    <p style="margin-top:8px;color:var(--muted);font-size:12px">
+      Для повышения уровня нужно <code>(уровень)² × 50</code> XP. То есть на Lv 2 хватит 50 XP, на Lv 5 — уже 800.
+    </p>
+  </details>
+</div>
+
+<style>
+  /* ── Карточка «мой уровень» ───────────────────────────────────────── */
+  .lb-me-card {
+    background: var(--surface, #fafafa);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 24px;
+  }
+  .lb-progress {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .lb-progress__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, white));
+    transition: width .4s ease;
+  }
+
+  /* ── Таблица лидеров ──────────────────────────────────────────────── */
+  .lb-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .lb-row {
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    transition: background .15s;
+  }
+  .lb-row:first-child { border-top: 0; }
+  .lb-row:hover { background: rgba(127,127,127,.04); }
+  .lb-row--me {
+    background: rgba(0,100,255,.05);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .lb-row__rank {
+    font-size: 20px;
+    text-align: center;
+    width: 32px;
+  }
+  .lb-row__rank-num {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .lb-row__user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--ink);
+    overflow: hidden;
+  }
+  .lb-row__avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--on-accent, #fff);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .lb-row__name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lb-row__level {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+  }
+  .lb-row__xp {
+    font-weight: 600;
+    color: var(--ink);
+    min-width: 70px;
+    text-align: right;
+  }
+
+  /* ── How XP works (раскрывашка) ───────────────────────────────────── */
+  .lb-explain {
+    margin-top: 28px;
+    padding: 14px 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface, #fafafa);
+  }
+  .lb-explain summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    user-select: none;
+  }
+  .lb-explain ul {
+    margin: 12px 0 0;
+    padding-left: 20px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .lb-explain code {
+    background: var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 11px;
+  }
+</style>
+{% endblock %}

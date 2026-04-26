@@ -1,0 +1,177 @@
+<div class="club-book-grid">
+  <div class="club-panel">
+    <div class="section-head">
+      <div>
+        <div class="section-title" style="font-size:16px">Текущий ритм клуба</div>
+        <div class="section-meta">Что читаем сейчас, что на очереди и как устроено расписание.</div>
+      </div>
+    </div>
+
+    {% if current_book %}
+    <div class="club-current-book">
+      <div>
+        <div class="club-current-book__eyebrow">Сейчас читаем</div>
+        <a href="{% url 'book_detail' current_book.book.pk %}" class="lnk club-current-book__title">{{ current_book.book.title }}</a>
+        <div class="club-current-book__meta">
+          {% if current_book.start_date %}<span>с {{ current_book.start_date|date:"d.m.Y" }}</span>{% endif %}
+          {% if current_book.end_date %}<span>до {{ current_book.end_date|date:"d.m.Y" }}</span>{% endif %}
+          {% if current_book.start_date and current_book.end_date and current_book.is_active_now %}
+            <span class="club-chip">идёт встречный цикл</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if is_manager %}
+      <form hx-post="{% url 'club_remove_book' club.pk current_book.book.pk %}"
+            hx-target="#club-books-list" hx-swap="innerHTML"
+            style="display:inline">
+        {% csrf_token %}
+        <button class="btn btn-ghost btn-sm" style="color:var(--err)">Убрать</button>
+      </form>
+      {% endif %}
+    </div>
+    {% else %}
+      <p class="empty" style="padding:8px 0 18px">Текущая книга пока не выбрана.</p>
+    {% endif %}
+
+    {% if schedule_books %}
+    <div class="club-schedule">
+      {% for cb in schedule_books %}
+      <div class="club-schedule__row {% if cb.is_active_now %}club-schedule__row--active{% endif %}">
+        <div class="club-schedule__dates">
+          <span>{{ cb.start_date|date:"d.m" }}</span>
+          <span class="club-schedule__dash"></span>
+          <span>{{ cb.end_date|date:"d.m" }}</span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <a href="{% url 'book_detail' cb.book.pk %}" class="lnk" style="font-size:14px;font-weight:600">{{ cb.book.title }}</a>
+          <div style="font-size:11px;color:var(--ghost);margin-top:2px">
+            {% if cb.is_current %}в фокусе клуба{% elif cb.is_active_now %}идёт сейчас{% else %}в расписании{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="margin-top:18px">
+      <div class="section-meta" style="margin-bottom:8px">Вся полка клуба</div>
+      {% for cb in club_books %}
+      <div class="club-book-row">
+        <div style="flex:1;min-width:0">
+          <a href="{% url 'book_detail' cb.book.pk %}" class="lnk" style="font-size:14px;font-weight:600">{{ cb.book.title }}</a>
+          <div style="font-size:12px;color:var(--muted)">
+            {% for author in cb.book.authors.all %}
+              {{ author.name }}{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              Автор не указан
+            {% endfor %}
+          </div>
+          <div class="club-book-row__meta">
+            {% if cb.start_date or cb.end_date %}
+              <span>
+                {% if cb.start_date %}{{ cb.start_date|date:"d.m.Y" }}{% else %}без старта{% endif %}
+                —
+                {% if cb.end_date %}{{ cb.end_date|date:"d.m.Y" }}{% else %}без дедлайна{% endif %}
+              </span>
+            {% endif %}
+            {% if not cb.is_current %}
+              <span>{{ cb.voting_badge }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if membership %}
+        <div class="club-book-row__side">
+          {% if not cb.is_current %}
+          <form hx-post="{% url 'club_vote_next_book' club.pk cb.book.pk %}"
+                hx-target="#club-books-list" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button class="btn btn-sm {% if user_book_vote_id == cb.pk %}btn-primary{% else %}btn-secondary{% endif %}">
+              {% if user_book_vote_id == cb.pk %}Мой голос{% else %}Голосовать{% endif %}
+            </button>
+          </form>
+          {% endif %}
+
+          {% if is_manager %}
+          <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+            {% if not cb.is_current %}
+            <form hx-post="{% url 'club_set_current_book' club.pk cb.book.pk %}"
+                  hx-target="#club-books-list" hx-swap="innerHTML">
+              {% csrf_token %}
+              <button class="btn btn-ghost btn-sm">Сделать текущей</button>
+            </form>
+            {% endif %}
+            <form hx-post="{% url 'club_remove_book' club.pk cb.book.pk %}"
+                  hx-target="#club-books-list" hx-swap="innerHTML">
+              {% csrf_token %}
+              <button class="btn btn-ghost btn-sm" style="color:var(--err)">Удалить</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      {% if is_manager %}
+      <form class="club-inline-form club-inline-form--dates"
+            hx-post="{% url 'club_update_book' club.pk cb.book.pk %}"
+            hx-target="#club-books-list" hx-swap="innerHTML">
+        {% csrf_token %}
+        <label class="club-inline-form__field">
+          <span>Старт</span>
+          <input class="form-input" type="date" name="start_date" value="{% if cb.start_date %}{{ cb.start_date|date:'Y-m-d' }}{% endif %}">
+        </label>
+        <label class="club-inline-form__field">
+          <span>Финиш</span>
+          <input class="form-input" type="date" name="end_date" value="{% if cb.end_date %}{{ cb.end_date|date:'Y-m-d' }}{% endif %}">
+        </label>
+        <label class="form-check" style="white-space:nowrap;margin-top:18px">
+          <input type="checkbox" name="is_current" {% if cb.is_current %}checked{% endif %}>
+          <span>текущая</span>
+        </label>
+        <button class="btn btn-ghost btn-sm" type="submit" style="margin-top:16px">Сохранить даты</button>
+      </form>
+      {% endif %}
+      {% empty %}
+        <p class="empty" style="padding:20px 0">Книги ещё не добавлены.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="club-panel">
+    <div class="section-head">
+      <div>
+        <div class="section-title" style="font-size:16px">Выбор next book</div>
+        <div class="section-meta">Один участник — один голос. Можно переголосовать.</div>
+      </div>
+    </div>
+
+    {% for cb in club_books %}
+      {% if not cb.is_current %}
+      <div class="club-vote-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div style="flex:1;min-width:0">
+            <a href="{% url 'book_detail' cb.book.pk %}" class="lnk" style="font-size:14px;font-weight:600">{{ cb.book.title }}</a>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">{{ cb.voting_badge }}</div>
+          </div>
+          {% if membership %}
+          <form hx-post="{% url 'club_vote_next_book' club.pk cb.book.pk %}"
+                hx-target="#club-books-list" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button class="btn btn-sm {% if user_book_vote_id == cb.pk %}btn-primary{% else %}btn-secondary{% endif %}">
+              {% if user_book_vote_id == cb.pk %}Выбрано{% else %}Выбрать{% endif %}
+            </button>
+          </form>
+          {% endif %}
+        </div>
+        <div class="club-vote-meter">
+          {% widthratio cb.votes_count member_total|default:1 100 as vote_pct %}
+          <div class="club-vote-meter__fill" style="width:{% if member_total %}{{ vote_pct }}{% else %}0{% endif %}%"></div>
+        </div>
+      </div>
+      {% endif %}
+    {% empty %}
+      <p class="empty">Сначала добавьте несколько книг в клуб.</p>
+    {% endfor %}
+  </div>
+</div>

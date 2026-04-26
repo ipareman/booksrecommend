@@ -1,0 +1,44 @@
+{% if user_lists %}
+  {% if partial %}
+    {# Частичный рендер – только содержимое списка (для htmx-ответа) #}
+    <div id="book-list-dropdown-inner-{{ book.id }}">
+      {% for ul in user_lists %}
+        <form hx-post="{% url 'toggle_list' %}"
+              hx-target="#book-list-dropdown-inner-{{ book.id }}"
+              hx-swap="innerHTML"
+              class="list-toggle-form">
+          {% csrf_token %}
+          <input type="hidden" name="book_id" value="{{ book.id }}">
+          <input type="hidden" name="list_id" value="{{ ul.id }}">
+          <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">
+            <input type="checkbox" {% if ul.id in book_list_ids %}checked{% endif %}
+                   onchange="this.form.requestSubmit()"
+                   aria-label="Добавить/убрать {{ ul.name }}">
+            <span style="margin-left:8px;">
+              {{ ul.name }}
+              {% if ul.is_default %}<span style="font-size:10px;color:var(--ghost)">(по умолчанию)</span>{% endif %}
+            </span>
+          </label>
+        </form>
+      {% endfor %}
+      <a href="{% url 'profile' %}" style="display:block;padding:8px 12px;font-size:12px;color:var(--muted)">
+        + Управлять списками
+      </a>
+    </div>
+  {% else %}
+    {# Полная версия с кнопкой и выпадающим блоком #}
+    <div x-data="{ open: false }" style="position:relative">
+      <button class="btn btn-secondary btn-sm" @click="open=!open" type="button">
+        В список
+        <span style="font-size:10px">▾</span>
+      </button>
+      <div x-show="open" x-cloak @click.outside="open=false"
+           style="position:absolute;top:100%;left:0;margin-top:4px;z-index:50;
+                  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+                  min-width:180px;box-shadow:0 4px 12px rgba(0,0,0,.08)">
+        {# Вставляем частичный рендер (сам себя, но с флагом partial) #}
+        {% include "books/_list_dropdown.html" with partial=True %}
+      </div>
+    </div>
+  {% endif %}
+{% endif %}

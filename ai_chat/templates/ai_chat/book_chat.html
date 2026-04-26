@@ -1,0 +1,63 @@
+{% extends "core/base.html" %}
+{% load chat_extras %}
+{% block title %}AI-чат: {{ book.title }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:700px;margin:0 auto">
+
+  {# ── ШАПКА ────────────────────────────────────────────────────────────────── #}
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap">
+    {% if book.cover_image %}
+      <img src="{{ book.cover_image.url }}" alt=""
+           style="width:40px;height:60px;object-fit:cover;border-radius:4px">
+    {% endif %}
+    <div style="flex:1">
+      <a href="{% url 'book_detail' book.pk %}" class="lnk" style="font-size:16px;font-weight:600">{{ book.title }}</a>
+      <div style="font-size:12px;color:var(--muted)">
+        {% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm"
+            hx-post="{% url 'book_chat_clear' book.pk %}"
+            hx-target="#chat-messages"
+            hx-swap="innerHTML"
+            hx-confirm="Очистить историю чата?"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+      Очистить
+    </button>
+  </div>
+
+  {# ── СООБЩЕНИЯ ───────────────────────────────────────────────────────────── #}
+  <div class="ai-chat-messages" id="chat-messages">
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="ai-chat-msg ai-chat-msg--{{ msg.role }}">{{ msg.content|link_chapters:book }}</div>
+      {% endfor %}
+    {% else %}
+      <p style="font-size:13px;color:var(--ghost);text-align:center;padding:24px 0">
+        Задайте вопрос о книге. AI знает описание, отзывы и другую информацию.
+      </p>
+    {% endif %}
+  </div>
+
+  {# ── ВВОД ────────────────────────────────────────────────────────────────── #}
+  <div class="chat-input-bar">
+    <input class="form-input" type="text" id="ai-chat-input"
+           placeholder="Спросите о книге..."
+           autofocus
+           onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('ai-send-btn').click()}">
+    <button class="btn btn-primary btn-sm" id="ai-send-btn"
+            hx-post="{% url 'book_chat_send' book.pk %}"
+            hx-vals="js:{message:document.getElementById('ai-chat-input').value}"
+            hx-target="#chat-messages"
+            hx-swap="beforeend"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+            hx-indicator="#ai-spinner"
+            hx-on::after-request="document.getElementById('ai-chat-input').value='';document.getElementById('chat-messages').scrollTop=document.getElementById('chat-messages').scrollHeight">
+      Отправить
+    </button>
+    <span id="ai-spinner" class="htmx-indicator"><span class="spinner"></span></span>
+  </div>
+
+</div>
+{% endblock %}

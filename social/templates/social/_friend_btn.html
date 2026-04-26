@@ -1,0 +1,39 @@
+<div id="friend-btn-{{ target_user.pk }}">
+{% if friendship_status == "accepted" %}
+  <button class="btn btn-secondary btn-sm"
+          hx-post="{% url 'friend_remove' target_user.pk %}"
+          hx-target="#friend-btn-{{ target_user.pk }}"
+          hx-swap="outerHTML"
+          hx-confirm="Удалить из друзей?"
+          hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+    &#10003; В друзьях
+  </button>
+{% elif friendship_status == "pending" and is_sender %}
+  <button class="btn btn-ghost btn-sm" disabled>Заявка отправлена</button>
+{% elif friendship_status == "pending" and not is_sender %}
+  <div style="display:flex;gap:6px">
+    <button class="btn btn-primary btn-sm"
+            hx-post="{% url 'friend_accept' friendship.pk %}"
+            hx-target="#friend-btn-{{ target_user.pk }}"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+      Принять
+    </button>
+    <button class="btn btn-ghost btn-sm"
+            hx-post="{% url 'friend_reject' friendship.pk %}"
+            hx-target="#friend-btn-{{ target_user.pk }}"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+      Отклонить
+    </button>
+  </div>
+{% else %}
+  <button class="btn btn-primary btn-sm"
+          hx-post="{% url 'friend_request' target_user.pk %}"
+          hx-target="#friend-btn-{{ target_user.pk }}"
+          hx-swap="outerHTML"
+          hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+    Добавить в друзья
+  </button>
+{% endif %}
+</div>

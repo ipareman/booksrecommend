@@ -1,0 +1,208 @@
+{% extends "analytics/_detail_base.html" %}
+
+{% block title %}Retention-когорты · Аналитика{% endblock %}
+{% block crumb %}Retention-когорты{% endblock %}
+{% block page_title %}Retention-когорты{% endblock %}
+
+{% block filters %}
+<form method="get" class="an-filters">
+  <label>
+    Когорт (недель назад)
+    <select name="cohorts" onchange="this.form.submit()">
+      <option value="4"  {% if d.cohort_count == 4  %}selected{% endif %}>4</option>
+      <option value="8"  {% if d.cohort_count == 8  %}selected{% endif %}>8</option>
+      <option value="12" {% if d.cohort_count == 12 %}selected{% endif %}>12</option>
+      <option value="16" {% if d.cohort_count == 16 %}selected{% endif %}>16</option>
+      <option value="20" {% if d.cohort_count == 20 %}selected{% endif %}>20</option>
+      <option value="26" {% if d.cohort_count == 26 %}selected{% endif %}>26</option>
+    </select>
+  </label>
+  <label>
+    Глубина (недель вперёд)
+    <select name="depth" onchange="this.form.submit()">
+      <option value="4"  {% if d.depth == 4  %}selected{% endif %}>4</option>
+      <option value="8"  {% if d.depth == 8  %}selected{% endif %}>8</option>
+      <option value="12" {% if d.depth == 12 %}selected{% endif %}>12</option>
+      <option value="16" {% if d.depth == 16 %}selected{% endif %}>16</option>
+      <option value="20" {% if d.depth == 20 %}selected{% endif %}>20</option>
+      <option value="26" {% if d.depth == 26 %}selected{% endif %}>26</option>
+    </select>
+  </label>
+  <button type="submit" class="btn btn-primary btn-sm">Обновить</button>
+</form>
+{% endblock %}
+
+{% block detail_content %}
+
+<div class="an-card">
+  <h3>Пояснение</h3>
+  <p style="font-size:13px;line-height:1.5;color:var(--muted);margin:0">
+    <b style="color:var(--ink)">Строка</b> — неделя регистрации когорты.
+    <b style="color:var(--ink)">Столбец</b> — сколько недель прошло с регистрации (W0 — та же неделя).
+    <b style="color:var(--ink)">Ячейка</b> — процент пользователей этой когорты, которые были активны
+    (поиск / отзыв / рецензия / обновление прогресса чтения) на соответствующей неделе.
+    Заштрихованные ячейки — будущие недели (данных ещё нет).
+  </p>
+</div>
+
+<div class="an-card">
+  <h3>Таблица удержания · {{ d.cohort_count }}×{{ d.depth }}</h3>
+  <div class="cohort-wrap-detail">
+    <table class="cohort-detail">
+      <thead>
+        <tr>
+          <th>Когорта</th>
+          <th class="cohort-size">Размер</th>
+          {% for wk in d.depth_labels %}
+            <th>W{{ wk }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in d.rows %}
+        <tr>
+          <th>{{ row.label }}</th>
+          <td class="cohort-size">{{ row.cohort_size }}</td>
+          {% for cell in row.cells %}
+            {% if cell.future %}
+              <td class="cohort-cell cohort-cell--future"></td>
+            {% else %}
+              <td class="cohort-cell"
+                  data-pct="{{ cell.pct|floatformat:0 }}"
+                  title="{{ cell.n }} активны из {{ row.cohort_size }} ({{ cell.pct }}%)"
+                  style="--pct: {{ cell.pct|floatformat:1 }};">
+                {{ cell.pct|floatformat:0 }}%
+              </td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="an-card">
+  <h3>Средний retention по неделям (все когорты)</h3>
+  <div class="chart-box"><canvas id="retentionChart"></canvas></div>
+</div>
+
+<script id="retention-data" type="application/json">
+{
+  "labels": [{% for w in d.depth_labels %}"W{{ w }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+  "rows": [
+    {% for row in d.rows %}
+    {
+      "label": "{{ row.label|escapejs }}",
+      "size":  {{ row.cohort_size }},
+      "cells": [{% for cell in row.cells %}{% if cell.future %}null{% else %}{{ cell.pct }}{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}]
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+<style>
+  .cohort-wrap-detail { overflow-x:auto; }
+  .cohort-detail { border-collapse:separate; border-spacing:3px; width:auto; font-size:12px; }
+  .cohort-detail thead th {
+    font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;
+    padding:4px 6px;font-weight:600;white-space:nowrap;
+  }
+  .cohort-detail tbody th {
+    text-align:right;color:var(--muted);padding:4px 8px;font-weight:500;
+    font-size:11px;white-space:nowrap;
+  }
+  .cohort-detail .cohort-size {
+    text-align:center;font-variant-numeric:tabular-nums;color:var(--ghost);
+    font-size:11px;padding:2px 6px;
+  }
+  .cohort-detail .cohort-cell {
+    width:46px;height:32px;text-align:center;font-size:11px;
+    font-variant-numeric:tabular-nums;border-radius:4px;color:#fff;
+    background: color-mix(in srgb, var(--ink) calc(var(--pct) * 1%), #f2ecdf);
+    text-shadow: 0 0 2px rgba(0,0,0,.3);
+  }
+  .cohort-detail .cohort-cell[data-pct="0"] { color:var(--ghost); text-shadow:none; }
+  .cohort-detail .cohort-cell--future {
+    background:repeating-linear-gradient(45deg, #f2ecdf, #f2ecdf 4px, #e8ddc3 4px, #e8ddc3 8px);
+  }
+</style>
+
+{% endblock %}
+
+{% block chart_scripts %}
+<script>
+(function(){
+  var cs = getComputedStyle(document.documentElement);
+  var ink    = (cs.getPropertyValue('--ink')    || '#111').trim();
+  var border = (cs.getPropertyValue('--border') || '#e6dfca').trim();
+  var muted  = (cs.getPropertyValue('--muted')  || '#7a6f55').trim();
+
+  var payload = JSON.parse(document.getElementById('retention-data').textContent);
+
+  // Средний retention по глубине: среднее значение по всем когортам, игнорируя null
+  var depth = payload.labels.length;
+  var avg = [];
+  for (var k = 0; k < depth; k++) {
+    var sum = 0, cnt = 0;
+    for (var i = 0; i < payload.rows.length; i++) {
+      var v = payload.rows[i].cells[k];
+      if (v !== null && v !== undefined) { sum += v; cnt++; }
+    }
+    avg.push(cnt ? Math.round(sum / cnt * 10) / 10 : null);
+  }
+
+  // Для каждой когорты — отдельная линия (тонкая, прозрачная)
+  var datasets = payload.rows.map(function(row, i){
+    return {
+      label: row.label + ' (n=' + row.size + ')',
+      data:  row.cells,
+      borderColor: 'rgba(20,20,20,.18)',
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      pointRadius: 0,
+      tension: 0.2,
+      spanGaps: false,
+    };
+  });
+  datasets.push({
+    label: 'Среднее',
+    data:  avg,
+    borderColor: ink,
+    backgroundColor: 'rgba(20,20,20,.08)',
+    borderWidth: 3,
+    fill: true,
+    tension: 0.25,
+    pointRadius: 4,
+    pointHoverRadius: 7,
+    spanGaps: false,
+  });
+
+  new Chart(document.getElementById('retentionChart'), {
+    type: 'line',
+    data: { labels: payload.labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: muted, font:{size:11}, boxWidth:12, filter: function(item){
+            return item.text === 'Среднее' || payload.rows.length <= 8;
+          } }
+        }
+      },
+      scales: {
+        x: { grid: { color: border, drawBorder:false },
+             ticks: { color: muted, font:{size:11} } },
+        y: { beginAtZero: true, max: 100,
+             grid: { color: border, drawBorder:false },
+             ticks: { color: muted, font:{size:11},
+                      callback: function(v){ return v + '%'; } } }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

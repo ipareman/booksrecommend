@@ -1,0 +1,130 @@
+{% extends "core/base.html" %}
+{% block title %}{{ series.name }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px">
+
+  {# ── ХЛЕБНЫЕ КРОШКИ ─────────────────────────────────────────────────────── #}
+  <a href="{% url 'catalog' %}" class="lnk-muted" style="font-size:12px;display:inline-block;margin-bottom:20px">
+    ← Каталог
+  </a>
+
+  {# ── ШАПКА СЕРИИ ─────────────────────────────────────────────────────────── #}
+  <div class="series-header reveal">
+    <h1 class="series-header__title">{{ series.name }}</h1>
+
+    <div class="series-header__meta">
+      {% if main_authors %}
+        <span class="series-header__authors">
+          {% for a in main_authors %}
+            <a href="{% url 'author_detail' a.pk %}" class="lnk-muted">{{ a.name }}</a>{% if not forloop.last %}, {% endif %}
+          {% endfor %}
+        </span>
+        <span class="series-header__dot">&middot;</span>
+      {% endif %}
+      <span>{{ total }} {% if total == 1 %}книга{% elif total < 5 %}книги{% else %}книг{% endif %}</span>
+      {% if min_year %}
+        <span class="series-header__dot">&middot;</span>
+        <span>{{ min_year }}{% if max_year and max_year != min_year %}–{{ max_year }}{% endif %}</span>
+      {% endif %}
+      {% if avg_rating %}
+        <span class="series-header__dot">&middot;</span>
+        <span>★ {{ avg_rating|floatformat:1 }}</span>
+      {% endif %}
+    </div>
+
+    {# Прогресс-бар (для авторизованных) #}
+    {% if user.is_authenticated and total > 0 %}
+    <div class="series-progress reveal">
+      <div class="series-progress__info">
+        <span class="series-progress__label">Ваш прогресс</span>
+        <span class="series-progress__count">{{ user_read_count }} из {{ total }}</span>
+      </div>
+      <div class="progress" style="height:6px">
+        <div class="progress__fill" style="width:{{ progress_percent }}%"></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <hr class="divider" style="margin:24px 0 32px">
+
+  {# ── ТАЙМЛАЙН ───────────────────────────────────────────────────────────── #}
+  <div class="series-timeline stagger">
+    {% for item in books_data %}
+    <div class="series-node" data-status="{{ item.status }}">
+
+      {# Маркер с номером #}
+      <div class="series-node__marker">
+        {% if item.status == 'read' %}
+          <div class="series-node__circle series-node__circle--read">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        {% elif item.status == 'reading' %}
+          <div class="series-node__circle series-node__circle--reading">
+            <span>{{ item.number }}</span>
+          </div>
+        {% else %}
+          <div class="series-node__circle series-node__circle--pending">
+            <span>{{ item.number }}</span>
+          </div>
+        {% endif %}
+      </div>
+
+      {# Карточка книги #}
+      <a href="{% url 'book_detail' item.book.pk %}" class="series-node__card">
+        <div class="series-node__cover-wrap">
+          {% if item.book.cover_image %}
+            <img src="{{ item.book.cover_image.url }}" alt="{{ item.book.title }}" class="series-node__cover">
+          {% else %}
+            <div class="series-node__cover series-node__cover--empty">
+              <span>{{ item.book.title|truncatechars:30 }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="series-node__info">
+          <div class="series-node__title">{{ item.book.title }}</div>
+          <div class="series-node__details">
+            {% for a in item.book.authors.all %}
+              {{ a.name }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+            {% if item.book.publication_year %}
+              <span class="series-node__year">&middot; {{ item.book.publication_year }}</span>
+            {% endif %}
+            {% if item.book.pages %}
+              <span class="series-node__year">&middot; {{ item.book.pages }} стр.</span>
+            {% endif %}
+          </div>
+          {% if item.book.avg_rating %}
+            <div class="series-node__rating">★ {{ item.book.avg_rating|floatformat:1 }}
+              {% if item.book.rating_count %}<span class="series-node__rating-count">({{ item.book.rating_count }})</span>{% endif %}
+            </div>
+          {% endif %}
+
+          {# Статус чтения #}
+          <div class="series-node__status series-node__status--{{ item.status }}">
+            {% if item.status == 'read' %}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Прочитано
+            {% elif item.status == 'reading' %}
+              <span class="series-node__status-icon">&#9654;</span>
+              Читаю &middot; {{ item.status_label }}
+              {% if item.percent > 0 %}
+                <div class="progress" style="height:3px;width:80px;margin-left:8px;display:inline-flex;vertical-align:middle">
+                  <div class="progress__fill" style="width:{{ item.percent }}%"></div>
+                </div>
+              {% endif %}
+            {% else %}
+              <span class="series-node__status-dot"></span>
+              Не начато
+            {% endif %}
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

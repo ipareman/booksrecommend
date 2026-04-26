@@ -1,0 +1,187 @@
+{% extends "core/base.html" %}
+{% block title %}Панель администратора — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px">
+
+  <div class="admin-header">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <h1 style="font-size:22px">Панель администратора</h1>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a href="{% url 'ai_admin_dashboard' %}" class="btn btn-ghost btn-sm">AI-админка →</a>
+        <a href="{% url 'graph_admin' %}" class="btn btn-ghost btn-sm">Граф связей →</a>
+        <a href="{% url 'admin_charts_demo' %}" class="btn btn-ghost btn-sm">📊 Демо графиков</a>
+      </div>
+    </div>
+    <div class="admin-stats-row">
+      <span><b style="font-size:18px;font-family:'Mltsvfont';color:var(--ink)">{{ stat_books }}</b> книг</span>
+      <span><b style="font-size:18px;font-family:'Mltsvfont';color:var(--ink)">{{ stat_users }}</b> польз.</span>
+      <span><b style="font-size:18px;font-family:'Mltsvfont';color:var(--ink)">{{ stat_reviews }}</b> отзывов</span>
+      <span><b style="font-size:18px;font-family:'Mltsvfont';color:var(--ink)">{{ stat_searches }}</b> запросов сегодня</span>
+    </div>
+  </div>
+  <hr class="divider" style="margin-bottom:0">
+
+  <div x-data="{ tab: 'overview', analyticsLoaded: false, loadAnalytics() {
+          if (this.analyticsLoaded) return;
+          this.analyticsLoaded = true;
+          htmx.ajax('GET', '{% url 'admin_analytics' %}', {
+            target: '#analytics-pane', swap: 'innerHTML'
+          });
+       } }">
+    <div class="tabs">
+      <button class="tab" :class="{'tab--active': tab==='overview'}" @click="tab='overview'">Обзор</button>
+      <button class="tab" :class="{'tab--active': tab==='analytics'}"
+              @click="tab='analytics'; loadAnalytics()">📊 Аналитика</button>
+      <button class="tab" :class="{'tab--active': tab==='users'}"    @click="tab='users'">Пользователи</button>
+      <button class="tab" :class="{'tab--active': tab==='books'}"    @click="tab='books'">Книги</button>
+      <button class="tab" :class="{'tab--active': tab==='reviews'}"  @click="tab='reviews'">Отзывы</button>
+      <button class="tab" :class="{'tab--active': tab==='critiques'}" @click="tab='critiques'">Рецензии</button>
+      <button class="tab" :class="{'tab--active': tab==='editions'}" @click="tab='editions'">Издания</button>
+      <button class="tab" :class="{'tab--active': tab==='stores'}"   @click="tab='stores'">Магазины</button>
+      <button class="tab" :class="{'tab--active': tab==='notifs'}"   @click="tab='notifs'">Уведомления</button>
+    </div>
+
+    {# АНАЛИТИКА — lazy-load через прямой htmx.ajax() при первом клике #}
+    <div x-show="tab==='analytics'" x-cloak>
+      <div id="analytics-pane">
+        <p style="color:var(--muted);font-size:13px;padding:40px 0;text-align:center">
+          Загружаю аналитику… (если висит &gt; 10 сек — проверь консоль браузера и журнал контейнера)
+        </p>
+      </div>
+    </div>
+
+    {# ОБЗОР #}
+    <div x-show="tab==='overview'" x-cloak class="home-grid">
+      <div>
+        <p style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Популярные книги</p>
+        {% for book in popular_books %}
+        <div style="display:flex;gap:10px;padding:8px 0;font-size:13px;align-items:center">
+          <span style="color:var(--ghost);min-width:20px">{{ forloop.counter }}.</span>
+          <a href="{% url 'book_detail' book.id %}" class="lnk" style="flex:1">{{ book.title }}</a>
+          <span style="color:var(--muted)">{{ book.rating_count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div>
+        <p style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Частые запросы</p>
+        {% for item in popular_queries %}
+        <div style="display:flex;gap:10px;padding:8px 0;font-size:13px;align-items:center">
+          <span style="color:var(--ghost);min-width:20px">{{ forloop.counter }}.</span>
+          <span style="flex:1">{{ item.query }}</span>
+          <div class="progress" style="width:60px"><div class="progress__fill" style="width:{{ item.pct }}%"></div></div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ПОЛЬЗОВАТЕЛИ #}
+    <div x-show="tab==='users'" x-cloak>
+      <div style="margin-bottom:14px">
+        <input class="form-input" type="text" style="max-width:280px"
+               placeholder="Поиск пользователей..."
+               hx-get="{% url 'admin_users_partial' %}"
+               hx-trigger="input changed delay:300ms"
+               hx-target="#users-table"
+               name="q"
+               hx-swap="innerHTML">
+      </div>
+      <div id="users-table">{% include "users/_admin_users.html" %}</div>
+    </div>
+
+    {# КНИГИ #}
+    <div x-show="tab==='books'" x-cloak>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <input class="form-input" type="text" style="max-width:280px"
+               placeholder="Поиск книг..."
+               hx-get="{% url 'admin_books_partial' %}"
+               hx-trigger="input changed delay:300ms"
+               hx-target="#books-table"
+               name="q"
+               hx-swap="innerHTML">
+        <a href="{% url 'book_add' %}" class="btn btn-primary btn-sm">+ Добавить книгу</a>
+      </div>
+      <div id="books-table">{% include "books/_admin_books.html" %}</div>
+    </div>
+
+    {# ОТЗЫВЫ #}
+    <div x-show="tab==='reviews'" x-cloak>
+      <div id="moderation-list">{% include "reviews/_admin_reviews.html" %}</div>
+    </div>
+
+    {# РЕЦЕНЗИИ #}
+    <div x-show="tab==='critiques'" x-cloak>
+      <div id="critique-moderation-list">{% include "reviews/_admin_critiques.html" %}</div>
+    </div>
+
+    {# ИЗДАНИЯ #}
+    <div x-show="tab==='editions'" x-cloak>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+        <input class="form-input" type="text" style="max-width:280px"
+               placeholder="Поиск группы / книги..."
+               hx-get="{% url 'editions_list' %}"
+               hx-trigger="input changed delay:300ms"
+               hx-target="#editions-table"
+               name="q"
+               hx-swap="innerHTML">
+        <a href="{% url 'edition_create' %}" class="btn btn-primary btn-sm">+ Создать группу</a>
+      </div>
+      <div id="editions-table">{% include "books/_admin_editions_list.html" with editions=editions %}</div>
+    </div>
+
+    {# МАГАЗИНЫ #}
+    <div x-show="tab==='stores'" x-cloak>
+      <div id="stores-panel">
+        {% include "users/_admin_stores.html" with stores=stores %}
+      </div>
+    </div>
+
+    {# УВЕДОМЛЕНИЯ: МАТРИЦА «СОБЫТИЕ × КАНАЛ» #}
+    <div x-show="tab==='notifs'" x-cloak>
+      <div style="max-width:880px">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+          Здесь вы управляете тем, по каким каналам рассылаются уведомления.
+          Запись во «Входящие» (`/notifications/`) отправляется всегда — её не трогаем.
+          Клик по кружку — включить/выключить канал для события. Изменения мгновенные.
+        </p>
+        <table class="notif-matrix" style="width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <thead>
+            <tr style="background:var(--surface)">
+              <th style="text-align:left;padding:12px 14px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)">Событие</th>
+              <th style="text-align:center;padding:12px 8px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);width:90px">Telegram</th>
+              <th style="text-align:center;padding:12px 8px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);width:90px">MAX</th>
+              <th style="text-align:center;padding:12px 8px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);width:90px">Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in notif_settings %}
+              {% include "users/_admin_notif_row.html" with row=row %}
+            {% endfor %}
+          </tbody>
+        </table>
+        <p style="font-size:12px;color:var(--ghost);margin-top:10px">
+          Кеш обновляется раз в минуту. Если после изменения уведомление всё ещё уходит по «выключенному» каналу — подождите до минуты.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  .notif-matrix tbody tr + tr td { border-top: 1px solid var(--border); }
+  .notif-matrix tbody tr:hover { background: var(--surface); }
+  .notif-toggle{
+    appearance:none;border:1px solid var(--border);background:#fff;
+    width:34px;height:34px;border-radius:50%;
+    font-size:16px;line-height:1;color:var(--muted);
+    cursor:pointer;transition:all .15s ease;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .notif-toggle:hover{border-color:var(--ink);color:var(--ink)}
+  .notif-toggle--on{
+    background:#0a7a42;border-color:#0a7a42;color:#fff;
+  }
+  .notif-toggle--on:hover{background:#0e945a;border-color:#0e945a;color:#fff}
+</style>
+{% endblock %}

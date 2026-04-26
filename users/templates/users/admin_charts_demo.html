@@ -1,0 +1,203 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Демо графиков — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:1080px">
+
+  <h1 style="font-size:22px;margin-bottom:6px">Графики: SVG vs Chart.js</h1>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:12px">
+    Одни и те же данные («Регистрации за 30 дней», всего <b>{{ total }}</b> юзеров) в двух исполнениях.
+    Сравни визуально и выбери.
+  </p>
+
+  {# Баннер, который невозможно не заметить #}
+  <div style="background:linear-gradient(90deg,#fff4d6,#ffe0a0);border:3px solid #ff9933;padding:16px 20px;border-radius:12px;margin-bottom:24px;font-size:14px">
+    👇 Ниже — <b>Вариант Б (Chart.js)</b>. Под ним — <b>Вариант А (SVG)</b>. Прокрути всю страницу, сравни оба, напиши «А» или «Б».
+  </div>
+
+  {# ═══════════════════════════════════════════════════════════════════════ #}
+  {# ВАРИАНТ Б — Chart.js (был вторым, теперь первый)                         #}
+  {# ═══════════════════════════════════════════════════════════════════════ #}
+  <section style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:24px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <h2 style="font-size:16px;font-weight:600">Вариант Б — Chart.js</h2>
+        <p style="font-size:12px;color:var(--ghost);margin-top:3px">локальная копия · canvas · интерактив из коробки</p>
+      </div>
+      <span style="font-family:'Mltsvfont';font-size:22px;color:var(--ink)">{{ total }}</span>
+    </div>
+
+    {# === ДЕБАГ-ПАНЕЛЬ === #}
+    <div id="chart-debug" style="background:#fff8e1;border:2px solid #f4a261;padding:14px;margin:10px 0;border-radius:8px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.8">
+      <b style="color:#c9582a">🔎 Дебаг Chart.js (удалим после отладки)</b><br>
+      <span id="dbg-script-load">Скрипт загружается...</span><br>
+      <span id="dbg-chart-type">typeof Chart: ждём...</span><br>
+      <span id="dbg-canvas1">canvas #ch-spark: ждём...</span><br>
+      <span id="dbg-canvas2">canvas #ch-big: ждём...</span><br>
+      <span id="dbg-result">Результат: ждём...</span>
+    </div>
+
+    {# Спарклайн — с оранжевой рамкой, чтобы было видно canvas, даже если пустой #}
+    <div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-top:1px solid var(--border);margin-top:10px">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;min-width:120px">Спарклайн 180×40</span>
+      <canvas id="ch-spark" width="180" height="40"
+              style="width:180px;height:40px;border:2px dashed #f4a261;display:block"></canvas>
+      <span style="font-size:13px;color:var(--muted)">↑ canvas виден? (оранж. рамка)</span>
+    </div>
+
+    {# Большой график #}
+    <div style="margin-top:20px">
+      <p style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Большой (540×180)</p>
+      <div style="max-width:540px">
+        <canvas id="ch-big" width="540" height="180"
+                style="border:2px dashed #f4a261;display:block"></canvas>
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:var(--muted);margin-top:18px;border-top:1px solid var(--border);padding-top:12px;line-height:1.55">
+      <b>Плюсы:</b> интерактивные tooltips, зум, пан — из коробки. Знакомо пользователю.<br>
+      <b>Минусы:</b> +200кб JS в бандл, canvas — чёрный ящик (не инспектируется, плохо с a11y),
+      цвета передаются JS (а не через CSS-переменные).
+    </p>
+
+    <div id="ch-fallback-warn" style="display:none;margin-top:10px;padding:10px 14px;background:#fff5e6;border:1px solid #e5a552;border-radius:var(--radius);font-size:12px;color:#8b4a00">
+      ⚠ Chart.js не загрузился. Canvas выше пустой — это аргумент в пользу Варианта А.
+    </div>
+  </section>
+
+  {# ═══════════════════════════════════════════════════════════════════════ #}
+  {# ВАРИАНТ А — Inline SVG (был первым, теперь ниже)                         #}
+  {# ═══════════════════════════════════════════════════════════════════════ #}
+  <section style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:24px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <h2 style="font-size:16px;font-weight:600">Вариант А — Inline SVG</h2>
+        <p style="font-size:12px;color:var(--ghost);margin-top:3px">0 зависимостей · рендер сервера · управляется CSS</p>
+      </div>
+      <span style="font-family:'Mltsvfont';font-size:22px;color:var(--ink)">{{ total }}</span>
+    </div>
+
+    {# Спарклайн #}
+    <div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-top:1px solid var(--border);margin-top:10px">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;min-width:120px">Спарклайн 180×40</span>
+      <svg viewBox="0 0 {{ s_w }} {{ s_h }}" preserveAspectRatio="none"
+           style="width:180px;height:40px;overflow:visible">
+        <polyline points="{{ spark_polyline }}" fill="none" stroke="var(--ink)" stroke-width="1.3"
+                  stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:13px;color:var(--muted)">последние 30 дней</span>
+    </div>
+
+    {# Большой график #}
+    <div style="margin-top:20px">
+      <p style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Большой 360×120 (+ hover-точки)</p>
+      <svg viewBox="0 0 {{ vb_w }} {{ vb_h }}" preserveAspectRatio="none"
+           style="width:100%;max-width:540px;height:180px;display:block" class="chart-svg">
+        <defs>
+          <linearGradient id="grad-svg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="var(--ink)" stop-opacity=".18"/>
+            <stop offset="1" stop-color="var(--ink)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <line x1="8" y1="112" x2="352" y2="112" stroke="var(--border)" stroke-width="1"/>
+        <line x1="8" y1="60"  x2="352" y2="60"  stroke="var(--border)" stroke-width=".5" stroke-dasharray="2,3"/>
+        <path d="{{ svg_area }}" fill="url(#grad-svg)"/>
+        <polyline points="{{ svg_polyline }}" fill="none" stroke="var(--ink)"
+                  stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+        {% for dot in svg_dots %}
+        <circle cx="{{ dot.x }}" cy="{{ dot.y }}" r="2.5" fill="var(--ink)" class="chart-dot">
+          <title>{{ dot.tip }}</title>
+        </circle>
+        {% endfor %}
+        <text x="352" y="14" fill="var(--muted)" font-size="10" text-anchor="end">max {{ max_n }}</text>
+      </svg>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ghost);max-width:540px;margin-top:4px">
+        <span>{{ series.0.date|date:"d.m" }}</span>
+        <span>{{ series.15.date|date:"d.m" }}</span>
+        <span>{{ series.29.date|date:"d.m" }}</span>
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:var(--muted);margin-top:18px;border-top:1px solid var(--border);padding-top:12px;line-height:1.55">
+      <b>Плюсы:</b> наследует твои `var(--ink)` / `var(--muted)` автоматически, без FOUC,
+      каждая точка — DOM-элемент, нативный `<title>` даёт hover-подсказку, 0 зависимостей.<br>
+      <b>Минусы:</b> сложные интерактивы (zoom, drag) писать руками.
+    </p>
+  </section>
+
+  <div style="display:flex;gap:10px;margin-top:20px;padding:16px;background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius)">
+    <span style="font-size:20px">💡</span>
+    <div style="font-size:13px;line-height:1.6">
+      <b>Напиши «А» или «Б»</b> — применю выбор ко всему дашборду.
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/chart.umd.js' %}"
+        onload="document.getElementById('dbg-script-load') && (document.getElementById('dbg-script-load').innerHTML = '✅ Скрипт загружен (chart.umd.js)')"
+        onerror="document.getElementById('dbg-script-load') && (document.getElementById('dbg-script-load').innerHTML = '❌ Ошибка загрузки /static/js/chart.umd.js — 404 или блок.')"></script>
+<script>
+(function(){
+  function setDbg(id, txt){
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = txt;
+  }
+
+  function initCharts(){
+    setDbg('dbg-chart-type', 'typeof Chart: <b>' + (typeof Chart) + '</b>');
+    const c1 = document.getElementById('ch-spark');
+    const c2 = document.getElementById('ch-big');
+    setDbg('dbg-canvas1', 'canvas #ch-spark: ' + (c1 ? `найден (${c1.width}×${c1.height})` : '❌ НЕ НАЙДЕН В DOM'));
+    setDbg('dbg-canvas2', 'canvas #ch-big: '   + (c2 ? `найден (${c2.width}×${c2.height})` : '❌ НЕ НАЙДЕН В DOM'));
+
+    if (typeof Chart === 'undefined') {
+      setDbg('dbg-result', '❌ Chart не определён');
+      const warn = document.getElementById('ch-fallback-warn');
+      if (warn) warn.style.display = 'block';
+      return;
+    }
+    if (!c1 || !c2) {
+      setDbg('dbg-result', '❌ Canvas отсутствуют');
+      return;
+    }
+
+    const labels = {{ chart_labels_json|safe }};
+    const values = {{ chart_values_json|safe }};
+    const inkColor = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#2d2a28';
+
+    try {
+      new Chart(c1, {
+        type: 'line',
+        data: { labels, datasets: [{ data: values, borderColor: inkColor, borderWidth: 1.3, tension: .25, pointRadius: 0, fill: false }]},
+        options: { responsive: false, maintainAspectRatio: false,
+                   plugins: { legend: { display: false }, tooltip: { enabled: false }},
+                   scales: { x: { display: false }, y: { display: false, beginAtZero: true }}},
+      });
+      new Chart(c2, {
+        type: 'line',
+        data: { labels, datasets: [{ data: values, borderColor: inkColor, borderWidth: 1.6,
+                                      backgroundColor: inkColor + '20',
+                                      tension: .25, pointRadius: 2.2, pointHoverRadius: 4, fill: true }]},
+        options: { responsive: false, maintainAspectRatio: false,
+                   plugins: { legend: { display: false },
+                              tooltip: { backgroundColor: inkColor, padding: 8, titleFont: {size: 11}, bodyFont: {size: 12}}},
+                   scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 6, font: {size: 10}}},
+                             y: { beginAtZero: true, ticks: { font: {size: 10}}}}},
+      });
+      setDbg('dbg-result', '✅ Оба графика нарисованы. values = ' + values.length + ' точек, max = ' + Math.max.apply(null, values));
+    } catch(err) {
+      setDbg('dbg-result', '❌ JS-ошибка: ' + (err && err.message ? err.message : err));
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCharts);
+  } else {
+    setTimeout(initCharts, 50);
+  }
+})();
+</script>
+{% endblock %}

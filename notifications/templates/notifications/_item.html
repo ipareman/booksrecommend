@@ -1,0 +1,32 @@
+<article class="notif-item {% if n.is_unread %}notif-item--unread{% endif %}"
+         style="display:flex;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);{% if n.is_unread %}background:var(--bg-accent,#f6f8ff);border-left:3px solid var(--primary,#4b6cb7);{% else %}border-left:3px solid transparent;{% endif %}">
+  <div class="notif-item__icon" style="font-size:22px;line-height:1;min-width:28px;text-align:center">
+    {{ n.icon }}
+  </div>
+  <div class="notif-item__body" style="flex:1;min-width:0">
+    <a href="{% url 'notifications_go' n.pk %}"
+       style="display:block;color:inherit;text-decoration:none">
+      <div class="notif-item__text" style="color:var(--fg);line-height:1.4">
+        {{ n.text }}
+        {% if n.extra.count and n.extra.count > 1 %}
+          <span style="margin-left:6px;background:var(--err);color:#fff;font-size:11px;padding:1px 6px;border-radius:10px">+{{ n.extra.count }}</span>
+        {% endif %}
+      </div>
+      <div class="notif-item__meta" style="color:var(--fg-muted);font-size:12px;margin-top:4px">
+        {{ n.updated_at|timesince }} назад
+      </div>
+    </a>
+    {% if n.kind == 'friend_request' %}
+      <div class="notif-item__actions" style="margin-top:8px;display:flex;gap:8px">
+        <form method="post" action="{% url 'friend_accept' n.extra.friendship_id %}" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-sm">Принять</button>
+        </form>
+        <form method="post" action="{% url 'friend_reject' n.extra.friendship_id %}" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm">Отклонить</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+</article>

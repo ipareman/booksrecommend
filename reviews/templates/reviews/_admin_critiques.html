@@ -1,0 +1,39 @@
+{% if pending_critiques %}
+  {% for critique in pending_critiques %}
+  <div class="review" id="critique-mod-{{ critique.pk }}">
+    <div class="review__head">
+      <span class="review__user">
+        <a href="{% url 'user_profile_public' critique.user.username %}" class="lnk">{{ critique.user.username }}</a> &rarr;
+        <a href="{% url 'book_detail' critique.book.pk %}" class="lnk-muted">{{ critique.book.title }}</a>
+      </span>
+      <span class="review__stars">{{ critique.stars_display }}</span>
+    </div>
+    <div style="font-size:14px;font-weight:500;margin-bottom:6px">{{ critique.title }}</div>
+    <div class="review__text" style="margin-bottom:10px">{{ critique.body_excerpt }}</div>
+    {% if critique.criteria.all %}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      {% for c in critique.criteria.all %}
+        <span class="tag">{{ c.name }}: {{ c.stars_display }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm"
+              hx-post="{% url 'critique_moderate' critique.pk %}"
+              hx-vals='{"action":"approve"}'
+              hx-target="#critique-mod-{{ critique.pk }}"
+              hx-swap="outerHTML"
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>Одобрить</button>
+      <button class="btn btn-danger btn-sm"
+              hx-post="{% url 'critique_moderate' critique.pk %}"
+              hx-vals='{"action":"reject"}'
+              hx-target="#critique-mod-{{ critique.pk }}"
+              hx-swap="outerHTML"
+              hx-confirm="Отклонить рецензию?"
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>Отклонить</button>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <p class="empty">Нет рецензий на модерации</p>
+{% endif %}

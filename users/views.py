@@ -111,17 +111,35 @@ def register(request):
     return render(request, "users/register.html", {"form": form})
 
 
+# def _send_verification_email(user, request):
+#     uid = urlsafe_base64_encode(force_bytes(user.pk))
+#     token = default_token_generator.make_token(user)
+#     link = request.build_absolute_uri(f"/users/verify-email/{uid}/{token}/")
+#     send_mail(
+#         subject="Подтвердите email — Строка",
+#         message=f"Здравствуйте, {user.username}!\n\nПодтвердите email по ссылке:\n{link}",
+#         from_email=conf.DEFAULT_FROM_EMAIL,
+#         recipient_list=[user.email],
+#         fail_silently=True,
+#     )
+
+import resend
+from django.conf import settings as conf
+
 def _send_verification_email(user, request):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
     link = request.build_absolute_uri(f"/users/verify-email/{uid}/{token}/")
-    send_mail(
-        subject="Подтвердите email — Строка",
-        message=f"Здравствуйте, {user.username}!\n\nПодтвердите email по ссылке:\n{link}",
-        from_email=conf.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=True,
-    )
+    resend.api_key = conf.RESEND_API_KEY
+    try:
+        resend.Emails.send({
+            "from": conf.DEFAULT_FROM_EMAIL,
+            "to": [user.email],
+            "subject": "Подтвердите email — Строка",
+            "text": f"Здравствуйте, {user.username}!\n\nПодтвердите email:\n{link}",
+        })
+    except Exception as e:
+        print(f"[email] Resend error: {e}")
 
 
 def verify_email(request, uidb64, token):

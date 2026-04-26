@@ -17,7 +17,7 @@
     </p>
 
     <form id="onboarding-form"
-          hx-post="{% url 'onboarding_save' %}"
+          hx-post="{% url 'onboarding' %}"
           hx-target="#onboarding-backdrop"
           hx-swap="outerHTML"
           hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
@@ -66,7 +66,7 @@
         <button type="button"
                 style="background:none;border:none;cursor:pointer;
                        font-size:14px;color:var(--muted)"
-                hx-post="{% url 'onboarding_save' %}"
+                hx-post="{% url 'onboarding' %}"
                 hx-target="#onboarding-backdrop"
                 hx-swap="outerHTML"
                 hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>

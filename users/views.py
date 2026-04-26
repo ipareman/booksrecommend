@@ -111,10 +111,11 @@ def register(request):
         user.save()
         profile = _get_user_profile(user)
         if not require_verification:
-            profile.email_verified = True
-            profile.save(update_fields=["email_verified"])
+            if hasattr(profile, "email_verified"):
+                profile.email_verified = True
+                profile.save(update_fields=["email_verified"])
             login(request, user)
-            return redirect("home")
+            return redirect("onboarding")
         _send_verification_email(user, request)
         return render(request, "users/email_verify_sent.html", {"email": email})
     return render(request, "users/register.html", {"form": form})

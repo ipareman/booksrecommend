@@ -108,6 +108,12 @@ class AIConfig(models.Model):
                   "Возвращается фейковый ответ. Включите перед массовыми импортами, чтобы не палить токены.",
     )
 
+    # Сайтовые настройки (живут тут, чтобы не плодить отдельный singleton).
+    require_email_verification = models.BooleanField(
+        default=True,
+        help_text="Если выключено — регистрация активирует аккаунт сразу, без письма-подтверждения.",
+    )
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

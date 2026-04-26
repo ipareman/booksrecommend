@@ -103,9 +103,18 @@ def register(request):
         email = request.POST.get("email", "").strip()
         user = form.save(commit=False)
         user.email = email
-        user.is_active = False
+
+        from ai_admin.models import AIConfig
+        require_verification = AIConfig.get().require_email_verification
+
+        user.is_active = not require_verification
         user.save()
-        _get_user_profile(user)
+        profile = _get_user_profile(user)
+        if not require_verification:
+            profile.email_verified = True
+            profile.save(update_fields=["email_verified"])
+            login(request, user)
+            return redirect("home")
         _send_verification_email(user, request)
         return render(request, "users/email_verify_sent.html", {"email": email})
     return render(request, "users/register.html", {"form": form})

@@ -251,6 +251,7 @@ def config_view(request):
         for field, _ in _FEATURE_FIELDS:
             setattr(cfg, field, request.POST.get(field) == "on")
         cfg.dry_run_mode = request.POST.get("dry_run_mode") == "on"
+        cfg.require_email_verification = request.POST.get("require_email_verification") == "on"
         cfg.save()
         return redirect("ai_admin_config")
 

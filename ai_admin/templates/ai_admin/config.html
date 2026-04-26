@@ -127,6 +127,22 @@
     {% endif %}
   </div>
 
+  <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:20px">
+    <h3 style="margin:0 0 12px;font-size:14px">Регистрация</h3>
+    <p style="font-size:12px;color:var(--ghost);margin:0 0 16px;line-height:1.6">
+      Если выключено — новый пользователь активируется сразу после заполнения формы,
+      без подтверждения email. Удобно для демонстрации/диплома, когда SMTP недоступен.
+    </p>
+    <label style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg);
+                  border:1px solid var(--border);border-radius:8px;cursor:pointer">
+      <input type="checkbox" name="require_email_verification"
+             {% if cfg.require_email_verification %}checked{% endif %}>
+      <span style="font-size:13px">
+        Требовать подтверждение email при регистрации
+      </span>
+    </label>
+  </div>
+
   <div>
     <button type="submit" class="btn btn-primary">Сохранить</button>
   </div>

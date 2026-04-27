@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_GET
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Prefetch, Sum, Value
+from django.db.models.functions import Coalesce
 from django.template.loader import render_to_string
 
-from .models import Collection, CollectionBook, CollectionLike
+from .models import Collection, CollectionBook, CollectionComment, CollectionCommentVote, CollectionLike
 from books.models import Book, UserList
 
 
@@ -25,12 +26,32 @@ def _owner_or_staff(view_func):
 # ─── ПУБЛИЧНЫЕ ─────────────────────────────────────────────────────────────────
 
 def collections_list(request):
+    sort = request.GET.get("sort", "fresh").strip()
+    q = request.GET.get("q", "").strip()
+
     collections = (
         Collection.objects
         .filter(is_published=True)
-        .prefetch_related("items__book")
-        .annotate(num_books=Count("items"), num_likes=Count("likes", distinct=True))
+        .prefetch_related("items__book", "items__book__genres")
+        .annotate(num_books=Count("items", distinct=True), num_likes=Count("likes", distinct=True))
     )
+    if q:
+        collections = collections.filter(
+            Q(title__icontains=q)
+            | Q(description__icontains=q)
+            | Q(created_by__username__icontains=q)
+            | Q(items__book__title__icontains=q)
+        )
+
+    collections = collections.distinct()
+    if sort == "likes":
+        collections = collections.order_by("-num_likes", "-created_at")
+    elif sort == "old":
+        collections = collections.order_by("created_at")
+    else:
+        sort = "fresh"
+        collections = collections.order_by("-created_at")
+
     liked_ids = set()
     if request.user.is_authenticated:
         liked_ids = set(
@@ -38,10 +59,15 @@ def collections_list(request):
             .filter(user=request.user, collection__in=collections)
             .values_list("collection_id", flat=True)
         )
-    return render(request, "curated/collection_list.html", {
+    context = {
         "collections": collections,
         "liked_ids": liked_ids,
-    })
+        "sort": sort,
+        "q": q,
+    }
+    if getattr(request, "htmx", False):
+        return render(request, "curated/_collection_grid.html", context)
+    return render(request, "curated/collection_list.html", context)
 
 
 def collection_detail(request, pk):
@@ -50,7 +76,6 @@ def collection_detail(request, pk):
         if not request.user.is_authenticated or (
             col.created_by_id != request.user.id and not request.user.is_staff
         ):
-            from django.http import Http404
             raise Http404
     items = (
         col.items
@@ -63,11 +88,41 @@ def collection_detail(request, pk):
         request.user.is_authenticated
         and col.likes.filter(user=request.user).exists()
     )
+    comments = (
+        col.comments
+        .filter(parent__isnull=True)
+        .select_related("user", "user__profile")
+        .prefetch_related(Prefetch(
+            "replies",
+            queryset=CollectionComment.objects
+            .select_related("user", "user__profile")
+            .annotate(vote_score=Coalesce(Sum("votes__value"), Value(0)))
+            .order_by("created_at"),
+        ))
+        .annotate(vote_score=Coalesce(Sum("votes__value"), Value(0)))
+        .order_by("created_at")
+    )
+    user_votes = {}
+    if request.user.is_authenticated:
+        comment_ids = list(comments.values_list("pk", flat=True))
+        reply_ids = list(
+            CollectionComment.objects
+            .filter(parent_id__in=comment_ids)
+            .values_list("pk", flat=True)
+        )
+        all_ids = comment_ids + reply_ids
+        user_votes = dict(
+            CollectionCommentVote.objects
+            .filter(user=request.user, comment_id__in=all_ids)
+            .values_list("comment_id", "value")
+        )
     return render(request, "curated/collection_detail.html", {
         "collection": col,
         "items": items,
         "likes_count": likes_count,
         "is_liked": is_liked,
+        "comments": comments,
+        "user_votes": user_votes,
     })
 
 
@@ -87,6 +142,121 @@ def collection_like_toggle(request, pk):
         "collection": col,
         "likes_count": likes_count,
         "is_liked": is_liked,
+    })
+
+
+@login_required
+@require_POST
+def collection_clone(request, pk):
+    source = get_object_or_404(
+        Collection.objects.prefetch_related("items__book"),
+        pk=pk,
+        is_published=True,
+    )
+    if source.created_by_id == request.user.id:
+        return redirect("collection_edit", pk=source.pk)
+
+    title = f"Копия: {source.title}"[:200]
+    clone = Collection.objects.create(
+        title=title,
+        description=source.description,
+        cover_image=source.cover_image,
+        created_by=request.user,
+        is_published=False,
+    )
+    CollectionBook.objects.bulk_create([
+        CollectionBook(collection=clone, book=item.book, order=item.order)
+        for item in source.items.all()
+    ])
+    return redirect("collection_edit", pk=clone.pk)
+
+
+@login_required
+@require_POST
+def collection_comment_add(request, pk):
+    col = get_object_or_404(Collection, pk=pk, is_published=True)
+    text = request.POST.get("text", "").strip()
+    if not text:
+        return HttpResponse(status=400)
+    parent = None
+    parent_id = request.POST.get("parent_id")
+    if parent_id:
+        parent = CollectionComment.objects.filter(pk=parent_id, collection=col).first()
+
+    comment = CollectionComment.objects.create(
+        collection=col,
+        user=request.user,
+        parent=parent,
+        text=text,
+    )
+    html = render_to_string("curated/_comment.html", {
+        "comment": comment,
+        "collection": col,
+        "user_votes": {},
+    }, request=request)
+    return HttpResponse(html + '<div id="collection-comments-empty" hx-swap-oob="delete"></div>')
+
+
+@login_required
+@require_POST
+def collection_comment_edit(request, pk):
+    comment = get_object_or_404(CollectionComment, pk=pk)
+    if comment.user_id != request.user.id:
+        raise PermissionDenied
+    text = request.POST.get("text", "").strip()
+    if not text:
+        return HttpResponse(status=400)
+    comment.text = text
+    comment.save(update_fields=["text", "updated_at"])
+    return render(request, "curated/_comment.html", {
+        "comment": comment,
+        "collection": comment.collection,
+        "user_votes": {},
+    })
+
+
+@login_required
+@require_POST
+def collection_comment_delete(request, pk):
+    comment = get_object_or_404(CollectionComment, pk=pk)
+    if comment.user_id != request.user.id and not request.user.is_staff:
+        raise PermissionDenied
+    comment.delete()
+    return HttpResponse("")
+
+
+@login_required
+@require_POST
+def collection_comment_vote(request, pk):
+    comment = get_object_or_404(CollectionComment, pk=pk)
+    value_raw = request.POST.get("value", "")
+    try:
+        value = int(value_raw)
+        if value not in (1, -1):
+            return HttpResponse(status=400)
+    except (TypeError, ValueError):
+        return HttpResponse(status=400)
+
+    existing = CollectionCommentVote.objects.filter(user=request.user, comment=comment).first()
+    if existing:
+        if existing.value == value:
+            existing.delete()
+            user_vote = 0
+        else:
+            existing.value = value
+            existing.save(update_fields=["value"])
+            user_vote = value
+    else:
+        CollectionCommentVote.objects.create(user=request.user, comment=comment, value=value)
+        user_vote = value
+
+    score = CollectionCommentVote.objects.filter(comment=comment).aggregate(
+        s=Coalesce(Sum("value"), Value(0))
+    )["s"]
+    return render(request, "curated/_comment_votes.html", {
+        "comment": comment,
+        "score": score,
+        "user_vote": user_vote,
     })
 
 

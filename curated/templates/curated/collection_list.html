@@ -10,7 +10,22 @@
     {% endif %}
   </div>
 
-  <div class="collection-grid">
+  <form method="get" class="collection-filters"
+        hx-get="{% url 'collections_list' %}"
+        hx-target="#collections-results"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+        hx-trigger="submit, input changed delay:300ms from:input[name='q'], search from:input[name='q'], change from:select[name='sort']">
+    <input class="form-input" type="search" name="q" value="{{ q }}" placeholder="Название, книга, автор подборки">
+    <select class="form-input" name="sort">
+      <option value="fresh" {% if sort == "fresh" %}selected{% endif %}>Сначала свежие</option>
+      <option value="likes" {% if sort == "likes" %}selected{% endif %}>По лайкам</option>
+      <option value="old" {% if sort == "old" %}selected{% endif %}>Сначала старые</option>
+    </select>
+    <button type="submit" class="btn btn-secondary btn-sm">Показать</button>
+  </form>
+
+  <div class="collection-grid" id="collections-results">
     {% for col in collections %}
     <a href="{% url 'collection_detail' col.pk %}" class="collection-card">
       <div class="collection-card__covers">

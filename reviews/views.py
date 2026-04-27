@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpResponse, HttpResponseForbidden
 from django.template.response import TemplateResponse
 from django.views.decorators.http import require_POST, require_GET
-from django.db.models import Count, Exists, OuterRef, Sum, Value
+from django.db.models import Count, Exists, OuterRef, Prefetch, Sum, Value
 from django.db.models.functions import Coalesce
 import re
 from html.parser import HTMLParser
@@ -417,7 +417,13 @@ def critique_detail(request, pk):
         CritiqueComment.objects
         .filter(critique=critique, parent__isnull=True)
         .select_related("user", "user__profile")
-        .prefetch_related("replies__user", "replies__user__profile", "replies__votes")
+        .prefetch_related(Prefetch(
+            "replies",
+            queryset=CritiqueComment.objects
+            .select_related("user", "user__profile")
+            .annotate(vote_score=Coalesce(Sum("votes__value"), Value(0)))
+            .order_by("created_at"),
+        ))
         .annotate(
             vote_score=Coalesce(Sum("votes__value"), Value(0)),
         )
@@ -695,7 +701,13 @@ def comments_page(request, critique_id):
         CritiqueComment.objects
         .filter(critique=critique, parent__isnull=True)
         .select_related("user", "user__profile")
-        .prefetch_related("replies__user", "replies__user__profile", "replies__votes")
+        .prefetch_related(Prefetch(
+            "replies",
+            queryset=CritiqueComment.objects
+            .select_related("user", "user__profile")
+            .annotate(vote_score=Coalesce(Sum("votes__value"), Value(0)))
+            .order_by("created_at"),
+        ))
         .annotate(vote_score=Coalesce(Sum("votes__value"), Value(0)))
     )
 

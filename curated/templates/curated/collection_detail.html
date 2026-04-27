@@ -22,6 +22,11 @@
     <div style="margin-bottom:20px">
       <a href="{% url 'collection_edit' collection.pk %}" class="btn btn-secondary btn-sm">Редактировать</a>
     </div>
+  {% elif user.is_authenticated %}
+    <form method="post" action="{% url 'collection_clone' collection.pk %}" style="margin-bottom:20px">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-secondary btn-sm">Клонировать себе</button>
+    </form>
   {% endif %}
 
   <div class="book-tile-grid">
@@ -45,6 +50,30 @@
     </a>
     {% endfor %}
   </div>
+
+  <section class="collection-comments">
+    <h2>Комментарии</h2>
+    {% if user.is_authenticated %}
+      <form hx-post="{% url 'collection_comment_add' collection.pk %}"
+            hx-target="#collection-comments-list"
+            hx-swap="beforeend"
+            hx-on::after-request="if (event.detail.successful) this.reset()"
+            class="collection-comment-form">
+        {% csrf_token %}
+        <input type="text" name="text" class="form-input" placeholder="Написать комментарий..." autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
+      </form>
+    {% else %}
+      <p class="empty"><a href="{% url 'login' %}" class="lnk">Войдите</a>, чтобы оставить комментарий</p>
+    {% endif %}
+    <div id="collection-comments-list" class="collection-comments__list">
+      {% for comment in comments %}
+        {% include "curated/_comment.html" with comment=comment user_votes=user_votes %}
+      {% empty %}
+        <p class="empty" id="collection-comments-empty">Комментариев пока нет</p>
+      {% endfor %}
+    </div>
+  </section>
 
 </div>
 {% endblock %}

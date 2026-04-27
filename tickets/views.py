@@ -19,6 +19,7 @@ ALLOWED_REPORT_TARGETS = {
     ("reviews", "review"),
     ("reviews", "critique"),
     ("reviews", "critiquecomment"),
+    ("curated", "collectioncomment"),
 }
 
 
@@ -32,6 +33,8 @@ def _target_label(obj):
         return f"Рецензия: {obj.title}"
     if meta.model_name == "critiquecomment":
         return f"Комментарий к рецензии «{obj.critique.title}»"
+    if meta.model_name == "collectioncomment":
+        return f"Комментарий к подборке «{obj.collection.title}»"
     return str(obj)
 
 
@@ -45,6 +48,8 @@ def _target_url(obj):
         return reverse("critique_detail", kwargs={"pk": obj.pk})
     if meta.model_name == "critiquecomment":
         return reverse("critique_detail", kwargs={"pk": obj.critique_id}) + f"#comment-{obj.pk}"
+    if meta.model_name == "collectioncomment":
+        return reverse("collection_detail", kwargs={"pk": obj.collection_id}) + f"#collection-comment-{obj.pk}"
     return ""
 
 

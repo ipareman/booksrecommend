@@ -62,3 +62,51 @@ class CollectionLike(models.Model):
 
     def __str__(self):
         return f"{self.user} ♥ {self.collection}"
+
+
+class CollectionComment(models.Model):
+    collection = models.ForeignKey(
+        Collection, on_delete=models.CASCADE, related_name="comments"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="collection_comments",
+    )
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies",
+    )
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["collection", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} → {self.collection}"
+
+
+class CollectionCommentVote(models.Model):
+    UP = 1
+    DOWN = -1
+    VALUE_CHOICES = [(UP, "+1"), (DOWN, "-1")]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="collection_comment_votes",
+    )
+    comment = models.ForeignKey(
+        CollectionComment, on_delete=models.CASCADE, related_name="votes",
+    )
+    value = models.SmallIntegerField(choices=VALUE_CHOICES)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "comment"], name="collection_comment_vote_unique"),
+        ]
+
+    def __str__(self):
+        return f"{self.user} → collection comment #{self.comment_id}"

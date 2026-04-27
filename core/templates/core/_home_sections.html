@@ -329,7 +329,10 @@
       </div>
       <div class="critique-home-card__overlay">
         <div class="critique-home-card__title">{{ critique.title|truncatewords:8 }}</div>
-        <div class="critique-home-card__author">{{ critique.user.username }}</div>
+        <div class="critique-home-card__author">
+          {% include "users/_avatar.html" with person=critique.user avatar_class="critique-home-card__avatar" %}
+          <span>{{ critique.user.username }}</span>
+        </div>
         <div class="critique-home-card__book">{{ critique.book.title }}</div>
       </div>
     </a>
@@ -348,9 +351,7 @@
     {% for review in home_reviews|slice:":3" %}
     <div class="review-home-card">
       <div class="review-home-card__head">
-        <div class="review-home-card__avatar">
-          {{ review.user.username|make_list|first|upper }}
-        </div>
+        {% include "users/_avatar.html" with person=review.user avatar_class="review-home-card__avatar" %}
         <a href="{% url 'user_profile_public' review.user.username %}" class="review-home-card__user lnk">{{ review.user.username }}</a>
         <div class="review-home-card__stars">{{ review.stars_display }}</div>
       </div>

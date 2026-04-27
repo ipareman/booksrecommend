@@ -9,7 +9,10 @@
       <div style="flex:1;min-width:0">
         <div class="critique-list-card__title">{{ critique.title }}</div>
         <div class="critique-list-card__meta">
-          <span>{{ critique.user.username }}</span>
+          <span class="critique-list-card__author">
+            {% include "users/_avatar.html" with person=critique.user avatar_class="critique-list-card__avatar" %}
+            <span>{{ critique.user.username }}</span>
+          </span>
           <span>{{ critique.stars_display }}</span>
           <span>{{ critique.created_at|date:"d.m.Y" }}</span>
           {% if critique.likes_count %}<span>&hearts; {{ critique.likes_count }}</span>{% endif %}

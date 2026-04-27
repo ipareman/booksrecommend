@@ -197,7 +197,7 @@ def _get_book_detail_context(book, request):
     reviews_qs = (
         Review.objects
         .filter(book_id__in=scope_book_ids, status=Review.APPROVED)
-        .select_related("user", "book")
+        .select_related("user", "user__profile", "book")
         .annotate(
             likes_count=Count("likes", distinct=True),
             user_liked=Exists(_like_filter),
@@ -247,7 +247,7 @@ def _get_book_detail_context(book, request):
     _critiques_qs = (
         Critique.objects
         .filter(book_id__in=scope_book_ids, status=Critique.APPROVED)
-        .select_related("user", "book")
+        .select_related("user", "user__profile", "book")
         .prefetch_related("criteria")
         .annotate(likes_count=Count("likes", distinct=True))
         .order_by("-likes_count", "-created_at")

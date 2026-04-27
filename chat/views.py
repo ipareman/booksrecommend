@@ -101,7 +101,7 @@ def chat_room(request, room_id):
 
     messages = list(
         room.messages
-        .select_related("user", "attached_book")
+        .select_related("user", "user__profile", "attached_book")
         .prefetch_related("attached_book__authors", "reactions__user")
         .order_by("created_at")[:100]
     )
@@ -298,7 +298,7 @@ def chat_history(request, room_id):
     before = request.GET.get("before")
     qs = (
         room.messages
-        .select_related("user", "attached_book")
+        .select_related("user", "user__profile", "attached_book")
         .prefetch_related("attached_book__authors")
         .order_by("-created_at")
     )

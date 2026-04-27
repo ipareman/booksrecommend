@@ -1,0 +1,9 @@
+{% if person.profile.avatar %}
+  <span class="user-avatar {{ avatar_class|default:'' }}" title="{{ person.username }}">
+    <img src="{{ person.profile.avatar.url }}" alt="">
+  </span>
+{% else %}
+  <span class="user-avatar {{ avatar_class|default:'' }}" title="{{ person.username }}">
+    <span>{{ person.username|make_list|first|upper }}</span>
+  </span>
+{% endif %}

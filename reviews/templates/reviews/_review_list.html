@@ -1,7 +1,10 @@
 {% for review in reviews %}
 <div class="review">
   <div class="review__head">
-    <a href="{% url 'user_profile_public' review.user.username %}" class="review__user lnk">{{ review.user.username }}</a>
+    <div class="review__author">
+      {% include "users/_avatar.html" with person=review.user avatar_class="review__avatar" %}
+      <a href="{% url 'user_profile_public' review.user.username %}" class="review__user lnk">{{ review.user.username }}</a>
+    </div>
     <div style="display:flex;gap:12px;align-items:center">
       <span class="review__stars">★{{ review.rating }}</span>
       <span class="review__date">{{ review.created_at|date:"d.m.Y" }}</span>

@@ -70,6 +70,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "message_id": msg["id"],
                 "body": msg["body"],
                 "username": msg["username"],
+                "avatar_url": msg["avatar_url"],
                 "created_at": msg["created_at"],
                 "book": msg.get("book"),  # None или dict с полями карточки
             },
@@ -94,6 +95,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "id": event["message_id"],
             "body": event["body"],
             "username": event["username"],
+            "avatar_url": event.get("avatar_url", ""),
             "created_at": event["created_at"],
             "book": event.get("book"),
         }))
@@ -189,10 +191,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "avg_rating": float(book.avg_rating) if book.avg_rating else None,
             }
 
+        profile = getattr(msg.user, "profile", None)
+        avatar_url = profile.avatar.url if profile and profile.avatar else ""
+
         return {
             "id": msg.pk,
             "body": msg.body,
             "username": msg.user.username,
+            "avatar_url": avatar_url,
             "created_at": msg.created_at.strftime("%H:%M"),
             "book": book_payload,
         }

@@ -2,7 +2,7 @@
      {% if comment.parent %}style="margin-left:clamp(16px, 3vw, 40px)"{% endif %}
      x-data="{ replying: false, editing: false }">
   <div class="comment__head">
-    <div class="comment__avatar">{{ comment.user.username|make_list|first|upper }}</div>
+    {% include "users/_avatar.html" with person=comment.user avatar_class="comment__avatar" %}
     <a href="{% url 'user_profile_public' comment.user.username %}" class="comment__user lnk">{{ comment.user.username }}</a>
     <span class="comment__date">{{ comment.created_at|date:"d.m.Y H:i" }}{% if comment.updated_at != comment.created_at %} (ред.){% endif %}</span>
     {% if user == comment.user or user.is_staff %}

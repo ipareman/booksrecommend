@@ -45,15 +45,21 @@
   <div id="discovery-messages" style="min-height:200px;margin-bottom:16px">
     {% if messages %}
       {% for msg in messages %}
-      <div style="margin-bottom:12px;{% if msg.role == 'user' %}text-align:right{% endif %}">
-        <div style="display:inline-block;max-width:85%;padding:10px 14px;border-radius:12px;
+      <div class="ai-chat-row ai-chat-row--{{ msg.role }}" style="margin-bottom:12px">
+        {% if msg.role == 'user' %}
+          {% include "users/_avatar.html" with person=user avatar_class="ai-chat-avatar" %}
+        {% else %}
+          <span class="user-avatar ai-chat-avatar ai-chat-avatar--ai"><span>AI</span></span>
+        {% endif %}
+        <div class="ai-chat-stack">
+        <div style="display:inline-block;max-width:100%;padding:10px 14px;border-radius:12px;
                     font-size:13px;line-height:1.5;text-align:left;
                     {% if msg.role == 'user' %}background:var(--accent);color:#fff{% else %}background:var(--surface){% endif %}">
           {{ msg.content|linebreaksbr }}
         </div>
         {% if msg.role == 'assistant' %}
           {% if msg.books %}
-          <div style="display:grid;gap:10px;margin-top:8px;max-width:85%">
+          <div style="display:grid;gap:10px;margin-top:8px;max-width:100%">
             {% for item in msg.books %}
               {% include "ai_chat/_book_card.html" with book=item.book reason=item.reason price=item.price message_id=msg.msg_id %}
             {% endfor %}
@@ -67,6 +73,7 @@
           </div>
           {% endif %}
         {% endif %}
+        </div>
       </div>
       {% endfor %}
     {% else %}

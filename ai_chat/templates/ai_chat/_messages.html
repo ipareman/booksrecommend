@@ -1,4 +1,11 @@
 {% load chat_extras %}
 {% for msg in new_messages %}
-<div class="ai-chat-msg ai-chat-msg--{{ msg.role }} fade-up">{{ msg.content|link_chapters:book }}</div>
+<div class="ai-chat-row ai-chat-row--{{ msg.role }} fade-up">
+  {% if msg.role == "user" %}
+    {% include "users/_avatar.html" with person=user avatar_class="ai-chat-avatar" %}
+  {% else %}
+    <span class="user-avatar ai-chat-avatar ai-chat-avatar--ai"><span>AI</span></span>
+  {% endif %}
+  <div class="ai-chat-msg ai-chat-msg--{{ msg.role }}">{{ msg.content|link_chapters:book }}</div>
+</div>
 {% endfor %}

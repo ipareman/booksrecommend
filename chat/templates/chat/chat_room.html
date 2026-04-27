@@ -20,7 +20,9 @@
         {% if msg.user != user %}
           <a href="{% url 'user_profile_public' msg.user.username %}" class="chat-msg__author lnk">{{ msg.user.username }}</a>
         {% endif %}
-        <div class="chat-bubble {% if msg.user == user %}chat-bubble--own{% else %}chat-bubble--other{% endif %}"
+        <div class="chat-msg-line">
+          {% include "users/_avatar.html" with person=msg.user avatar_class="chat-msg__avatar" %}
+          <div class="chat-bubble {% if msg.user == user %}chat-bubble--own{% else %}chat-bubble--other{% endif %}"
              data-msg-id="{{ msg.pk }}"
              @contextmenu.prevent="{% if msg.user == user %}openCtx($event, {{ msg.pk }}){% endif %}">
           {% if msg.body %}<span class="msg-text">{{ msg.body }}</span>{% endif %}
@@ -30,6 +32,7 @@
           <button type="button" class="chat-react-btn"
                   @click.stop="openReactPicker($event, {{ msg.pk }})"
                   title="Реакция" aria-label="Добавить реакцию">+</button>
+          </div>
         </div>
         <div class="chat-reactions" data-msg-id="{{ msg.pk }}">
           {% for r in msg.reactions_summary %}
@@ -245,9 +248,9 @@ function chatRoom(roomId, username, allowedEmoji) {
           if (root && window.Alpine) window.Alpine.$data(root).openReactPicker(ev, id);
         })(event, ${data.id})"
         title="Реакция" aria-label="Добавить реакцию">+</button>`;
-    html += `<div class="chat-bubble ${isOwn ? 'chat-bubble--own' : 'chat-bubble--other'}"
+    html += `<div class="chat-msg-line">${avatarHtml(data)}<div class="chat-bubble ${isOwn ? 'chat-bubble--own' : 'chat-bubble--other'}"
                data-msg-id="${data.id}"
-               ${isOwn ? `@contextmenu.prevent="openCtx($event, ${data.id})"` : ''}>${bubbleInner}${reactBtnHtml}</div>`;
+               ${isOwn ? `@contextmenu.prevent="openCtx($event, ${data.id})"` : ''}>${bubbleInner}${reactBtnHtml}</div></div>`;
     html += `<div class="chat-reactions" data-msg-id="${data.id}"></div>`;
     html += `<span class="chat-msg__time">${data.created_at}</span>`;
     wrap.innerHTML = html;
@@ -259,6 +262,16 @@ function chatRoom(roomId, username, allowedEmoji) {
     const d = document.createElement('div');
     d.textContent = t;
     return d.innerHTML;
+  }
+
+  function avatarHtml(data) {
+    const username = data.username || '';
+    const initial = (username.charAt(0) || '?').toUpperCase();
+    const title = esc(username);
+    if (data.avatar_url) {
+      return `<span class="user-avatar chat-msg__avatar" title="${title}"><img src="${esc(data.avatar_url)}" alt=""></span>`;
+    }
+    return `<span class="user-avatar chat-msg__avatar" title="${title}"><span>${esc(initial)}</span></span>`;
   }
 
   // Перерисовываем чипы реакций под сообщением. Не используем Alpine x-for,

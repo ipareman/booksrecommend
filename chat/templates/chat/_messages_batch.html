@@ -3,10 +3,15 @@
     {% if msg.user != user %}
       <a href="{% url 'user_profile_public' msg.user.username %}" class="chat-msg__author lnk">{{ msg.user.username }}</a>
     {% endif %}
-    {% if msg.body %}<span class="chat-msg__body">{{ msg.body }}</span>{% endif %}
-    {% if msg.attached_book %}
-      {% include "ai_chat/_book_card.html" with book=msg.attached_book reason="" %}
-    {% endif %}
+    <div class="chat-msg-line">
+      {% include "users/_avatar.html" with person=msg.user avatar_class="chat-msg__avatar" %}
+      <div class="chat-bubble {% if msg.user == user %}chat-bubble--own{% else %}chat-bubble--other{% endif %}">
+        {% if msg.body %}<span class="msg-text">{{ msg.body }}</span>{% endif %}
+        {% if msg.attached_book %}
+          {% include "ai_chat/_book_card.html" with book=msg.attached_book reason="" %}
+        {% endif %}
+      </div>
+    </div>
     <span class="chat-msg__time">{{ msg.created_at|date:"H:i" }}</span>
   </div>
 {% endfor %}

@@ -18,8 +18,11 @@
                 background:linear-gradient(transparent,rgba(0,0,0,.6))">
       <h1 style="font-size:24px;color:#fff;margin-bottom:4px">{{ critique.title }}</h1>
       <span style="font-size:13px;color:rgba(255,255,255,.8)">
-        <a href="{% url 'user_profile_public' critique.user.username %}"
-           style="color:#fff;text-decoration:underline">{{ critique.user.username }}</a>
+        <span class="critique-detail-author critique-detail-author--cover">
+          {% include "users/_avatar.html" with person=critique.user avatar_class="critique-detail-author__avatar" %}
+          <a href="{% url 'user_profile_public' critique.user.username %}"
+             style="color:#fff;text-decoration:underline">{{ critique.user.username }}</a>
+        </span>
         &middot; {{ critique.stars_display }}
       </span>
     </div>
@@ -31,8 +34,11 @@
   {# ── МЕТА ────────────────────────────────────────────────────────────────── #}
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;font-size:13px;color:var(--muted)">
     {% if not critique.cover_image %}
-      <a href="{% url 'user_profile_public' critique.user.username %}" class="lnk"
-         style="font-weight:500;color:var(--ink)">{{ critique.user.username }}</a>
+      <span class="critique-detail-author">
+        {% include "users/_avatar.html" with person=critique.user avatar_class="critique-detail-author__avatar" %}
+        <a href="{% url 'user_profile_public' critique.user.username %}" class="lnk"
+           style="font-weight:500;color:var(--ink)">{{ critique.user.username }}</a>
+      </span>
       <span>&middot;</span>
       <span style="color:#f59e0b">{{ critique.stars_display }}</span>
       <span>&middot;</span>

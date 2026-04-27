@@ -253,7 +253,7 @@ def reviews_page(request, book_id):
     qs = (
         Review.objects
         .filter(book=book, status=Review.APPROVED)
-        .select_related("user")
+        .select_related("user", "user__profile")
         .annotate(
             likes_count=Count("likes", distinct=True),
             user_liked=Exists(_like_filter),
@@ -387,7 +387,7 @@ def critique_edit(request, pk):
 def critique_detail(request, pk):
     """Полная страница рецензии с критериями и комментариями."""
     critique = get_object_or_404(
-        Critique.objects.select_related("user", "book").prefetch_related("criteria"),
+        Critique.objects.select_related("user", "user__profile", "book").prefetch_related("criteria"),
         pk=pk,
     )
 
@@ -402,8 +402,8 @@ def critique_detail(request, pk):
     comments_qs = (
         CritiqueComment.objects
         .filter(critique=critique, parent__isnull=True)
-        .select_related("user")
-        .prefetch_related("replies__user", "replies__votes")
+        .select_related("user", "user__profile")
+        .prefetch_related("replies__user", "replies__user__profile", "replies__votes")
         .annotate(
             vote_score=Coalesce(Sum("votes__value"), Value(0)),
         )
@@ -541,7 +541,7 @@ def critiques_page(request, book_id):
     qs = (
         Critique.objects
         .filter(book=book, status=Critique.APPROVED)
-        .select_related("user")
+        .select_related("user", "user__profile")
         .prefetch_related("criteria")
         .annotate(likes_count=Count("likes", distinct=True))
         .order_by("-likes_count", "-created_at")
@@ -662,8 +662,8 @@ def comments_page(request, critique_id):
     qs = (
         CritiqueComment.objects
         .filter(critique=critique, parent__isnull=True)
-        .select_related("user")
-        .prefetch_related("replies__user", "replies__votes")
+        .select_related("user", "user__profile")
+        .prefetch_related("replies__user", "replies__user__profile", "replies__votes")
         .annotate(vote_score=Coalesce(Sum("votes__value"), Value(0)))
     )
 

@@ -105,7 +105,7 @@ def home(request):
     home_critiques = list(
         Critique.objects
         .filter(status="approved")
-        .select_related("user", "book")
+        .select_related("user", "user__profile", "book")
         .prefetch_related("book__authors")
         .order_by("-created_at")[:4]
     )
@@ -114,7 +114,7 @@ def home(request):
     recent_reviews = list(
         Review.objects
         .filter(status="approved", text__regex=r'.{30,}')
-        .select_related("user", "book")
+        .select_related("user", "user__profile", "book")
         .prefetch_related("book__authors")
         .order_by("-created_at")[:6]
     )

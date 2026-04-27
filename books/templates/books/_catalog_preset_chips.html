@@ -1,0 +1,15 @@
+<div id="preset-chips" class="preset-chips" hx-push-url="true" style="margin-bottom:18px"{% if oob %} hx-swap-oob="outerHTML"{% endif %}>
+  <a href="{% url 'catalog' %}"
+     class="preset-chip {% if not has_filters and not f.ordering and not active_preset %}preset-chip--active{% endif %}"
+     hx-get="{% url 'catalog' %}" hx-target="#book-list" hx-swap="innerHTML">
+    Все
+  </a>
+  {% for p in presets %}
+    <a href="{% url 'catalog' %}?{% for k, v in p.params.items %}{{ k }}={{ v }}{% if not forloop.last %}&{% endif %}{% endfor %}"
+       class="preset-chip {% if active_preset == p.slug %}preset-chip--active{% endif %}"
+       hx-get="{% url 'catalog' %}?{% for k, v in p.params.items %}{{ k }}={{ v }}{% if not forloop.last %}&{% endif %}{% endfor %}"
+       hx-target="#book-list" hx-swap="innerHTML">
+      {{ p.label }}
+    </a>
+  {% endfor %}
+</div>

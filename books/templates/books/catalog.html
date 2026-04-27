@@ -40,7 +40,7 @@
   </div>
 
   {# ── PRESET-ЧИПЫ ──────────────────────────────────────────────────────────  Каждый чип — обычная ссылка с предзаполненным querystring (фолбэк без JS),  плюс hx-get для плавной замены через HTMX. Один клик — готовый набор фильтров. #}
-  <div class="preset-chips" hx-push-url="true" style="margin-bottom:18px">
+  <div id="preset-chips" class="preset-chips" hx-push-url="true" style="margin-bottom:18px">
     <a href="{% url 'catalog' %}"
        class="preset-chip {% if not has_filters and not f.ordering and not active_preset %}preset-chip--active{% endif %}"
        hx-get="{% url 'catalog' %}" hx-target="#book-list" hx-swap="innerHTML">
@@ -208,9 +208,7 @@
           <p class="filter-label">Настроение</p>
           <div style="display:flex;gap:4px;flex-wrap:wrap">
             {% for mood in all_moods %}
-            <label style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;
-                         border:1px solid var(--border);border-radius:999px;font-size:11px;
-                         cursor:pointer;{% if mood.pk|stringformat:'d' in selected_moods %}background:var(--accent);color:#fff;border-color:var(--accent){% endif %}">
+            <label class="catalog-mood-chip">
               <input type="checkbox" name="mood" value="{{ mood.pk }}"
                      {% if mood.pk|stringformat:'d' in selected_moods %}checked{% endif %}
                      style="display:none"

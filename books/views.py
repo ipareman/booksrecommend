@@ -420,7 +420,7 @@ def catalog(request):
         "active_preset": active_preset,
     }
     if getattr(request, "htmx", False):
-        return render(request, "books/_book_list.html", ctx)
+        return render(request, "books/_catalog_results.html", ctx)
     return render(request, "books/catalog.html", ctx)
 
 # ─── СТРАНИЦА КНИГИ ──────────────────────────────────────────────────────────

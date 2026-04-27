@@ -3052,6 +3052,23 @@ h1, h2, h3 { font-family: 'Mltsvfont'; font-weight: 400; }
   color: var(--on-accent);
 }
 
+.catalog-mood-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.catalog-mood-chip:has(input:checked) {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
 /* ── THEME TOGGLE (dark/light switch in navbar) ─────────────────────────── */
 .theme-toggle {
   display: inline-flex;

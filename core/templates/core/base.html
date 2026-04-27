@@ -69,6 +69,10 @@
              style="position:relative">
             Уведомления{% include "notifications/_badge.html" %}
           </a>
+          <a href="{% url 'ticket_list' %}"
+             class="nav__link {% if request.resolver_match.url_name == 'ticket_list' or request.resolver_match.url_name == 'ticket_detail' or request.resolver_match.url_name == 'ticket_create' %}nav__link--active{% endif %}">
+            Тикеты
+          </a>
           <a href="{% url 'friend_list' %}"
              class="nav__link {% if request.resolver_match.url_name == 'friend_list' %}nav__link--active{% endif %}"
              style="position:relative">

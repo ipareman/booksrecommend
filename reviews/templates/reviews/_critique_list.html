@@ -1,5 +1,6 @@
 {% if critiques %}
   {% for critique in critiques %}
+  <div id="critique-card-{{ critique.pk }}" style="position:relative">
   <a href="{% url 'critique_detail' critique.pk %}" class="critique-list-card" style="display:block;text-decoration:none;color:var(--ink)">
     <div style="display:flex;gap:14px">
       {% if critique.cover_image %}
@@ -22,6 +23,17 @@
       </div>
     </div>
   </a>
+  {% include "tickets/_report_button.html" with app_label="reviews" model="critique" object_id=critique.pk %}
+  {% if user.is_staff %}
+  <button class="btn btn-ghost btn-sm"
+          style="position:absolute;right:10px;top:10px;color:var(--err);padding:0 4px"
+          hx-post="{% url 'critique_delete' critique.pk %}"
+          hx-target="#critique-card-{{ critique.pk }}"
+          hx-swap="outerHTML"
+          hx-confirm="Удалить рецензию?"
+          hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>✕</button>
+  {% endif %}
+  </div>
   {% endfor %}
 
   {% if has_more_critiques %}

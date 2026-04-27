@@ -1322,7 +1322,10 @@ def quote_add(request, pk):
 @require_POST
 def quote_delete(request, pk, quote_pk):
     book = get_object_or_404(Book, pk=pk)
-    get_object_or_404(Quote, pk=quote_pk, user=request.user).delete()
+    quotes_qs = Quote.objects.filter(pk=quote_pk, book=book)
+    if not request.user.is_staff:
+        quotes_qs = quotes_qs.filter(user=request.user, is_ai_generated=False)
+    get_object_or_404(quotes_qs).delete()
     quotes = Quote.objects.filter(book=book).select_related("user")
     return render(request, "books/_quotes.html", {"book": book, "quotes": quotes})
 

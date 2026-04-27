@@ -1,0 +1,4 @@
+{% if user.is_authenticated %}
+  <a class="btn btn-ghost btn-sm ticket-report-link"
+     href="{% url 'ticket_report_create' app_label model object_id %}">Пожаловаться</a>
+{% endif %}

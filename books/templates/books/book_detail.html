@@ -165,6 +165,7 @@
       <a href="{% url 'book_graph' book.pk %}" class="btn btn-secondary">Граф связей</a>
       {% if user.is_authenticated %}
         <a href="{% url 'book_chat' book.pk %}" class="btn btn-secondary">AI-собеседник</a>
+        {% include "tickets/_report_button.html" with app_label="books" model="book" object_id=book.pk %}
       {% endif %}
     </div>
   </div>

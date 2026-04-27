@@ -37,11 +37,12 @@
       {% if q.mood_tag %}
       <span style="font-size:11px;color:var(--muted)">{{ q.mood_tag.icon }} {{ q.mood_tag.name }}</span>
       {% endif %}
-      {% if user == q.user and not q.is_ai_generated %}
+      {% if user.is_staff or user == q.user and not q.is_ai_generated %}
       <button class="btn btn-ghost btn-sm" style="color:var(--err);padding:0 4px"
               hx-post="{% url 'quote_delete' book.pk q.pk %}"
               hx-target="#quotes-{{ book.id }}"
               hx-swap="outerHTML"
+              hx-confirm="Удалить цитату?"
               hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>✕</button>
       {% endif %}
     </div>

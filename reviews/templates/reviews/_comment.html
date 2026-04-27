@@ -53,6 +53,7 @@
     {% if user.is_authenticated %}
       <button type="button" @click="replying = !replying"
               class="btn btn-ghost btn-sm" style="font-size:11px">Ответить</button>
+      {% include "tickets/_report_button.html" with app_label="reviews" model="critiquecomment" object_id=comment.pk %}
     {% endif %}
   </div>
 

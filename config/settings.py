@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "users",
     "search",
     "reviews",
+    "tickets",
     "notifications",
     "social",
     "curated",

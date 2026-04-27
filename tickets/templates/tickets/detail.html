@@ -1,0 +1,43 @@
+{% extends "core/base.html" %}
+{% block title %}Тикет #{{ ticket.pk }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page ticket-page">
+  <div class="ticket-page__head">
+    <h1>Тикет #{{ ticket.pk }}</h1>
+    <a href="{% url 'ticket_list' %}" class="lnk-muted">Все тикеты</a>
+  </div>
+
+  <article class="ticket-detail">
+    <div class="ticket-detail__meta">
+      <span>{{ ticket.get_kind_display }}</span>
+      <span>{{ ticket.get_status_display }}</span>
+      <span>{{ ticket.get_priority_display }}</span>
+      <span>{{ ticket.created_at|date:"d.m.Y H:i" }}</span>
+      {% if user.is_staff %}<span>{{ ticket.user.username }}</span>{% endif %}
+    </div>
+    <h2>{{ ticket.subject }}</h2>
+    {% if ticket.target_label %}
+      <a href="{{ ticket.target_url }}" class="ticket-target">{{ ticket.target_label }}</a>
+    {% endif %}
+    <p>{{ ticket.body|linebreaksbr }}</p>
+
+    {% if ticket.admin_response %}
+      <div class="ticket-answer">
+        <h3>Ответ</h3>
+        <p>{{ ticket.admin_response|linebreaksbr }}</p>
+        {% if ticket.responded_at %}<div>{{ ticket.responded_at|date:"d.m.Y H:i" }}</div>{% endif %}
+      </div>
+    {% endif %}
+  </article>
+
+  {% if user.is_staff %}
+    <form method="post" action="{% url 'ticket_reply' ticket.pk %}" class="ticket-form">
+      {% csrf_token %}
+      <label>Ответ пользователю{{ response_form.admin_response }}</label>
+      <label>Статус{{ response_form.status }}</label>
+      <button type="submit" class="btn btn-primary">Отправить ответ</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

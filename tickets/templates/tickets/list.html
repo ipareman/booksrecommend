@@ -1,0 +1,55 @@
+{% extends "core/base.html" %}
+{% block title %}Тикеты — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page ticket-page">
+  <div class="ticket-page__head">
+    <h1>Тикеты</h1>
+    <a href="{% url 'ticket_create' %}" class="btn btn-primary btn-sm">Новое обращение</a>
+  </div>
+
+  <form method="get" class="ticket-filters">
+    <input class="form-input" type="search" name="q" value="{{ q }}" placeholder="Поиск">
+    <select class="form-input" name="kind">
+      <option value="">Все типы</option>
+      <option value="request" {% if kind == "request" %}selected{% endif %}>Обращения</option>
+      <option value="report" {% if kind == "report" %}selected{% endif %}>Жалобы</option>
+    </select>
+    <select class="form-input" name="status">
+      <option value="">Все статусы</option>
+      {% for value,label in status_choices %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select class="form-input" name="sort">
+      <option value="-updated" {% if sort == "-updated" %}selected{% endif %}>Сначала обновленные</option>
+      <option value="-created" {% if sort == "-created" %}selected{% endif %}>Сначала новые</option>
+      <option value="created" {% if sort == "created" %}selected{% endif %}>Сначала старые</option>
+      <option value="priority" {% if sort == "priority" %}selected{% endif %}>По важности</option>
+    </select>
+    <button type="submit" class="btn btn-secondary btn-sm">Показать</button>
+  </form>
+
+  <div class="ticket-grid">
+    {% for ticket in tickets %}
+      <a href="{% url 'ticket_detail' ticket.pk %}" class="ticket-card">
+        <div class="ticket-card__top">
+          <span>#{{ ticket.pk }}</span>
+          <span>{{ ticket.get_kind_display }}</span>
+        </div>
+        <h2>{{ ticket.subject }}</h2>
+        <p>{{ ticket.body|truncatechars:150 }}</p>
+        {% if ticket.target_label %}<div class="ticket-card__target">{{ ticket.target_label }}</div>{% endif %}
+        <div class="ticket-card__meta">
+          <span>{{ ticket.get_status_display }}</span>
+          <span>{{ ticket.get_priority_display }}</span>
+          {% if user.is_staff %}<span>{{ ticket.user.username }}</span>{% endif %}
+          <span>{{ ticket.updated_at|date:"d.m.Y H:i" }}</span>
+        </div>
+      </a>
+    {% empty %}
+      <p class="empty">Тикетов пока нет</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

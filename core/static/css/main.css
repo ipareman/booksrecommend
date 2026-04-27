@@ -393,6 +393,104 @@ h1, h2, h3 { font-family: 'Mltsvfont'; font-weight: 400; }
 .review__date  { font-size: 11px; color: var(--ghost); }
 .review__text  { font-size: 14px; color: var(--muted); line-height: 1.75; }
 
+/* Tickets */
+.ticket-page { max-width: 1180px; }
+.ticket-page__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.ticket-page__head h1 { font-size: 24px; }
+.ticket-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 160px 170px 190px auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.ticket-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 190px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink);
+}
+.ticket-card:hover { border-color: var(--ghost); }
+.ticket-card__top,
+.ticket-card__meta,
+.ticket-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 12px;
+  color: var(--ghost);
+}
+.ticket-card h2,
+.ticket-detail h2 {
+  margin: 8px 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+.ticket-card p,
+.ticket-detail p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+.ticket-card__target,
+.ticket-target {
+  display: block;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+}
+.ticket-card__meta { margin-top: auto; padding-top: 14px; }
+.ticket-form {
+  max-width: 680px;
+  display: grid;
+  gap: 14px;
+}
+.ticket-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.ticket-detail {
+  max-width: 760px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  margin-bottom: 18px;
+}
+.ticket-answer {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.ticket-answer h3 { font-size: 16px; margin-bottom: 8px; }
+.ticket-answer div { margin-top: 8px; font-size: 12px; color: var(--ghost); }
+.ticket-report-link { font-size: 12px; }
+
+@media (max-width: 820px) {
+  .ticket-page__head { align-items: flex-start; flex-direction: column; }
+  .ticket-filters { grid-template-columns: 1fr; }
+}
+
 /* ── STAR PICKER ────────────────────────────────────────────────────────────── */
 .star-pick { display: inline-flex; gap: 2px; }
 .star-pick__star {

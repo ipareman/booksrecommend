@@ -1,0 +1,20 @@
+{% extends "core/base.html" %}
+{% block title %}Жалоба — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page ticket-page">
+  <div class="ticket-page__head">
+    <h1>Жалоба</h1>
+    {% if target_url %}<a href="{{ target_url }}" class="lnk-muted">Вернуться</a>{% endif %}
+  </div>
+
+  <div class="ticket-target">{{ target_label }}</div>
+
+  <form method="post" class="ticket-form">
+    {% csrf_token %}
+    <label>Описание{{ form.body }}</label>
+    <label>Приоритет{{ form.priority }}</label>
+    <button type="submit" class="btn btn-primary">Отправить жалобу</button>
+  </form>
+</div>
+{% endblock %}

@@ -50,6 +50,15 @@
     {% if user == critique.user %}
       <a href="{% url 'critique_edit' critique.pk %}" class="lnk-muted" style="font-size:12px">Редактировать</a>
     {% endif %}
+    {% include "tickets/_report_button.html" with app_label="reviews" model="critique" object_id=critique.pk %}
+    {% if user.is_staff %}
+      <form method="post" action="{% url 'critique_delete' critique.pk %}"
+            onsubmit="return confirm('Удалить рецензию?')"
+            style="display:inline;margin:0">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--err);padding:0 4px">✕</button>
+      </form>
+    {% endif %}
   </div>
 
   {# ── КНИГА ───────────────────────────────────────────────────────────────── #}

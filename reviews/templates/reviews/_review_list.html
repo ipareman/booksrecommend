@@ -1,5 +1,5 @@
 {% for review in reviews %}
-<div class="review">
+<div class="review" id="review-{{ review.pk }}">
   <div class="review__head">
     <div class="review__author">
       {% include "users/_avatar.html" with person=review.user avatar_class="review__avatar" %}
@@ -14,8 +14,18 @@
   <div style="font-size:11px;color:var(--ghost);margin-bottom:4px">издание: {{ review.book.publisher|default:"—" }}{% if review.book.publication_year %}, {{ review.book.publication_year }}{% endif %}</div>
   {% endif %}
   <p class="review__text">{{ review.text }}</p>
-  <div style="margin-top:8px">
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     {% include "reviews/_like_btn.html" with review=review liked=review.user_liked likes_count=review.likes_count %}
+    {% include "tickets/_report_button.html" with app_label="reviews" model="review" object_id=review.pk %}
+    {% if user.is_staff %}
+    <button class="btn btn-ghost btn-sm"
+            style="color:var(--err);padding:0 4px"
+            hx-post="{% url 'review_delete' review.pk %}"
+            hx-target="#review-{{ review.pk }}"
+            hx-swap="outerHTML"
+            hx-confirm="Удалить отзыв?"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>✕</button>
+    {% endif %}
   </div>
 </div>
 {% empty %}

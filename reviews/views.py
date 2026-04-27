@@ -237,6 +237,20 @@ def review_moderate(request, review_id):
     return HttpResponse("")
 
 
+@login_required
+@require_POST
+def review_delete(request, review_id):
+    review = get_object_or_404(Review.objects.select_related("book"), pk=review_id)
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Только администратор может удалить отзыв.")
+
+    if review.extracted_tag:
+        review._extracted_tag = review.extracted_tag
+        decrement_tag_from_review(review)
+    review.delete()
+    return HttpResponse("")
+
+
 def reviews_page(request, book_id):
     """HTMX: пагинация отзывов книги (по 5 штук)."""
     from django.db.models import Count, Exists, OuterRef
@@ -468,6 +482,24 @@ def critique_moderate(request, pk):
         critique.delete()
 
     return HttpResponse("")
+
+
+@login_required
+@require_POST
+def critique_delete(request, pk):
+    critique = get_object_or_404(Critique.objects.select_related("book"), pk=pk)
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Только администратор может удалить рецензию.")
+
+    book_id = critique.book_id
+    if critique.extracted_tag:
+        critique._extracted_tag = critique.extracted_tag
+        decrement_tag_from_review(critique)
+    critique.delete()
+
+    if request.headers.get("HX-Request") == "true":
+        return HttpResponse("")
+    return redirect("book_detail", pk=book_id)
 
 
 def _notify_critique_status(critique, approved: bool):

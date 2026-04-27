@@ -34,6 +34,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        if data.get("type") == "typing":
+            if not await self._typing_allowed(self.room_id):
+                return
+            user = self.scope["user"]
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    "type": "chat_typing",
+                    "user_id": user.pk,
+                    "username": user.username,
+                    "is_typing": bool(data.get("is_typing")),
+                },
+            )
+            return
+
         body = (data.get("body") or "").strip()
         # Опциональное вложение: book_id (int) — выбранная пользователем книга из пикера.
         book_id_raw = data.get("book_id")
@@ -110,10 +125,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "counts": event["counts"],
         }))
 
+    async def chat_typing(self, event):
+        if event.get("user_id") == self.scope["user"].pk:
+            return
+        await self.send(text_data=json.dumps({
+            "type": "typing",
+            "username": event["username"],
+            "is_typing": event["is_typing"],
+        }))
+
     @database_sync_to_async
     def _is_participant(self, user_id, room_id):
         from .models import ChatParticipant
         return ChatParticipant.objects.filter(user_id=user_id, room_id=room_id).exists()
+
+    @database_sync_to_async
+    def _typing_allowed(self, room_id):
+        from .models import ChatRoom
+        return ChatRoom.objects.filter(
+            pk=room_id,
+            room_type__in=[ChatRoom.ROOM_CLUB, ChatRoom.ROOM_CLUB_THREAD],
+        ).exists()
 
     @database_sync_to_async
     def _notify_mentions(self, actor_id, actor_username, room_id, message_id, body, usernames):

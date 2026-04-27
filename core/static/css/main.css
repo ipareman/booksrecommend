@@ -1857,6 +1857,17 @@ input[type="search"]::-webkit-search-decoration {
 .chat-page__body::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 /* Прижимает сообщения к низу, когда их мало */
 .chat-page__body::before { content: ''; flex: 1 1 0; }
+.chat-typing {
+  min-height: 18px;
+  padding: 0 2px 6px;
+  color: var(--ghost);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.chat-typing--widget {
+  padding: 4px 14px 8px;
+  border-top: 1px solid var(--border);
+}
 .chat-page__input {
   display: flex; gap: 8px; padding: 10px 0;
   border-top: 1px solid var(--border); flex-shrink: 0;

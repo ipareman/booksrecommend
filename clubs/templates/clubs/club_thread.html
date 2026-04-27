@@ -1,0 +1,18 @@
+{% extends "core/base.html" %}
+{% block title %}{{ club_book.book.title }} — обсуждение — {{ club.name }}{% endblock %}
+
+{% block content %}
+<div class="wrap page" style="padding-top:32px;max-width:820px">
+  <form style="display:none">{% csrf_token %}</form>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px">
+    <div>
+      <a href="{% url 'club_detail' club.pk %}" class="lnk-muted" style="font-size:13px">&larr; {{ club.name }}</a>
+      <h1 style="font-size:22px;margin-top:6px">{{ club_book.book.title }}</h1>
+      <div style="font-size:13px;color:var(--muted)">Отдельное обсуждение книги в клубе</div>
+    </div>
+    <a href="{% url 'book_detail' club_book.book.pk %}" class="btn btn-secondary btn-sm">Книга</a>
+  </div>
+
+  {% include "chat/_chat_widget.html" with room=room club=club membership=membership chat_messages=chat_messages mention_candidates_json=mention_candidates_json allowed_emoji_json=allowed_emoji_json %}
+</div>
+{% endblock %}

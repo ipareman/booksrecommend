@@ -7,12 +7,14 @@ class ChatRoom(models.Model):
 
     ROOM_DM = "dm"
     ROOM_CLUB = "club"
+    ROOM_CLUB_THREAD = "club_thread"
     ROOM_TYPE_CHOICES = [
         (ROOM_DM, "Личные сообщения"),
         (ROOM_CLUB, "Клубный чат"),
+        (ROOM_CLUB_THREAD, "Обсуждение книги в клубе"),
     ]
 
-    room_type = models.CharField(max_length=10, choices=ROOM_TYPE_CHOICES, default=ROOM_DM)
+    room_type = models.CharField(max_length=16, choices=ROOM_TYPE_CHOICES, default=ROOM_DM)
     club = models.OneToOneField(
         "clubs.BookClub", on_delete=models.CASCADE, null=True, blank=True, related_name="chat_room_link",
     )
@@ -26,6 +28,18 @@ class ChatRoom(models.Model):
             return f"Club chat: {self.club.name}"
         participants = self.participants.values_list("user__username", flat=True)
         return f"DM: {', '.join(participants)}"
+
+
+class ClubBookThread(models.Model):
+    club_book = models.OneToOneField(
+        "clubs.ClubBook", on_delete=models.CASCADE, related_name="thread_link",
+    )
+    room = models.OneToOneField(
+        ChatRoom, on_delete=models.CASCADE, related_name="club_book_thread",
+    )
+
+    def __str__(self):
+        return f"Club thread: {self.club_book.club.name} / {self.club_book.book.title}"
 
 
 class ChatParticipant(models.Model):

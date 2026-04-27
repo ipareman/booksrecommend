@@ -166,6 +166,47 @@ def _render_polls_panel(request, club, membership):
     )
 
 
+def _chat_widget_context(request, club, room, membership):
+    from chat.models import ChatMessageReaction
+    import json as _json
+
+    chat_messages = list(
+        room.messages
+        .select_related("user", "attached_book")
+        .prefetch_related("attached_book__authors", "reactions__user")
+        .order_by("-created_at")[:80]
+    )
+    chat_messages.reverse()
+    for m in chat_messages:
+        grouped = {}
+        for r in m.reactions.all():
+            slot = grouped.setdefault(r.emoji, {"count": 0, "users": [], "mine": False})
+            slot["count"] += 1
+            slot["users"].append(r.user.username)
+            if r.user_id == request.user.id:
+                slot["mine"] = True
+        m.reactions_summary = [
+            {"emoji": e, **grouped[e]}
+            for e in ChatMessageReaction.ALLOWED_EMOJI
+            if e in grouped
+        ]
+
+    mention_candidates = list(
+        room.participants
+        .exclude(user=request.user)
+        .select_related("user")
+        .values_list("user__username", flat=True)
+    )
+    return {
+        "room": room,
+        "club": club,
+        "membership": membership,
+        "chat_messages": chat_messages,
+        "mention_candidates_json": _json.dumps(mention_candidates, ensure_ascii=False),
+        "allowed_emoji_json": _json.dumps(ChatMessageReaction.ALLOWED_EMOJI, ensure_ascii=False),
+    }
+
+
 def clubs_list(request):
     public_clubs = (
         BookClub.objects.filter(is_public=True)
@@ -212,46 +253,17 @@ def club_detail(request, pk):
     mention_candidates_json = "[]"
     allowed_emoji_json = "[]"
     if membership:
-        from chat.models import ChatParticipant, ChatRoom, ChatMessageReaction
-        import json as _json
+        from chat.models import ChatParticipant, ChatRoom
 
         chat_room = ChatRoom.objects.filter(room_type="club", club=club).first()
         if not chat_room:
             chat_room = ChatRoom.objects.create(room_type="club", club=club)
         ChatParticipant.objects.get_or_create(room=chat_room, user=request.user)
 
-        # Подгружаем последние сообщения с реакциями — чтобы виджет рендерил
-        # тот же UI, что и ЛС-чат.
-        chat_messages_for_widget = list(
-            chat_room.messages
-            .select_related("user", "attached_book")
-            .prefetch_related("attached_book__authors", "reactions__user")
-            .order_by("-created_at")[:80]
-        )
-        chat_messages_for_widget.reverse()
-        for m in chat_messages_for_widget:
-            grouped = {}
-            for r in m.reactions.all():
-                slot = grouped.setdefault(r.emoji, {"count": 0, "users": [], "mine": False})
-                slot["count"] += 1
-                slot["users"].append(r.user.username)
-                if r.user_id == request.user.id:
-                    slot["mine"] = True
-            m.reactions_summary = [
-                {"emoji": e, **grouped[e]}
-                for e in ChatMessageReaction.ALLOWED_EMOJI
-                if e in grouped
-            ]
-
-        # Кандидаты для @mention — все участники клуба, кроме самого юзера
-        mention_candidates = list(
-            chat_room.participants
-            .exclude(user=request.user)
-            .select_related("user")
-            .values_list("user__username", flat=True)
-        )
-        mention_candidates_json = _json.dumps(mention_candidates, ensure_ascii=False)
-        allowed_emoji_json = _json.dumps(ChatMessageReaction.ALLOWED_EMOJI, ensure_ascii=False)
+        widget_ctx = _chat_widget_context(request, club, chat_room, membership)
+        chat_messages_for_widget = widget_ctx["chat_messages"]
+        mention_candidates_json = widget_ctx["mention_candidates_json"]
+        allowed_emoji_json = widget_ctx["allowed_emoji_json"]
 
     club_books_qs = (
         club.club_books.select_related("book")
@@ -343,6 +355,38 @@ def club_detail(request, pk):
 
 
 @login_required
+def club_book_thread(request, pk, book_id):
+    club = get_object_or_404(BookClub, pk=pk)
+    _assert_club_access(club, request.user)
+    membership = get_object_or_404(ClubMembership, club=club, user=request.user)
+    club_book = get_object_or_404(
+        club.club_books.select_related("book"),
+        book_id=book_id,
+    )
+
+    from chat.models import ChatParticipant, ChatRoom, ClubBookThread
+
+    thread = ClubBookThread.objects.select_related("room").filter(club_book=club_book).first()
+    if thread:
+        room = thread.room
+    else:
+        room = ChatRoom.objects.create(room_type=ChatRoom.ROOM_CLUB_THREAD)
+        ClubBookThread.objects.create(club_book=club_book, room=room)
+    participants = [
+        ChatParticipant(room=room, user_id=user_id)
+        for user_id in club.memberships.values_list("user_id", flat=True)
+    ]
+    ChatParticipant.objects.bulk_create(participants, ignore_conflicts=True)
+
+    ctx = _chat_widget_context(request, club, room, membership)
+    ctx.update({
+        "club_book": club_book,
+        "title": f"{club.name}: {club_book.book.title}",
+    })
+    return render(request, "clubs/club_thread.html", ctx)
+
+
+@login_required
 @require_http_methods(["GET", "POST"])
 def club_create(request):
     if request.method == "POST":
@@ -390,6 +434,10 @@ def club_leave(request, pk):
     chat_room = ChatRoom.objects.filter(room_type="club", club=club).first()
     if chat_room:
         ChatParticipant.objects.filter(room=chat_room, user=request.user).delete()
+    thread_rooms = ChatRoom.objects.filter(
+        club_book_thread__in=ClubBookThread.objects.filter(club_book__club=club),
+    )
+    ChatParticipant.objects.filter(room__in=thread_rooms, user=request.user).delete()
     return redirect("club_detail", pk=club.pk)
 
 
@@ -406,11 +454,15 @@ def club_remove_member(request, pk, user_id):
     if not _can_remove_member(actor_membership, target_membership):
         return HttpResponse(status=403)
 
-    from chat.models import ChatParticipant, ChatRoom
+    from chat.models import ChatParticipant, ChatRoom, ClubBookThread
 
     chat_room = ChatRoom.objects.filter(room_type="club", club=club).first()
     if chat_room:
         ChatParticipant.objects.filter(room=chat_room, user_id=target_membership.user_id).delete()
+    thread_rooms = ChatRoom.objects.filter(
+        club_book_thread__in=ClubBookThread.objects.filter(club_book__club=club),
+    )
+    ChatParticipant.objects.filter(room__in=thread_rooms, user_id=target_membership.user_id).delete()
 
     removed_username = target_membership.user.username
     target_membership.delete()

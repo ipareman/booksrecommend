@@ -42,6 +42,7 @@
       </div>
     {% endfor %}
   </div>
+  <div class="chat-typing chat-typing--widget" x-show="typingText" x-cloak x-text="typingText"></div>
 
   {# Контекстное меню (свои сообщения) — toggle через повторный правый клик #}
   <div class="chat-ctx"
@@ -265,6 +266,10 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
         applyReactionToBubble(data.message_id, counts);
         return;
       }
+      if (data.type === 'typing') {
+        handleTyping(data);
+        return;
+      }
       appendMessage(data);
     };
     ws.onclose = () => setTimeout(connectWS, 2000);
@@ -330,11 +335,28 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
     return `<span class="user-avatar user-avatar--${esc(gradient)} chat-msg__avatar" title="${title}"><span>${esc(initial)}</span></span>`;
   }
 
+  let typingClearTimer = null;
+  function handleTyping(data) {
+    const root = document.querySelector('.club-chat-widget');
+    if (!root || !window.Alpine) return;
+    const state = window.Alpine.$data(root);
+    if (!data.is_typing) {
+      state.typingText = '';
+      return;
+    }
+    state.typingText = `${data.username} пишет…`;
+    clearTimeout(typingClearTimer);
+    typingClearTimer = setTimeout(() => { state.typingText = ''; }, 2500);
+  }
+
   connectWS();
   setTimeout(() => { const b = document.getElementById(boxId); if (b) b.scrollTop = b.scrollHeight; }, 100);
 
   return {
     text: '',
+    typingText: '',
+    typingActive: false,
+    typingStopTimer: null,
     ctxMenu: { show: false, x: 0, y: 0, msgId: null, hasBook: false, hasBody: true },
     editing: { active: false, msgId: null, original: '' },
 
@@ -561,6 +583,7 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
       this.send();
     },
     onTextInput(ev) {
+      this.notifyTyping();
       const input = ev.target;
       const pos = input.selectionStart;
       const text = input.value;
@@ -624,6 +647,24 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
       this.text = '';
       this.attachedBook = null;
       this.mention.open = false;
+      this.sendTyping(false);
+    },
+
+    notifyTyping() {
+      if (!this.text.trim()) {
+        this.sendTyping(false);
+        return;
+      }
+      this.sendTyping(true);
+      clearTimeout(this.typingStopTimer);
+      this.typingStopTimer = setTimeout(() => this.sendTyping(false), 1800);
+    },
+
+    sendTyping(isTyping) {
+      if (!ws || ws.readyState !== 1) return;
+      if (this.typingActive === isTyping) return;
+      this.typingActive = isTyping;
+      ws.send(JSON.stringify({ type: 'typing', is_typing: isTyping }));
     }
   };
 }

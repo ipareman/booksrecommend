@@ -31,6 +31,7 @@ def chat_list(request):
     """List of user's chat rooms, sorted by last message."""
     rooms = (
         ChatRoom.objects.filter(participants__user=request.user)
+        .exclude(room_type=ChatRoom.ROOM_CLUB_THREAD)
         .annotate(last_msg_at=Max("messages__created_at"))
         .order_by("-last_msg_at")
     )
@@ -45,6 +46,9 @@ def chat_list(request):
         if room.room_type == ChatRoom.ROOM_DM:
             other = room.participants.exclude(user=request.user).select_related("user").first()
             title = other.user.username if other else "Чат"
+        elif room.room_type == ChatRoom.ROOM_CLUB_THREAD:
+            thread = getattr(room, "club_book_thread", None)
+            title = f"Обсуждение: {thread.club_book.book.title}" if thread else "Обсуждение книги"
         else:
             title = room.club.name if room.club else "Клубный чат"
 
@@ -80,6 +84,14 @@ def chat_room(request, room_id):
     participant = room.participants.filter(user=request.user).first()
     if not participant:
         return redirect("chat_list")
+    if room.room_type == ChatRoom.ROOM_CLUB_THREAD:
+        thread = getattr(room, "club_book_thread", None)
+        if thread:
+            return redirect(
+                "club_book_thread",
+                pk=thread.club_book.club_id,
+                book_id=thread.club_book.book_id,
+            )
 
     # mark as read
     from django.utils import timezone
@@ -126,6 +138,9 @@ def chat_room(request, room_id):
     if room.room_type == ChatRoom.ROOM_DM:
         other = room.participants.exclude(user=request.user).select_related("user").first()
         title = other.user.username if other else "Чат"
+    elif room.room_type == ChatRoom.ROOM_CLUB_THREAD:
+        thread = getattr(room, "club_book_thread", None)
+        title = f"Обсуждение: {thread.club_book.book.title}" if thread else "Обсуждение книги"
     else:
         title = room.club.name if room.club else "Клубный чат"
 

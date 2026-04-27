@@ -82,6 +82,7 @@
 
         {% if membership %}
         <div class="club-book-row__side">
+          <a href="{% url 'club_book_thread' club.pk cb.book.pk %}" class="btn btn-secondary btn-sm">Обсуждение</a>
           {% if not cb.is_current %}
           <form hx-post="{% url 'club_vote_next_book' club.pk cb.book.pk %}"
                 hx-target="#club-books-list" hx-swap="innerHTML">

@@ -25,7 +25,7 @@ def book_chat(request, book_id):
     return render(request, "ai_chat/book_chat.html", {
         "book": book,
         "chat": chat,
-        "messages": messages,
+        "messages_dial": messages,
     })
 
 

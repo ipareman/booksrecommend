@@ -29,8 +29,8 @@
 
   {# ── СООБЩЕНИЯ ───────────────────────────────────────────────────────────── #}
   <div class="ai-chat-messages" id="chat-messages">
-    {% if messages %}
-      {% for msg in messages %}
+    {% if messages_dial %}
+      {% for msg in messages_dial %}
         <div class="ai-chat-msg ai-chat-msg--{{ msg.role }}">{{ msg.content|link_chapters:book }}</div>
       {% endfor %}
     {% else %}

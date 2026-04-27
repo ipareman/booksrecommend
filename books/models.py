@@ -32,6 +32,14 @@ class Publisher(models.Model):
     """Издательство, выпускающее книги."""
 
     name = models.CharField(max_length=250, unique=True)
+    description = models.TextField(blank=True)
+    founded_year = models.IntegerField(null=True, blank=True)
+    country = models.CharField(max_length=120, blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    website = models.URLField(blank=True)
+
+    class Meta:
+        ordering = ["name"]
 
     def __str__(self) -> str:
         return self.name

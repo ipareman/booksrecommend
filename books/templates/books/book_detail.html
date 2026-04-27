@@ -2,7 +2,7 @@
 {% block title %}{{ book.title }} — Строка{% endblock %}
 
 {% block content %}
-<div class="wrap page" style="padding-top:28px"
+<div class="wrap page book-detail-page"
      x-data="{
        editing: false,
 
@@ -58,7 +58,7 @@
        }
      }">
 
-  <a href="{% url 'catalog' %}" class="lnk-muted" style="font-size:12px;display:inline-block;margin-bottom:20px">← Каталог</a>
+  <a href="{% url 'catalog' %}" class="lnk-muted book-detail-back">← Каталог</a>
 
   {# Форма охватывает весь контент страницы — поля с name передаются при submit, остальное игнорируется #}
   {% if user.is_staff %}
@@ -74,10 +74,9 @@
   {# Полоска «режим редактирования» — появляется сверху #}
     {% if user.is_staff %}
     <div x-show="editing" x-cloak>
-      <div style="display: flex;display:flex;align-items:center;justify-content:space-between;
-            margin-bottom:16px;padding:10px 14px;border:1px solid #292929;border-radius:8px;">
-        <span style="font-size:13px;color:#000000;">✏ Режим редактирования</span>
-        <div>
+      <div class="book-edit-bar">
+        <span>✏ Режим редактирования</span>
+        <div class="book-edit-bar__actions">
           <button type="submit" form="book-edit-form" class="btn btn-primary btn-sm">Сохранить</button>
           <button type="button" @click="editing=false" class="btn btn-secondary btn-sm">Отмена</button>
         </div>
@@ -85,29 +84,24 @@
     </div>
     {% endif %}
     {# ── ШАПКА: обложка + заголовок ───────────────────────────────── #}
-  <div style="display:flex;gap:28px;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap">
+  <div class="book-detail-hero">
 
     {# Обложка #}
-    <div style="flex-shrink:0">
+    <div class="book-detail-cover">
       {% if book.cover_image %}
-      <div style="width:140px;border-radius:8px;overflow:hidden;
-                  box-shadow:0 2px 8px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.06);
-                  background:var(--surface)">
+      <div class="book-detail-cover__frame">
         <img id="ed-cover" src="{{ book.cover_image.url }}" alt="Обложка «{{ book.title }}»"
-             style="width:100%;display:block;aspect-ratio:2/3;object-fit:cover;transition:opacity .45s">
+             class="book-detail-cover__image">
       </div>
       {% else %}
-      <div style="width:140px;aspect-ratio:2/3;border-radius:8px;
-                  border:1px solid var(--border);background:var(--surface);
-                  display:flex;flex-direction:column;align-items:center;
-                  justify-content:center;gap:8px;color:var(--ghost)">
-        <img id="ed-cover" alt="" style="width:100%;display:none;aspect-ratio:2/3;object-fit:cover;transition:opacity .45s">
-        <span style="font-size:10px;text-align:center;padding:0 8px;line-height:1.4">Нет обложки</span>
+      <div class="book-detail-cover__frame book-detail-cover__frame--empty">
+        <img id="ed-cover" alt="" class="book-detail-cover__image" style="display:none">
+        <span>Нет обложки</span>
       </div>
       {% endif %}
       {# Загрузка новой обложки — только в режиме редактирования #}
       {% if user.is_staff %}
-      <div x-show="editing" x-cloak style="margin-top:8px;width:140px">
+      <div x-show="editing" x-cloak class="book-cover-upload">
         <input type="file" name="cover_image" form="book-edit-form" accept="image/*"
                style="font-size:11px;color:var(--muted);width:100%">
       </div>
@@ -115,10 +109,10 @@
     </div>
 
     {# Заголовок, жанры, авторы #}
-    <div style="flex:1;min-width:200px">
+    <div class="book-detail-main">
 
       {# Жанры — вид: чипы | ред: мультиселект #}
-      <div x-show="!editing" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+      <div x-show="!editing" class="book-detail-tags">
         {% for g in book.genres.all %}<span class="tag">{{ g.name }}</span>{% endfor %}
       </div>
       {# Mood-теги #}
@@ -132,17 +126,17 @@
       {% endif %}
 
       {# Кнопки staff: карандашик в режиме просмотра #}
-      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+      <div class="book-title-row">
         {# Заголовок — вид: h1 | ред: input #}
         <h1 x-show="!editing" id="ed-title"
-            style="font-size:26px;margin-bottom:6px;flex:1;min-width:0">{{ book.title }}</h1>
+            class="book-title">{{ book.title }}</h1>
         {% if user.is_staff %}
         <input x-show="editing" x-cloak
                class="form-input" type="text" name="title" form="book-edit-form" required
                value="{{ book.title }}"
                style="font-size:22px;font-family:'Mltsvfont';
                       font-weight:400;flex:1;min-width:0;margin-bottom:6px">
-        <div x-show="!editing" style="display:flex;gap:6px;flex-shrink:0;margin-top:4px">
+        <div x-show="!editing" class="book-staff-actions">
           <button type="button" @click="editing=true"
                   class="btn btn-secondary btn-sm" title="Редактировать книгу">✏</button>
           <a href="{% url 'book_add' %}?copy_from={{ book.pk }}"
@@ -152,7 +146,7 @@
       </div>
 
       {# Авторы — вид: текст | ред: мультиселект #}
-      <p x-show="!editing" style="color:var(--muted);font-size:14px;margin-bottom:4px">
+      <p x-show="!editing" class="book-byline">
   <span id="ed-authors">{% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
   <span id="ed-year-wrap">{% if book.publication_year %} · <span id="ed-year">{{ book.publication_year }}</span>{% endif %}</span>
 </p>
@@ -163,12 +157,22 @@
       {% endif %}
 
     </div>
+
+    <div class="book-hero-actions" x-show="!editing">
+      {% if can_read_text %}
+        <a href="{% url 'book_read' book.id %}" class="btn btn-primary">Читать</a>
+      {% endif %}
+      <a href="{% url 'book_graph' book.pk %}" class="btn btn-secondary">Граф связей</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'book_chat' book.pk %}" class="btn btn-secondary">AI-собеседник</a>
+      {% endif %}
+    </div>
   </div>
 
-  <hr class="divider" style="margin-bottom:16px">
+  <hr class="divider book-detail-divider">
 
   {# Рейтинг, списки, цена — всегда видны #}
-  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:16px">
+  <div class="book-action-strip">
     <div class="rating-block">
       <span class="rating-block__num">{{ book.avg_rating }}</span>
       <div>
@@ -176,47 +180,49 @@
         <div class="rating-block__count">{{ book.rating_count }} оценок</div>
       </div>
     </div>
-    {% if user.is_authenticated %}
-    <div id="book-list-dropdown-{{ book.id }}">
-      {% include "books/_list_dropdown.html" with book=book user_lists=user_lists book_list_ids=book_list_ids %}
-    </div>
-
-    {# Рекомендовать другу #}
-    <div x-data="{ recOpen: false }" style="position:relative">
-      <button class="btn btn-secondary btn-sm" @click="recOpen = !recOpen">Рекомендовать</button>
-      <div x-show="recOpen" x-cloak @click.outside="recOpen = false"
-           style="position:absolute;top:calc(100% + 4px);right:0;z-index:200;width:300px;
-                  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
-                  box-shadow:0 4px 16px rgba(0,0,0,.08);padding:16px"
-           hx-get="{% url 'recommend_friends_partial' book.pk %}"
-           hx-trigger="intersect once"
-           hx-swap="innerHTML">
-        <span class="spinner"></span>
+    <div class="book-action-group">
+      {% if user.is_authenticated %}
+      <div id="book-list-dropdown-{{ book.id }}">
+        {% include "books/_list_dropdown.html" with book=book user_lists=user_lists book_list_ids=book_list_ids %}
       </div>
-      <div id="recommend-result-{{ book.pk }}"></div>
-    </div>
-    {% endif %}
-    <div id="price-block-{{ book.id }}" style="margin-left:auto">
-      {% include "books/_price_block.html" with book=book pending=False %}
+
+      {# Рекомендовать другу #}
+      <div x-data="{ recOpen: false }" class="book-recommend">
+        <button class="btn btn-secondary btn-sm" @click="recOpen = !recOpen">Рекомендовать</button>
+        <div x-show="recOpen" x-cloak @click.outside="recOpen = false"
+             class="book-recommend__menu"
+             style="position:absolute;top:calc(100% + 4px);right:0;z-index:200;width:300px;
+                    background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+                    box-shadow:0 4px 16px rgba(0,0,0,.08);padding:16px"
+             hx-get="{% url 'recommend_friends_partial' book.pk %}"
+             hx-trigger="intersect once"
+             hx-swap="innerHTML">
+          <span class="spinner"></span>
+        </div>
+        <div id="recommend-result-{{ book.pk }}"></div>
+      </div>
+      {% endif %}
+      <div class="book-price-slot">
+        {% include "books/_price_block.html" with book=book pending=False %}
+      </div>
     </div>
   </div>
   {% if user.is_authenticated %}
   {% if book.avg_price %}
-  <div style="margin-bottom:10px">
+  <div class="book-inline-panel">
     {% include "books/_price_alert.html" with book=book alert=user_price_alert %}
   </div>
   {% endif %}
   {% if book.pages %}
-  <div style="margin-bottom:10px">
+  <div class="book-inline-panel">
     {% include "books/_reading_progress.html" with book=book progress=reading_progress %}
   </div>
   {% endif %}
 
   {# ── Блок «полный текст книги» ──────────────────────────────────────────── #}
   {% if book.text and book.text.is_ready %}
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;padding:10px 14px;
-                border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)">
-      <span style="font-size:18px">📖</span>
+    <div class="book-reader-panel">
+      <span class="book-reader-panel__icon">📖</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600">Полный текст доступен</div>
         <div style="font-size:12px;color:var(--muted)">
@@ -229,9 +235,7 @@
           {% endif %}
         </div>
       </div>
-      {% if can_read_text %}
-        <a href="{% url 'book_read' book.id %}" class="btn btn-primary btn-sm">Читать</a>
-      {% else %}
+      {% if not can_read_text %}
         <span style="font-size:12px;color:var(--ghost)">
           Добавьте книгу в список, чтобы читать
         </span>
@@ -270,8 +274,7 @@
       {% endif %}
     </div>
   {% elif user.is_staff %}
-    <details style="margin-bottom:10px;padding:10px 14px;border:1px dashed var(--border);
-                    border-radius:var(--radius);background:var(--bg-2,transparent)">
+    <details class="book-upload-panel">
       <summary style="cursor:pointer;font-size:13px">
         📤 Загрузить полный текст книги (EPUB / FB2, только админ)
       </summary>
@@ -288,18 +291,17 @@
   {% endif %}
 
   {% if reading_prediction and reading_prediction.confidence != "low" %}
-  <div style="margin-bottom:10px;padding:8px 12px;background:var(--surface);border-radius:6px;
-              font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"
+  <div class="book-reading-forecast"
        title="На основе вашей скорости: {{ reading_prediction.pace_pages_per_day }} стр/день (по {{ reading_prediction.based_on_books }} книгам)">
     ⏱ Вы прочтёте за ~<b style="color:var(--ink)">{{ reading_prediction.days }}</b> дн.
   </div>
   {% endif %}
 
   {% endif %}
-  <hr class="divider" style="margin-bottom:0">
+  <hr class="divider book-tabs-divider">
 
   {# Вкладки #}
-  <div x-data="{ tab: '{{ active_tab }}' }">
+  <div x-data="{ tab: '{{ active_tab }}' }" class="book-detail-content">
     <div class="tabs">
       <button class="tab" :class="{'tab--active': tab==='about'}"   @click="tab='about'">Описание</button>
       <button class="tab" :class="{'tab--active': tab==='reviews'}" @click="tab='reviews'">Отзывы ({{ review_count }})</button>
@@ -317,7 +319,7 @@
 
       {# Описание #}
       <div x-show="!editing">
-        <p id="ed-description" style="font-size:14px;line-height:1.85;max-width:620px;color:var(--muted);{% if not book.description %}display:none{% endif %}">{{ book.description }}</p>
+        <p id="ed-description" class="book-description" style="{% if not book.description %}display:none{% endif %}">{{ book.description }}</p>
         {% if not book.description %}<p class="empty" id="ed-description-empty">Описание отсутствует.</p>{% endif %}
 
         {# AI-темы и мотивы из полного текста #}
@@ -351,7 +353,7 @@
 
       {# Мета: вид — лейблы с данными | ред — маленькие инпуты #}
       <div x-show="!editing">
-        <div id="ed-meta-row" style="display:flex;gap:24px;margin-top:20px;flex-wrap:wrap">
+        <div id="ed-meta-row" class="book-meta-row">
           <div id="ed-meta-publisher" {% if not book.publisher %}style="display:none"{% endif %}><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Издательство</p><p style="font-size:13px" id="ed-publisher">{{ book.publisher|default:"" }}</p></div>
           {% if book.series %}<div><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Серия</p><p style="font-size:13px"><a href="{% url 'series_detail' book.series.pk %}" class="lnk">{{ book.series }}</a></p></div>{% endif %}
           <div id="ed-meta-pages" {% if not book.pages %}style="display:none"{% endif %}><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Страниц</p><p style="font-size:13px" id="ed-pages">{{ book.pages|default:"" }}</p></div>
@@ -534,14 +536,6 @@
       {% include "books/_quotes.html" with book=book quotes=quotes user=user %}
     </div>
   </div>{# /tabs x-data #}
-
-  {# Граф связей и AI-чат #}
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:24px">
-    <a href="{% url 'book_graph' book.pk %}" class="btn btn-secondary btn-sm">Граф связей</a>
-    {% if user.is_authenticated %}
-      <a href="{% url 'book_chat' book.pk %}" class="btn btn-secondary btn-sm">AI-собеседник</a>
-    {% endif %}
-  </div>
 
   {# ── Похожие книги (горизонтальная карусель) ────────────────────────────── #}
   {% if similar %}

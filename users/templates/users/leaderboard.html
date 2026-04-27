@@ -49,7 +49,7 @@
         {% endif %}
       </span>
       <a href="{% url 'user_profile_public' row.user.username %}" class="lb-row__user">
-        <span class="lb-row__avatar">{{ row.user.username|make_list|first|upper }}</span>
+        {% include "users/_avatar.html" with person=row.user avatar_class="lb-row__avatar" %}
         <span class="lb-row__name">{{ row.user.username }}</span>
       </a>
       <span class="lb-row__level">Lv {{ row.level }}</span>
@@ -69,7 +69,7 @@
     <li class="lb-row lb-row--me">
       <span class="lb-row__rank"><span class="lb-row__rank-num">{{ me_row.position }}</span></span>
       <a href="{% url 'user_profile_public' me_row.user.username %}" class="lb-row__user">
-        <span class="lb-row__avatar">{{ me_row.user.username|make_list|first|upper }}</span>
+        {% include "users/_avatar.html" with person=me_row.user avatar_class="lb-row__avatar" %}
         <span class="lb-row__name">{{ me_row.user.username }}</span>
       </a>
       <span class="lb-row__level">Lv {{ me_row.level }}</span>

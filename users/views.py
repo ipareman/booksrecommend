@@ -23,7 +23,10 @@ import csv
 import json
 from celery.result import AsyncResult
 
-from .models import UserProfile, AuthorSubscription, Achievement, check_achievements, get_achievements_progress
+from .models import (
+    UserProfile, AuthorSubscription, Achievement, AVATAR_GRADIENTS,
+    check_achievements, get_achievements_progress,
+)
 from books.models import Book, UserList, Store, BookStore, Genre, Author, ReadingProgress, BookEdition, BookNote
 from reviews.models import Review, Critique
 from search.models import SearchHistory
@@ -518,6 +521,7 @@ def account_settings(request):
             new_email    = (request.POST.get("email") or "").strip()
             new_bio      = (request.POST.get("bio") or "").strip()
             new_avatar   = request.FILES.get("avatar")
+            new_gradient = (request.POST.get("avatar_gradient") or "").strip()
             remove_avatar = request.POST.get("remove_avatar") == "1"
 
             if not new_username:
@@ -533,6 +537,10 @@ def account_settings(request):
             if len(new_bio) > 1000:
                 errors["bio"] = "Максимум 1000 символов."
 
+            gradient_keys = {key for key, _label in AVATAR_GRADIENTS}
+            if new_gradient not in gradient_keys:
+                errors["avatar_gradient"] = "Р’С‹Р±РµСЂРёС‚Рµ РІР°СЂРёР°РЅС‚ РіСЂР°РґРёРµРЅС‚Р°."
+
             if new_avatar:
                 if new_avatar.size > 5 * 1024 * 1024:
                     errors["avatar"] = "Файл должен быть не больше 5 МБ."
@@ -544,7 +552,8 @@ def account_settings(request):
                 user.email    = new_email
                 user.save(update_fields=["username", "email"])
                 profile.bio = new_bio
-                update_fields = ["bio"]
+                profile.avatar_gradient = new_gradient
+                update_fields = ["bio", "avatar_gradient"]
                 if remove_avatar and profile.avatar:
                     profile.avatar.delete(save=False)
                     profile.avatar = None
@@ -568,6 +577,7 @@ def account_settings(request):
 
     return render(request, "users/account_settings.html", {
         "profile":       profile,
+        "avatar_gradients": AVATAR_GRADIENTS,
         "password_form": password_form,
         "errors":        errors,
     })

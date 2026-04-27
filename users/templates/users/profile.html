@@ -12,13 +12,7 @@
                 gap:16px;flex-wrap:wrap;margin-bottom:20px">
 
       <div class="profile-self-head">
-        <div class="profile-self-head__avatar">
-          {% if request.user.profile.avatar %}
-            <img src="{{ request.user.profile.avatar.url }}" alt="">
-          {% else %}
-            <span>{{ request.user.username|make_list|first|upper }}</span>
-          {% endif %}
-        </div>
+        {% include "users/_avatar.html" with person=request.user avatar_class="profile-self-head__avatar" %}
         <div>
           <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
             <h1 style="font-size:22px">{{ request.user.username }}</h1>

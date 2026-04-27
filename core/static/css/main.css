@@ -379,6 +379,14 @@ h1, h2, h3 { font-family: 'Mltsvfont'; font-weight: 400; }
   line-height: 1; overflow: hidden; flex-shrink: 0;
 }
 .user-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.user-avatar.user-avatar--orchid { background: linear-gradient(135deg, var(--accent) 0%, #c084fc 100%) !important; color: #fff; }
+.user-avatar.user-avatar--ember { background: linear-gradient(135deg, #ef4444 0%, #f97316 52%, #facc15 100%) !important; color: #fff; }
+.user-avatar.user-avatar--lagoon { background: linear-gradient(135deg, #0891b2 0%, #22c55e 100%) !important; color: #fff; }
+.user-avatar.user-avatar--moss { background: linear-gradient(135deg, #365314 0%, #84cc16 100%) !important; color: #fff; }
+.user-avatar.user-avatar--dawn { background: linear-gradient(135deg, #fb7185 0%, #fbbf24 100%) !important; color: #fff; }
+.user-avatar.user-avatar--ink { background: linear-gradient(135deg, #111827 0%, #4f46e5 100%) !important; color: #fff; }
+.user-avatar.user-avatar--berry { background: linear-gradient(135deg, #7c2d12 0%, #be185d 52%, #a855f7 100%) !important; color: #fff; }
+.user-avatar.user-avatar--gold { background: linear-gradient(135deg, #92400e 0%, #eab308 100%) !important; color: #fff; }
 .review__user { font-size: 13px; font-weight: 600; }
 .review__avatar { width: 28px; height: 28px; }
 .review__stars { font-size: 12px; color: var(--muted); }

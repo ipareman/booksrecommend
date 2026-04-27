@@ -271,7 +271,8 @@ function chatRoom(roomId, username, allowedEmoji) {
     if (data.avatar_url) {
       return `<span class="user-avatar chat-msg__avatar" title="${title}"><img src="${esc(data.avatar_url)}" alt=""></span>`;
     }
-    return `<span class="user-avatar chat-msg__avatar" title="${title}"><span>${esc(initial)}</span></span>`;
+    const gradient = data.avatar_gradient || 'orchid';
+    return `<span class="user-avatar user-avatar--${esc(gradient)} chat-msg__avatar" title="${title}"><span>${esc(initial)}</span></span>`;
   }
 
   // Перерисовываем чипы реакций под сообщением. Не используем Alpine x-for,

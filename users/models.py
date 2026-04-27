@@ -3,11 +3,33 @@ from django.db import models
 from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import random
+
+
+AVATAR_GRADIENTS = [
+    ("orchid", "Орхидея"),
+    ("ember", "Искра"),
+    ("lagoon", "Лагуна"),
+    ("moss", "Мох"),
+    ("dawn", "Рассвет"),
+    ("ink", "Чернила"),
+    ("berry", "Ягоды"),
+    ("gold", "Золото"),
+]
+
+
+def random_avatar_gradient():
+    return random.choice([key for key, _label in AVATAR_GRADIENTS])
 
 
 class UserProfile(models.Model):
     user            = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     avatar          = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    avatar_gradient = models.CharField(
+        max_length=20,
+        choices=AVATAR_GRADIENTS,
+        default=random_avatar_gradient,
+    )
     bio             = models.TextField(blank=True)
     telegram_username = models.CharField(
         max_length=100, blank=True,

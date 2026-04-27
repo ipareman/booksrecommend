@@ -90,9 +90,11 @@
     {% for event in feed_events %}
       {% if event.book %}
       <a href="{% url 'book_detail' event.book.pk %}" class="reading-now__item">
-        <div class="reading-now__avatar{% if event.user.pk in feed_friend_ids %} reading-now__avatar--friend{% endif %}">
-          {{ event.user.username|make_list|first|upper }}
-        </div>
+        {% if event.user.pk in feed_friend_ids %}
+          {% include "users/_avatar.html" with person=event.user avatar_class="reading-now__avatar reading-now__avatar--friend" %}
+        {% else %}
+          {% include "users/_avatar.html" with person=event.user avatar_class="reading-now__avatar" %}
+        {% endif %}
         {% if event.book.cover_image %}
           <img src="{{ event.book.cover_image.url }}" alt="{{ event.book.title }}"
                class="reading-now__cover" loading="lazy">

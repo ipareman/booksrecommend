@@ -3,17 +3,15 @@
 
 {% block content %}
 <div class="wrap page" style="padding-top:32px;max-width:640px">
-
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
     <a href="{% url 'profile' %}" class="lnk-muted" style="font-size:13px">← В профиль</a>
   </div>
 
   <h1 style="font-size:22px;margin-bottom:8px">Настройки аккаунта</h1>
   <p style="color:var(--muted);font-size:13px;margin-bottom:28px">
-    Логин, почта, «Обо мне» и пароль.
+    Логин, почта, «Обо мне», аватарка и пароль.
   </p>
 
-  {# ── Блок: профиль (логин, email, bio) ─────────────────────────────────── #}
   <section class="settings-card">
     <h2 class="settings-card__title">Профиль</h2>
 
@@ -22,18 +20,12 @@
       <input type="hidden" name="action" value="profile">
 
       <div class="settings-avatar">
-        <div class="settings-avatar__preview">
-          {% if profile.avatar %}
-            <img src="{{ profile.avatar.url }}" alt="">
-          {% else %}
-            <span>{{ request.user.username|make_list|first|upper }}</span>
-          {% endif %}
-        </div>
+        {% include "users/_avatar.html" with person=request.user avatar_class="settings-avatar__preview" %}
         <div class="settings-avatar__body">
           <label class="form-label" for="id_avatar">Аватарка</label>
           <input id="id_avatar" class="settings-avatar__input" type="file" name="avatar" accept="image/*">
           {% if errors.avatar %}<p class="form-error">{{ errors.avatar }}</p>{% endif %}
-          <p class="form-hint">Квадратное изображение до 5 МБ. Лучше смотрится лицо или простой знак.</p>
+          <p class="form-hint">Квадратное изображение до 5 МБ. Если изображения нет, используется выбранный градиент.</p>
           {% if profile.avatar %}
           <label class="form-check settings-avatar__remove">
             <input type="checkbox" name="remove_avatar" value="1">
@@ -41,6 +33,23 @@
           </label>
           {% endif %}
         </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Градиент заглушки</label>
+        <div class="avatar-gradient-picker">
+          {% for key,label in avatar_gradients %}
+          <label class="avatar-gradient-option" title="{{ label }}">
+            <input type="radio" name="avatar_gradient" value="{{ key }}"
+                   {% if profile.avatar_gradient == key %}checked{% endif %}>
+            <span class="user-avatar user-avatar--{{ key }} avatar-gradient-option__swatch">
+              <span>{{ request.user.username|make_list|first|upper }}</span>
+            </span>
+            <span class="avatar-gradient-option__name">{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% if errors.avatar_gradient %}<p class="form-error">{{ errors.avatar_gradient }}</p>{% endif %}
       </div>
 
       <div class="form-group">
@@ -65,9 +74,9 @@
         <label class="form-label" for="id_bio">Обо мне</label>
         <textarea id="id_bio" class="form-input" name="bio" rows="4"
                   maxlength="1000"
-                  placeholder="Расскажите о себе в двух словах — что читаете, что любите…">{{ profile.bio|default:'' }}</textarea>
+                  placeholder="Расскажите о себе в двух словах — что читаете, что любите...">{{ profile.bio|default:'' }}</textarea>
         {% if errors.bio %}<p class="form-error">{{ errors.bio }}</p>{% endif %}
-        <p class="form-hint">Отображается в вашем публичном профиле.</p>
+        <p class="form-hint">Отображается в публичном профиле.</p>
       </div>
 
       <div style="display:flex;justify-content:flex-end;margin-top:16px">
@@ -76,7 +85,6 @@
     </form>
   </section>
 
-  {# ── Блок: смена пароля ────────────────────────────────────────────────── #}
   <section class="settings-card">
     <h2 class="settings-card__title">Смена пароля</h2>
 
@@ -126,7 +134,6 @@
       Забыли пароль? <a href="{% url 'password_reset' %}" class="lnk">Сбросить по email</a>.
     </p>
   </section>
-
 </div>
 
 <style>
@@ -142,5 +149,29 @@
 .form-hint {
   font-size: 11px; color: var(--ghost); margin-top: 4px;
 }
+.avatar-gradient-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
+  gap: 8px;
+}
+.avatar-gradient-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+}
+.avatar-gradient-option input { accent-color: var(--accent); }
+.avatar-gradient-option:has(input:checked) {
+  border-color: var(--accent);
+  color: var(--ink);
+  background: var(--surface);
+}
+.avatar-gradient-option__swatch { width: 34px; height: 34px; }
+.avatar-gradient-option__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>
 {% endblock %}

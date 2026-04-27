@@ -11,11 +11,25 @@
     <div style="display:flex;align-items:flex-start;justify-content:space-between;
                 gap:16px;flex-wrap:wrap;margin-bottom:20px">
 
-      <div style="display:flex;align-items:baseline;gap:12px">
-        <h1 style="font-size:22px">{{ request.user.username }}</h1>
-        {% if request.user.is_staff %}
-          <span class="badge badge-admin">Администратор</span>
-        {% endif %}
+      <div class="profile-self-head">
+        <div class="profile-self-head__avatar">
+          {% if request.user.profile.avatar %}
+            <img src="{{ request.user.profile.avatar.url }}" alt="">
+          {% else %}
+            <span>{{ request.user.username|make_list|first|upper }}</span>
+          {% endif %}
+        </div>
+        <div>
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <h1 style="font-size:22px">{{ request.user.username }}</h1>
+            {% if request.user.is_staff %}
+              <span class="badge badge-admin">Администратор</span>
+            {% endif %}
+          </div>
+          {% if request.user.profile.bio %}
+            <p class="profile-self-head__bio">{{ request.user.profile.bio }}</p>
+          {% endif %}
+        </div>
       </div>
 
       <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">

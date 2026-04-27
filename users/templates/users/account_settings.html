@@ -17,9 +17,31 @@
   <section class="settings-card">
     <h2 class="settings-card__title">Профиль</h2>
 
-    <form method="post" novalidate>
+    <form method="post" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
       <input type="hidden" name="action" value="profile">
+
+      <div class="settings-avatar">
+        <div class="settings-avatar__preview">
+          {% if profile.avatar %}
+            <img src="{{ profile.avatar.url }}" alt="">
+          {% else %}
+            <span>{{ request.user.username|make_list|first|upper }}</span>
+          {% endif %}
+        </div>
+        <div class="settings-avatar__body">
+          <label class="form-label" for="id_avatar">Аватарка</label>
+          <input id="id_avatar" class="settings-avatar__input" type="file" name="avatar" accept="image/*">
+          {% if errors.avatar %}<p class="form-error">{{ errors.avatar }}</p>{% endif %}
+          <p class="form-hint">Квадратное изображение до 5 МБ. Лучше смотрится лицо или простой знак.</p>
+          {% if profile.avatar %}
+          <label class="form-check settings-avatar__remove">
+            <input type="checkbox" name="remove_avatar" value="1">
+            Удалить текущую аватарку
+          </label>
+          {% endif %}
+        </div>
+      </div>
 
       <div class="form-group">
         <label class="form-label" for="id_username">Логин</label>

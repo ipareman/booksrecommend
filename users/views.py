@@ -517,6 +517,8 @@ def account_settings(request):
             new_username = (request.POST.get("username") or "").strip()
             new_email    = (request.POST.get("email") or "").strip()
             new_bio      = (request.POST.get("bio") or "").strip()
+            new_avatar   = request.FILES.get("avatar")
+            remove_avatar = request.POST.get("remove_avatar") == "1"
 
             if not new_username:
                 errors["username"] = "Логин не может быть пустым."
@@ -531,12 +533,28 @@ def account_settings(request):
             if len(new_bio) > 1000:
                 errors["bio"] = "Максимум 1000 символов."
 
+            if new_avatar:
+                if new_avatar.size > 5 * 1024 * 1024:
+                    errors["avatar"] = "Файл должен быть не больше 5 МБ."
+                elif not (new_avatar.content_type or "").startswith("image/"):
+                    errors["avatar"] = "Загрузите изображение."
+
             if not errors:
                 user.username = new_username
                 user.email    = new_email
                 user.save(update_fields=["username", "email"])
                 profile.bio = new_bio
-                profile.save(update_fields=["bio"])
+                update_fields = ["bio"]
+                if remove_avatar and profile.avatar:
+                    profile.avatar.delete(save=False)
+                    profile.avatar = None
+                    update_fields.append("avatar")
+                if new_avatar:
+                    if profile.avatar:
+                        profile.avatar.delete(save=False)
+                    profile.avatar = new_avatar
+                    update_fields.append("avatar")
+                profile.save(update_fields=update_fields)
                 messages.success(request, "Профиль обновлён.")
                 return redirect("account_settings")
 

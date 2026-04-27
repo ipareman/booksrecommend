@@ -1,7 +1,11 @@
 {# Шапка публичного профиля: аватар-буквица, имя, bio, статус «сейчас читает» #}
 <div class="pp-header">
   <div class="pp-header__avatar">
-    {{ target_user.username|make_list|first|upper }}
+    {% if target_profile and target_profile.avatar %}
+      <img src="{{ target_profile.avatar.url }}" alt="">
+    {% else %}
+      <span>{{ target_user.username|make_list|first|upper }}</span>
+    {% endif %}
   </div>
 
   <div class="pp-header__main">

@@ -11,7 +11,13 @@
     <div class="pp-friends-row">
       {% for f in social_snapshot.friends_preview %}
         <a href="{% url 'user_profile_public' f.username %}" class="pp-friend" title="{{ f.username }}">
-          <div class="pp-friend__avatar">{{ f.username|make_list|first|upper }}</div>
+          <div class="pp-friend__avatar">
+            {% if f.profile.avatar %}
+              <img src="{{ f.profile.avatar.url }}" alt="">
+            {% else %}
+              {{ f.username|make_list|first|upper }}
+            {% endif %}
+          </div>
           <div class="pp-friend__name">{{ f.username }}</div>
         </a>
       {% endfor %}

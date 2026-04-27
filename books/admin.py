@@ -37,7 +37,12 @@ class AuthorAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Genre)
-admin.site.register(Publisher)
+@admin.register(Publisher)
+class PublisherAdmin(admin.ModelAdmin):
+    list_display = ["name", "country", "city", "founded_year"]
+    search_fields = ["name", "country", "city"]
+
+
 admin.site.register(Series)
 admin.site.register(Language)
 admin.site.register(UserList)

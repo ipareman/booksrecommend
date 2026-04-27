@@ -57,4 +57,6 @@ urlpatterns = [
     path("authors/<int:pk>/",                       author_views.author_detail,       name="author_detail"),
     path("authors/<int:pk>/edit/",                  author_views.author_edit,         name="author_edit"),
     path("authors/<int:pk>/subscribe/",             author_views.toggle_author_subscription, name="author_subscribe"),
+    path("publishers/<int:pk>/",                    author_views.publisher_detail,    name="publisher_detail"),
+    path("publishers/<int:pk>/edit/",               author_views.publisher_edit,      name="publisher_edit"),
 ]

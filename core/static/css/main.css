@@ -444,11 +444,13 @@ h1, h2, h3 { font-family: 'Mltsvfont'; font-weight: 400; }
 .book-detail-hero {
   display: grid;
   grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
   gap: 28px;
   align-items: start;
   margin-bottom: 18px;
 }
 .book-detail-cover {
+  grid-row: 1 / 3;
   width: 168px;
 }
 .book-detail-cover__frame {
@@ -514,10 +516,10 @@ h1, h2, h3 { font-family: 'Mltsvfont'; font-weight: 400; }
 }
 .book-hero-actions {
   grid-column: 2;
+  align-self: end;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: -4px;
 }
 .book-detail-divider {
   margin-bottom: 14px;
@@ -611,6 +613,119 @@ h1, h2, h3 { font-family: 'Mltsvfont'; font-weight: 400; }
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
   gap: 16px 28px;
   margin-top: 22px;
+}
+
+/* ── PUBLISHER DETAIL ────────────────────────────────────────────────────── */
+.publisher-page {
+  padding-top: 32px;
+}
+.publisher-page__back {
+  display: inline-block;
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+.publisher-head {
+  margin-bottom: 20px;
+}
+.publisher-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.publisher-title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+}
+.publisher-title-input {
+  max-width: 520px;
+  font-size: 22px;
+  font-family: 'Mltsvfont';
+  font-weight: 400;
+}
+.publisher-meta {
+  display: flex;
+  gap: 8px 14px;
+  flex-wrap: wrap;
+  color: var(--ghost);
+  font-size: 13px;
+}
+.publisher-description {
+  max-width: 680px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.publisher-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 12px;
+  max-width: 680px;
+  margin-top: 12px;
+}
+.publisher-edit-grid__wide {
+  grid-column: 1 / -1;
+}
+.publisher-divider {
+  margin-bottom: 20px;
+}
+.publisher-books__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.publisher-tools {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.publisher-tools__search {
+  flex: 1;
+  min-width: 200px;
+}
+.publisher-tools__sort {
+  width: auto;
+  min-width: 170px;
+}
+.publisher-filter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.publisher-filter-head .lnk-muted {
+  font-size: 11px;
+}
+.publisher-filter-block {
+  margin-bottom: 18px;
+}
+.publisher-filter-list {
+  max-height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.publisher-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.publisher-range .form-input {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.publisher-rating-range {
+  width: 100%;
+  accent-color: var(--ink);
 }
 
 /* ── AUTH ───────────────────────────────────────────────────────────────────── */
@@ -1229,6 +1344,18 @@ h1, h2, h3 { font-family: 'Mltsvfont'; font-weight: 400; }
     gap: 18px;
   }
   .book-detail-cover { width: 118px; }
+  .publisher-page { padding-top: 24px; }
+  .publisher-tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .publisher-tools__sort,
+  .publisher-tools__search {
+    width: 100%;
+  }
+  .publisher-edit-grid {
+    grid-template-columns: 1fr;
+  }
   .book-title {
     font-size: 24px;
     line-height: 1.18;
@@ -1350,7 +1477,26 @@ h1, h2, h3 { font-family: 'Mltsvfont'; font-weight: 400; }
     grid-template-columns: 92px minmax(0, 1fr);
     gap: 12px 14px;
   }
-  .book-detail-cover { width: 92px; }
+  .book-detail-cover {
+    grid-row: auto;
+    width: 92px;
+  }
+  .publisher-title {
+    font-size: 24px;
+  }
+  .publisher-meta {
+    display: block;
+  }
+  .publisher-meta > * {
+    display: block;
+    margin-top: 4px;
+  }
+  .publisher-books__head {
+    display: block;
+  }
+  .publisher-range {
+    grid-template-columns: 1fr;
+  }
   .book-title {
     font-size: 21px;
   }

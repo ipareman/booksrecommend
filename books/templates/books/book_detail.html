@@ -147,7 +147,7 @@
 
       {# Авторы — вид: текст | ред: мультиселект #}
       <p x-show="!editing" class="book-byline">
-  <span id="ed-authors">{% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+  <span id="ed-authors">{% for a in book.authors.all %}<a href="{% url 'author_detail' a.pk %}" class="lnk-muted">{{ a.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</span>
   <span id="ed-year-wrap">{% if book.publication_year %} · <span id="ed-year">{{ book.publication_year }}</span>{% endif %}</span>
 </p>
       {% if user.is_staff %}
@@ -354,7 +354,7 @@
       {# Мета: вид — лейблы с данными | ред — маленькие инпуты #}
       <div x-show="!editing">
         <div id="ed-meta-row" class="book-meta-row">
-          <div id="ed-meta-publisher" {% if not book.publisher %}style="display:none"{% endif %}><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Издательство</p><p style="font-size:13px" id="ed-publisher">{{ book.publisher|default:"" }}</p></div>
+          <div id="ed-meta-publisher" {% if not book.publisher %}style="display:none"{% endif %}><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Издательство</p><p style="font-size:13px" id="ed-publisher">{% if book.publisher %}<a href="{% url 'publisher_detail' book.publisher.pk %}" class="lnk">{{ book.publisher }}</a>{% endif %}</p></div>
           {% if book.series %}<div><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Серия</p><p style="font-size:13px"><a href="{% url 'series_detail' book.series.pk %}" class="lnk">{{ book.series }}</a></p></div>{% endif %}
           <div id="ed-meta-pages" {% if not book.pages %}style="display:none"{% endif %}><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Страниц</p><p style="font-size:13px" id="ed-pages">{{ book.pages|default:"" }}</p></div>
           <div id="ed-meta-isbn" {% if not book.isbn %}style="display:none"{% endif %}><p style="font-size:10px;color:var(--ghost);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">ISBN</p><p style="font-size:13px" id="ed-isbn">{{ book.isbn|default:"" }}</p></div>

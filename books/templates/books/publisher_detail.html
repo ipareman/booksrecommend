@@ -1,0 +1,189 @@
+{% extends "core/base.html" %}
+{% block title %}{{ publisher.name }} — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page publisher-page" x-data="{ editing: false, filtersOpen: false }">
+  <a href="{% url 'catalog' %}" class="lnk-muted publisher-page__back">← Каталог</a>
+
+  {% if user.is_staff %}
+  <form method="post" action="{% url 'publisher_edit' publisher.pk %}">
+    {% csrf_token %}
+  {% endif %}
+
+  {% if user.is_staff %}
+  <div x-show="editing" x-cloak class="book-edit-bar">
+    <span>✏ Режим редактирования</span>
+    <div class="book-edit-bar__actions">
+      <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+      <button type="button" @click="editing=false" class="btn btn-secondary btn-sm">Отмена</button>
+    </div>
+  </div>
+  {% endif %}
+
+  <header class="publisher-head">
+    <div class="publisher-head__main">
+      <div class="publisher-title-row">
+        <h1 x-show="!editing" class="publisher-title">{{ publisher.name }}</h1>
+        {% if user.is_staff %}
+        <input x-show="editing" x-cloak
+               class="form-input publisher-title-input"
+               type="text" name="name" required value="{{ publisher.name }}">
+        <button x-show="!editing" type="button" @click="editing=true"
+                class="btn btn-secondary btn-sm" title="Редактировать издательство">✏</button>
+        {% endif %}
+      </div>
+
+      <div x-show="!editing" class="publisher-meta">
+        {% if publisher.founded_year %}<span>основано в {{ publisher.founded_year }}</span>{% endif %}
+        {% if publisher.country or publisher.city %}
+          <span>{% if publisher.city %}{{ publisher.city }}{% if publisher.country %}, {% endif %}{% endif %}{{ publisher.country }}</span>
+        {% endif %}
+        {% if publisher.website %}
+          <a href="{{ publisher.website }}" class="lnk-muted" target="_blank" rel="noopener">Сайт</a>
+        {% endif %}
+      </div>
+
+      {% if publisher.description %}
+      <p x-show="!editing" class="publisher-description">{{ publisher.description }}</p>
+      {% endif %}
+
+      {% if user.is_staff %}
+      <div x-show="editing" x-cloak class="publisher-edit-grid">
+        <div class="publisher-edit-grid__wide">
+          <label class="form-label">Описание</label>
+          <textarea class="form-input" name="description" rows="5"
+                    placeholder="Коротко об истории, профиле или специализации издательства...">{{ publisher.description }}</textarea>
+        </div>
+        <div>
+          <label class="form-label">Год основания</label>
+          <input class="form-input" type="number" name="founded_year"
+                 value="{{ publisher.founded_year|default:'' }}" max="2100" placeholder="1998">
+        </div>
+        <div>
+          <label class="form-label">Страна</label>
+          <input class="form-input" type="text" name="country"
+                 value="{{ publisher.country }}" placeholder="Россия">
+        </div>
+        <div>
+          <label class="form-label">Город</label>
+          <input class="form-input" type="text" name="city"
+                 value="{{ publisher.city }}" placeholder="Москва">
+        </div>
+        <div>
+          <label class="form-label">Сайт</label>
+          <input class="form-input" type="url" name="website"
+                 value="{{ publisher.website }}" placeholder="https://example.com">
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if user.is_staff %}</form>{% endif %}
+
+  <hr class="divider publisher-divider">
+
+  <section class="publisher-books">
+    <div class="publisher-books__head">
+      <span class="section-title">Книги издательства</span>
+      <span class="section-meta">{{ total }} книг</span>
+    </div>
+
+    <div class="publisher-tools">
+      <div class="publisher-tools__search">
+        <input class="form-input" type="text" name="search" form="publisher-filter-form"
+               placeholder="Поиск по книгам издательства..."
+               value="{{ f.search|default:'' }}"
+               hx-get="{% url 'publisher_detail' publisher.id %}"
+               hx-trigger="input changed delay:400ms"
+               hx-target="#book-list"
+               hx-include="#publisher-filter-form"
+               hx-swap="innerHTML">
+      </div>
+      <select class="form-input form-select publisher-tools__sort" name="ordering" form="publisher-filter-form"
+              hx-get="{% url 'publisher_detail' publisher.id %}" hx-trigger="change"
+              hx-target="#book-list" hx-include="#publisher-filter-form" hx-swap="innerHTML">
+        <option value="-avg_rating"       {% if f.ordering == '-avg_rating'       %}selected{% endif %}>По рейтингу</option>
+        <option value="-rating_count"     {% if f.ordering == '-rating_count'     %}selected{% endif %}>По популярности</option>
+        <option value="-publication_year" {% if f.ordering == '-publication_year' %}selected{% endif %}>Новее</option>
+        <option value="publication_year"  {% if f.ordering == 'publication_year'  %}selected{% endif %}>Старше</option>
+        <option value="title"             {% if f.ordering == 'title'             %}selected{% endif %}>По названию</option>
+      </select>
+    </div>
+
+    <button class="filter-toggle-btn" @click="filtersOpen = !filtersOpen">
+      Фильтры <span x-text="filtersOpen ? '&#9650;' : '&#9660;'"></span>
+    </button>
+
+    <div class="catalog-layout">
+      <aside class="catalog-sidebar" :class="{ 'catalog-sidebar--open': filtersOpen }">
+        <form id="publisher-filter-form" method="get" action="{% url 'publisher_detail' publisher.id %}">
+          <div class="publisher-filter-head">
+            <span class="filter-label">Фильтры</span>
+            {% if has_filters %}<a href="{% url 'publisher_detail' publisher.id %}" class="lnk-muted">Сбросить</a>{% endif %}
+          </div>
+
+          {% if all_genres %}
+          <div class="publisher-filter-block">
+            <p class="filter-label">Жанр</p>
+            <div class="publisher-filter-list">
+              {% for genre in all_genres %}
+              <label class="form-check">
+                <input type="checkbox" name="genre" value="{{ genre.id }}"
+                       {% if genre.id|stringformat:"s" in selected_genres %}checked{% endif %}
+                       hx-get="{% url 'publisher_detail' publisher.id %}" hx-trigger="change"
+                       hx-target="#book-list" hx-include="#publisher-filter-form" hx-swap="innerHTML">
+                {{ genre.name }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="publisher-filter-block">
+            <p class="filter-label">Год</p>
+            <div class="publisher-range">
+              <input class="form-input" type="number" name="year_from"
+                     placeholder="{{ agg.min_year|default:'от' }}" value="{{ f.year_from|default:'' }}"
+                     hx-get="{% url 'publisher_detail' publisher.id %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#publisher-filter-form" hx-swap="innerHTML">
+              <input class="form-input" type="number" name="year_to"
+                     placeholder="{{ agg.max_year|default:'до' }}" value="{{ f.year_to|default:'' }}"
+                     hx-get="{% url 'publisher_detail' publisher.id %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#publisher-filter-form" hx-swap="innerHTML">
+            </div>
+          </div>
+
+          <div class="publisher-filter-block">
+            <p class="filter-label">Страниц</p>
+            <div class="publisher-range">
+              <input class="form-input" type="number" name="pages_from"
+                     placeholder="{{ agg.min_pages|default:'от' }}" value="{{ f.pages_from|default:'' }}"
+                     hx-get="{% url 'publisher_detail' publisher.id %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#publisher-filter-form" hx-swap="innerHTML">
+              <input class="form-input" type="number" name="pages_to"
+                     placeholder="{{ agg.max_pages|default:'до' }}" value="{{ f.pages_to|default:'' }}"
+                     hx-get="{% url 'publisher_detail' publisher.id %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#publisher-filter-form" hx-swap="innerHTML">
+            </div>
+          </div>
+
+          <div class="publisher-filter-block">
+            <p class="filter-label">Рейтинг ≥ <span id="publisher-rating-val">{{ f.rating_min|default:"—" }}</span></p>
+            <input type="range" name="rating_min" min="0" max="5" step="0.5"
+                   value="{{ f.rating_min|default:'0' }}"
+                   class="publisher-rating-range"
+                   oninput="document.getElementById('publisher-rating-val').textContent=+this.value||'—'"
+                   hx-get="{% url 'publisher_detail' publisher.id %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#publisher-filter-form" hx-swap="innerHTML">
+          </div>
+        </form>
+      </aside>
+
+      <div id="book-list">
+        {% include "books/_book_list.html" %}
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

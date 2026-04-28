@@ -46,6 +46,7 @@
 html, body { min-height: 100%; }
 
 body {
+  min-height: 100vh;
   font-family: 'Inter', system-ui, sans-serif;
   background: var(--bg);
   color: var(--ink);
@@ -53,6 +54,8 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   transition: background 0.2s ease, color 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 ::selection { background: var(--ink); color: var(--bg); }
 ::-webkit-scrollbar { width: 4px; }
@@ -186,6 +189,7 @@ input[type="search"]::-webkit-search-decoration {
 /* ── LAYOUT ─────────────────────────────────────────────────────────────────── */
 .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px; }
 .page { padding-bottom: 80px; }
+main { flex: 1 0 auto; }
 
 /* ── NAV ────────────────────────────────────────────────────────────────────── */
 .nav {
@@ -204,6 +208,67 @@ input[type="search"]::-webkit-search-decoration {
 .nav__links { display: flex; align-items: center; gap: 24px; font-size: 13px; }
 .nav__link { color: var(--muted); transition: color .15s; }
 .nav__link:hover, .nav__link--active { color: var(--ink); }
+
+/* ── FOOTER ─────────────────────────────────────────────────────────────── */
+.site-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  margin-top: 72px;
+}
+.site-footer__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 48px;
+  padding: 32px 0 22px;
+}
+.site-footer__brand {
+  max-width: 320px;
+}
+.site-footer__logo {
+  display: inline-block;
+  font-family: 'Mltsvfont';
+  font-size: 17px;
+  letter-spacing: .06em;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.site-footer__text {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.site-footer__nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 36px;
+}
+.site-footer__group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.site-footer__title {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.site-footer__link {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  transition: color .15s;
+}
+.site-footer__link:hover {
+  color: var(--ink);
+}
+.site-footer__bottom {
+  border-top: 1px solid var(--border);
+  color: var(--ghost);
+  font-size: 12px;
+  padding: 14px 0 18px;
+}
 
 /* ── BUTTONS ────────────────────────────────────────────────────────────────── */
 .btn {
@@ -1370,9 +1435,25 @@ input[type="search"]::-webkit-search-decoration {
 
 /* ── Hamburger (hidden on desktop) ────────────────────────────────────────── */
 .nav__hamburger {
-  display: none; background: none; border: none; cursor: pointer;
-  font-size: 22px; color: var(--ink); padding: 4px;
-  font-family: inherit; line-height: 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--ink);
+  padding: 0;
+  font-family: inherit;
+  line-height: 1;
+  transition: background .15s, border-color .15s;
+}
+.nav__hamburger:hover {
+  background: var(--bg);
+  border-color: var(--ink);
 }
 
 /* ── Catalog / Author sidebar ─────────────────────────────────────────────── */
@@ -1544,20 +1625,83 @@ input[type="search"]::-webkit-search-decoration {
   }
 
   /* Nav → hamburger */
-  .nav__hamburger { display: block; }
+  .nav__hamburger { display: inline-flex; }
   .nav__links {
-    display: none; flex-direction: column;
-    position: absolute; top: 52px; left: 0; right: 0;
-    background: var(--bg); border-bottom: 1px solid var(--border);
-    padding: 12px 24px; gap: 4px; z-index: 99;
-    box-shadow: 0 4px 16px rgba(0,0,0,.06);
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px;
+    gap: 2px;
+    z-index: 99;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
   }
   .nav__links--open { display: flex !important; }
   .nav__links .nav__link,
-  .nav__links .btn { display: block; padding: 10px 0; font-size: 15px; width: 100%; text-align: left; }
+  .nav__links .btn {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    width: 100%;
+    padding: 9px 10px;
+    border-radius: var(--radius);
+    font-size: 15px;
+    text-align: left;
+  }
+  .nav__links .nav__link:hover,
+  .nav__links .nav__link--active {
+    background: var(--surface);
+  }
   .nav__links form { display: block !important; }
-  .nav__links form button { padding: 10px 0; font-size: 15px; text-align: left; width: 100%; }
+  .nav__links form button {
+    min-height: 40px;
+    padding: 9px 10px !important;
+    font-size: 15px !important;
+    text-align: left;
+    width: 100%;
+    border-radius: var(--radius) !important;
+  }
+  .nav__links form button:hover {
+    background: var(--surface) !important;
+  }
+  .nav__links .theme-toggle {
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    height: 40px;
+    padding: 0 10px;
+    background: transparent;
+  }
+  .nav__links .theme-toggle__label {
+    display: inline;
+    font-size: 15px;
+  }
   .nav__inner { position: relative; }
+
+  .site-footer {
+    margin-top: 48px;
+  }
+  .site-footer__inner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 28px 0 20px;
+  }
+  .site-footer__brand {
+    max-width: none;
+  }
+  .site-footer__nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .site-footer__link {
+    padding: 3px 0;
+  }
 
   /* Catalog sidebar → collapsible */
   .catalog-layout { grid-template-columns: 1fr; gap: 0; }
@@ -3766,6 +3910,9 @@ input[type="search"]::-webkit-search-decoration {
   display: block;
   width: 16px;
   height: 16px;
+}
+.theme-toggle__label {
+  display: none;
 }
 /* Показываем луну в светлой теме (предложение перейти в тёмную) и наоборот. */
 .theme-toggle__icon--moon { display: block; }

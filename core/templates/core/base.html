@@ -27,13 +27,13 @@
 
 <nav class="nav">
   <div class="wrap">
-    <div class="nav__inner" x-data="{ navOpen: false }">
+    <div class="nav__inner" x-data="{ navOpen: false }" @keydown.escape.window="navOpen = false" @click.outside="navOpen = false">
       <a href="{% url 'home' %}" class="nav__logo">Строка</a>
-      <button class="nav__hamburger" @click="navOpen = !navOpen" aria-label="Меню">
+      <button class="nav__hamburger" @click="navOpen = !navOpen" :aria-expanded="navOpen.toString()" aria-controls="site-navigation" aria-label="Меню">
         <span x-show="!navOpen">&#9776;</span>
         <span x-show="navOpen" x-cloak>&#10005;</span>
       </button>
-      <div class="nav__links" :class="{ 'nav__links--open': navOpen }">
+      <div id="site-navigation" class="nav__links" :class="{ 'nav__links--open': navOpen }">
         {# Переключатель темы. Чистый JS, без Alpine — работает даже до загрузки JS-фреймворков. #}
         <button type="button" class="theme-toggle"
                 aria-label="Переключить тему"
@@ -46,6 +46,7 @@
             <circle cx="12" cy="12" r="4"/>
             <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
           </svg>
+          <span class="theme-toggle__label">Тема</span>
         </button>
         <a href="{% url 'catalog' %}"
            class="nav__link {% if request.resolver_match.url_name == 'catalog' %}nav__link--active{% endif %}">
@@ -130,6 +131,45 @@
 {% endif %}
 
 <main>{% block content %}{% endblock %}</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="site-footer__inner">
+      <div class="site-footer__brand">
+        <a href="{% url 'home' %}" class="site-footer__logo">Строка</a>
+        <p class="site-footer__text">Книжные полки, клубы и разговоры вокруг прочитанного.</p>
+      </div>
+
+      <nav class="site-footer__nav" aria-label="Нижняя навигация">
+        <div class="site-footer__group">
+          <div class="site-footer__title">Разделы</div>
+          <a href="{% url 'catalog' %}" class="site-footer__link">Каталог</a>
+          <a href="{% url 'collections_list' %}" class="site-footer__link">Подборки</a>
+          <a href="{% url 'clubs_list' %}" class="site-footer__link">Клубы</a>
+          <a href="{% url 'leaderboard' %}" class="site-footer__link">Топ</a>
+        </div>
+        <div class="site-footer__group">
+          <div class="site-footer__title">Аккаунт</div>
+          {% if user.is_authenticated %}
+            <a href="{% url 'profile' %}" class="site-footer__link">Профиль</a>
+            <a href="{% url 'notifications_list' %}" class="site-footer__link">Уведомления</a>
+            <a href="{% url 'ticket_list' %}" class="site-footer__link">Тикеты</a>
+            <a href="{% url 'friend_list' %}" class="site-footer__link">Друзья</a>
+            {% if user.is_staff %}
+              <a href="{% url 'admin_panel' %}" class="site-footer__link">Панель</a>
+            {% endif %}
+          {% else %}
+            <a href="{% url 'login' %}" class="site-footer__link">Войти</a>
+            <a href="{% url 'register' %}" class="site-footer__link">Регистрация</a>
+          {% endif %}
+        </div>
+      </nav>
+    </div>
+    <div class="site-footer__bottom">
+      <span>© {% now "Y" %} Строка</span>
+    </div>
+  </div>
+</footer>
 
 <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
 <script src="https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js" defer></script>

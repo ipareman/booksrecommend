@@ -1,0 +1,172 @@
+{% extends "core/base.html" %}
+{% block title %}API — Строка{% endblock %}
+
+{% block content %}
+<div class="wrap page api-dashboard">
+  <div class="api-dashboard__head">
+    <div>
+      <h1>API для книжного поиска</h1>
+      <p>Доступ к каталогу Строки для внешних рекомендаций, витрин и персональных книжных сервисов.</p>
+    </div>
+    <div class="api-dashboard__actions">
+      <a href="#api-docs" class="btn btn-primary btn-sm">Документация</a>
+      <a href="{% url 'api_docs' %}" class="btn btn-secondary btn-sm" target="_blank">JSON</a>
+    </div>
+  </div>
+
+  <section class="api-search-card">
+    <div>
+      <span class="api-search-card__label">Базовый запрос</span>
+      <code>GET /api/v1/books/?q=уютная фантастика&amp;ordering=-avg_rating</code>
+    </div>
+    <p>API отдаёт книги, авторов, жанры, рейтинг, обложку и ссылку на страницу сайта. Сайт при этом продолжает работать на Django-шаблонах.</p>
+  </section>
+
+  {% if new_key %}
+    <div class="api-key-reveal">
+      <div>
+        <strong>Новый ключ создан</strong>
+        <p>Он показывается только один раз.</p>
+      </div>
+      <code>{{ new_key }}</code>
+    </div>
+  {% endif %}
+
+  <div class="api-stats">
+    <div class="api-stat"><span>Активные ключи</span><strong>{{ stats.keys }}</strong></div>
+    <div class="api-stat"><span>За 24 часа</span><strong>{{ stats.day_requests }}</strong></div>
+    <div class="api-stat"><span>За 7 дней</span><strong>{{ stats.week_requests }}</strong></div>
+    <div class="api-stat"><span>Ошибки за 7 дней</span><strong>{{ stats.week_errors }}</strong></div>
+  </div>
+
+  <section class="api-panel">
+    <div class="api-panel__head">
+      <div>
+        <h2>Ключи доступа</h2>
+        <p>Создавайте отдельный ключ под каждую внешнюю интеграцию.</p>
+      </div>
+      <form method="post" action="{% url 'api_key_create' %}" class="api-key-form">
+        {% csrf_token %}
+        <input type="text" name="name" class="form-input" placeholder="Например: партнёрская витрина" required>
+        <button class="btn btn-primary btn-sm" type="submit">Создать ключ</button>
+      </form>
+    </div>
+
+    <div class="api-key-grid">
+      {% for key in keys %}
+        <article class="api-key-card {% if not key.is_active %}api-key-card--muted{% endif %}">
+          <div class="api-key-card__top">
+            <div>
+              <strong>{{ key.name }}</strong>
+              <span>{{ key.owner.username }}</span>
+            </div>
+            <span class="api-key-status">{{ key.is_active|yesno:"активен,отключён" }}</span>
+          </div>
+          <dl>
+            <div><dt>Префикс</dt><dd>{{ key.prefix }}...</dd></div>
+            <div><dt>Запросы</dt><dd>{{ key.request_count }}</dd></div>
+            <div><dt>Создан</dt><dd>{{ key.created_at|date:"d.m.Y H:i" }}</dd></div>
+            <div><dt>Последний раз</dt><dd>{{ key.last_used_at|date:"d.m.Y H:i"|default:"—" }}</dd></div>
+          </dl>
+          {% if key.is_active %}
+            <form method="post" action="{% url 'api_key_revoke' key.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-secondary btn-sm" type="submit">Отключить</button>
+            </form>
+          {% endif %}
+        </article>
+      {% empty %}
+        <p class="muted">Ключей пока нет.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="api-panel" id="api-docs">
+    <div class="api-panel__head">
+      <div>
+        <h2>Документация</h2>
+        <p>Все методы возвращают JSON. Для рабочих endpoints нужен API-ключ.</p>
+      </div>
+      <code class="api-auth-code">Authorization: Bearer sk_stroka_...</code>
+    </div>
+
+    <div class="api-doc-grid">
+      <article class="api-doc-card">
+        <strong>GET /api/v1/books/</strong>
+        <p>Список и поиск книг по названию или автору.</p>
+        <dl>
+          <div><dt>q</dt><dd>строка поиска</dd></div>
+          <div><dt>ordering</dt><dd>-avg_rating, title, -created_at</dd></div>
+          <div><dt>page_size</dt><dd>до 100</dd></div>
+        </dl>
+      </article>
+      <article class="api-doc-card">
+        <strong>GET /api/v1/books/&lt;id&gt;/</strong>
+        <p>Детальная карточка книги: описание, ISBN, страницы, издатель, язык.</p>
+      </article>
+      <article class="api-doc-card">
+        <strong>GET /api/v1/authors/</strong>
+        <p>Список и поиск авторов. Подходит для автодополнения и внешних каталогов.</p>
+        <dl>
+          <div><dt>q</dt><dd>часть имени автора</dd></div>
+          <div><dt>page_size</dt><dd>до 100</dd></div>
+        </dl>
+      </article>
+      <article class="api-doc-card">
+        <strong>GET /api/v1/authors/&lt;id&gt;/</strong>
+        <p>Автор, биография и до 50 его книг из каталога.</p>
+      </article>
+    </div>
+
+    <div class="api-response-example">
+      <span>Пример ответа</span>
+      <pre><code>{
+  "count": 42,
+  "page": 1,
+  "pages": 3,
+  "results": [
+    {
+      "id": 7,
+      "title": "Преступление и наказание",
+      "authors": [{"id": 2, "name": "Фёдор Достоевский"}],
+      "genres": ["Классика"],
+      "avg_rating": 4.8,
+      "cover_url": "https://site/media/covers/book.jpg"
+    }
+  ]
+}</code></pre>
+    </div>
+  </section>
+
+  <div class="api-columns">
+    <section class="api-panel">
+      <h2>Популярные endpoints</h2>
+      <div class="api-path-list">
+        {% for item in top_paths %}
+          <div><span>{{ item.path }}</span><strong>{{ item.count }}</strong></div>
+        {% empty %}
+          <p class="muted">Запросов пока нет.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="api-panel">
+      <h2>Последние запросы</h2>
+      <div class="api-log-table api-log-table--compact">
+        {% for log in recent_logs|slice:":8" %}
+          <div class="api-log-row">
+            <span>{{ log.created_at|date:"d.m H:i" }}</span>
+            <span>{% if log.api_key %}{{ log.api_key.prefix }}...{% else %}—{% endif %}</span>
+            <span>{{ log.method }}</span>
+            <span>{{ log.path }}</span>
+            <span>{{ log.status_code }}</span>
+            <span>{{ log.latency_ms }}</span>
+          </div>
+        {% empty %}
+          <p class="muted">Логов пока нет.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

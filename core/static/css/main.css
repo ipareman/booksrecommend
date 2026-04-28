@@ -226,6 +226,285 @@ main { flex: 1 0 auto; }
   from { color: inherit; }
 }
 
+/* ── PUBLIC API DASHBOARD ──────────────────────────────────────────────── */
+.api-dashboard {
+  max-width: 1040px;
+  padding-top: 34px;
+}
+.api-dashboard__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+.api-dashboard__head h1,
+.api-panel h2 {
+  margin: 0;
+}
+.api-dashboard__head h1 {
+  font-size: 28px;
+  line-height: 1.2;
+}
+.api-dashboard__head p,
+.api-panel__head p,
+.api-note,
+.api-search-card p {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 5px;
+  max-width: 560px;
+}
+.api-dashboard__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.api-search-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 360px);
+  gap: 18px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.api-search-card__label {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.api-search-card code,
+.api-auth-code {
+  display: block;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.api-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.api-stat,
+.api-panel,
+.api-key-reveal {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.api-stat {
+  padding: 14px;
+}
+.api-stat span,
+.api-key-card span,
+.api-key-card dt {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.api-stat strong {
+  display: block;
+  font-size: 22px;
+  line-height: 1.2;
+  margin-top: 4px;
+}
+.api-panel {
+  padding: 16px;
+  margin-top: 16px;
+}
+.api-panel__head,
+.api-key-form,
+.api-key-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.api-key-form {
+  min-width: min(360px, 100%);
+}
+.api-key-form .form-input {
+  min-width: 0;
+}
+.api-key-reveal {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.api-key-reveal p {
+  color: var(--muted);
+  font-size: 12px;
+}
+.api-key-reveal code,
+.api-examples code {
+  display: block;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.api-doc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+  margin-top: 14px;
+}
+.api-doc-card {
+  border-top: 1px solid var(--border);
+  padding: 13px 0;
+}
+.api-doc-card strong {
+  display: block;
+  font-size: 13px;
+}
+.api-doc-card p {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.api-doc-card dl {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+.api-doc-card dl > div {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  font-size: 12px;
+}
+.api-doc-card dt {
+  color: var(--muted);
+}
+.api-doc-card dd {
+  margin: 0;
+}
+.api-response-example {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 2px;
+}
+.api-response-example > span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.api-response-example pre {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.api-key-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.api-key-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.api-key-card--muted {
+  opacity: .62;
+}
+.api-key-status {
+  text-align: right;
+}
+.api-key-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+.api-key-card dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.api-key-card dd {
+  color: var(--ink);
+  font-size: 12px;
+  margin: 0;
+  text-align: right;
+}
+.api-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.api-examples {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.api-path-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.api-path-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+.api-path-list span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.api-log-table {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+.api-log-table--compact {
+  margin-top: 8px;
+}
+.api-log-table__head,
+.api-log-row {
+  display: grid;
+  grid-template-columns: 92px 110px 70px minmax(220px, 1fr) 70px 60px;
+  gap: 10px;
+  align-items: center;
+  min-width: 720px;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 0;
+  font-size: 12px;
+}
+.api-log-table__head {
+  color: var(--muted);
+  font-weight: 600;
+}
+.api-log-row span:nth-child(4) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.api-log-table--compact .api-log-row {
+  grid-template-columns: 72px 90px 54px minmax(140px, 1fr) 48px 44px;
+  min-width: 540px;
+}
+
 /* ── FOOTER ─────────────────────────────────────────────────────────────── */
 .site-footer {
   flex-shrink: 0;
@@ -1718,6 +1997,24 @@ main { flex: 1 0 auto; }
   }
   .site-footer__link {
     padding: 3px 0;
+  }
+
+  .api-dashboard__head,
+  .api-dashboard__actions,
+  .api-panel__head,
+  .api-key-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .api-stats,
+  .api-columns,
+  .api-search-card,
+  .api-doc-grid,
+  .api-key-reveal {
+    grid-template-columns: 1fr;
+  }
+  .api-key-form {
+    width: 100%;
   }
 
   /* Catalog sidebar → collapsible */

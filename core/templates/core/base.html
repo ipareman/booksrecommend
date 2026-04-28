@@ -88,6 +88,10 @@
                class="nav__link {% if request.resolver_match.url_name == 'admin_panel' %}nav__link--active{% endif %}">
               Панель
             </a>
+            <a href="{% url 'api_dashboard' %}"
+               class="nav__link {% if request.resolver_match.url_name == 'api_dashboard' %}nav__link--active{% endif %}">
+              API
+            </a>
           {% endif %}
           <form method="post" action="{% url 'logout' %}" style="display:inline">
             {% csrf_token %}
@@ -158,6 +162,7 @@
             <a href="{% url 'friend_list' %}" class="site-footer__link">Друзья</a>
             {% if user.is_staff %}
               <a href="{% url 'admin_panel' %}" class="site-footer__link">Панель</a>
+              <a href="{% url 'api_dashboard' %}" class="site-footer__link">API</a>
             {% endif %}
           {% else %}
             <a href="{% url 'login' %}" class="site-footer__link">Войти</a>

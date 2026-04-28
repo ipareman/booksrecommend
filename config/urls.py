@@ -18,6 +18,8 @@ urlpatterns = [
     path("clubs/",        include("clubs.urls")),
     path("chat/",         include("chat.urls")),
     path("ai-admin/",     include("ai_admin.urls")),
+    path("api-dashboard/", include("public_api.dashboard_urls")),
+    path("api/v1/",        include("public_api.urls")),
     path("notifications/", include("notifications.urls")),
     path("",               include("analytics.urls")),
 

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "chat",
     "ai_admin",
     "analytics",
+    "public_api",
 ]
 
 MIDDLEWARE = [

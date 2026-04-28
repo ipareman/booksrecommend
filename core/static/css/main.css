@@ -209,6 +209,23 @@ main { flex: 1 0 auto; }
 .nav__link { color: var(--muted); transition: color .15s; }
 .nav__link:hover, .nav__link--active { color: var(--ink); }
 
+.msg-entity-link {
+  color: #2563eb;
+  text-decoration: none;
+  transition: color .2s ease, border-color .2s ease;
+  border-bottom: 1px solid transparent;
+  animation: msg-link-blue-in .24s ease both;
+}
+.msg-entity-link:hover {
+  border-bottom-color: currentColor;
+}
+:root[data-theme="dark"] .msg-entity-link {
+  color: #8ab4f8;
+}
+@keyframes msg-link-blue-in {
+  from { color: inherit; }
+}
+
 /* ── FOOTER ─────────────────────────────────────────────────────────────── */
 .site-footer {
   flex-shrink: 0;

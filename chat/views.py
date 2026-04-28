@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .models import ChatMessage, ChatMessageReaction, ChatParticipant, ChatRoom
+from .linkify import linkify_message_text
 from books.models import Book
 
 User = get_user_model()
@@ -227,10 +228,32 @@ def chat_edit_message(request, message_id):
             "avg_rating": float(b.avg_rating) if b.avg_rating else None,
         }
 
+    body_html = str(linkify_message_text(msg.body))
+
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        layer = get_channel_layer()
+        if layer is not None:
+            async_to_sync(layer.group_send)(
+                f"chat_{msg.room_id}",
+                {
+                    "type": "chat_edit",
+                    "message_id": msg.pk,
+                    "body": msg.body,
+                    "body_html": body_html,
+                    "book": book_payload,
+                    "book_html": book_html,
+                },
+            )
+    except Exception:
+        pass
+
     return JsonResponse({
         "ok": True,
         "id": msg.pk,
         "body": msg.body,
+        "body_html": body_html,
         "book": book_payload,
         "book_html": book_html,
     })

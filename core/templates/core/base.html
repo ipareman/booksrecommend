@@ -132,6 +132,7 @@
 
 <main>{% block content %}{% endblock %}</main>
 
+{% if request.resolver_match.url_name == 'home' %}
 <footer class="site-footer">
   <div class="wrap">
     <div class="site-footer__inner">
@@ -170,6 +171,7 @@
     </div>
   </div>
 </footer>
+{% endif %}
 
 <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
 <script src="https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js" defer></script>

@@ -1,3 +1,4 @@
+{% load chat_links %}
 {% for msg in messages %}
   <div class="chat-msg {% if msg.user == user %}chat-msg--own{% endif %}">
     {% if msg.user != user %}
@@ -6,7 +7,7 @@
     <div class="chat-msg-line">
       {% include "users/_avatar.html" with person=msg.user avatar_class="chat-msg__avatar" %}
       <div class="chat-bubble {% if msg.user == user %}chat-bubble--own{% else %}chat-bubble--other{% endif %}">
-        {% if msg.body %}<span class="msg-text">{{ msg.body }}</span>{% endif %}
+        {% if msg.body %}<span class="msg-text">{{ msg.body|chat_linkify }}</span>{% endif %}
         {% if msg.attached_book %}
           {% include "ai_chat/_book_card.html" with book=msg.attached_book reason="" %}
         {% endif %}

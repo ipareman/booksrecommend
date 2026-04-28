@@ -1,3 +1,4 @@
+{% load chat_links %}
 {# Клубный chat-widget. Унифицирован со страницей ЛС-чата (chat_room.html): те же бабблы, реакции, edit с заменой книги. Дополнительно — опросы (кнопка ◫ + panel) и @mention автодополнение участников клуба. Vars: room (ChatRoom), user, chat_messages, mention_candidates_json, allowed_emoji_json, optional club/membership/polls/my_poll_votes #}
 <div class="club-chat-widget"
      x-data='clubChat({{ room.pk }}, "{{ user.username|escapejs }}", {{ mention_candidates_json|default:"[]" }}, {{ allowed_emoji_json|default:"[]" }})'
@@ -18,7 +19,7 @@
           <div class="chat-bubble {% if msg.user == user %}chat-bubble--own{% else %}chat-bubble--other{% endif %}"
              data-msg-id="{{ msg.pk }}"
              @contextmenu.prevent="{% if msg.user == user %}openCtx($event, {{ msg.pk }}){% endif %}">
-          {% if msg.body %}<span class="msg-text">{{ msg.body }}</span>{% endif %}
+          {% if msg.body %}<span class="msg-text">{{ msg.body|chat_linkify }}</span>{% endif %}
           {% if msg.attached_book %}
             {% include "ai_chat/_book_card.html" with book=msg.attached_book reason="" %}
           {% endif %}
@@ -253,8 +254,8 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
       if (data.type === 'edit') {
         const el = document.getElementById(`cmsg-${data.id}`);
         if (el) {
-          const t = el.querySelector('.msg-text');
-          if (t) t.textContent = data.body;
+          setMessageBodyHtml(el, data.body, data.body_html);
+          applyBookHtmlToBubble(data.id, data.book_html || '');
         }
         return;
       }
@@ -286,7 +287,7 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
     if (!isOwn) html += `<span class="chat-msg__author">${esc(data.username)}</span>`;
 
     let bubbleInner = '';
-    if (data.body) bubbleInner += `<span class="msg-text">${esc(data.body)}</span>`;
+    if (data.body) bubbleInner += `<span class="msg-text">${data.body_html || esc(data.body)}</span>`;
     if (data.book) {
       const b = data.book;
       const cover = b.cover_url
@@ -324,6 +325,22 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
   }
 
   function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+  function setMessageBodyHtml(wrap, body, bodyHtml) {
+    const bubble = wrap.querySelector('.chat-bubble');
+    if (!bubble) return;
+    let textEl = bubble.querySelector('.msg-text');
+    if (!body) {
+      if (textEl) textEl.remove();
+      return;
+    }
+    if (!textEl) {
+      textEl = document.createElement('span');
+      textEl.className = 'msg-text';
+      const before = bubble.querySelector('.chat-book-card, .chat-react-btn');
+      bubble.insertBefore(textEl, before || null);
+    }
+    textEl.innerHTML = bodyHtml || esc(body);
+  }
   function avatarHtml(data) {
     const username = data.username || '';
     const initial = (username.charAt(0) || '?').toUpperCase();
@@ -358,7 +375,7 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
     typingActive: false,
     typingStopTimer: null,
     ctxMenu: { show: false, x: 0, y: 0, msgId: null, hasBook: false, hasBody: true },
-    editing: { active: false, msgId: null, original: '' },
+    editing: { active: false, msgId: null, original: '', originalHtml: '' },
 
     // Прикрепление книги (новое сообщение)
     attachedBook: null,
@@ -477,8 +494,10 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
       const textEl = bubble.querySelector('.msg-text');
       if (!textEl) return;
       const original = textEl.textContent.trim();
-      this.editing = { active: true, msgId, original };
+      const originalHtml = textEl.innerHTML;
+      this.editing = { active: true, msgId, original, originalHtml };
       bubble.classList.add('chat-bubble--editing');
+      textEl.textContent = original;
       textEl.contentEditable = 'true';
       textEl.focus();
 
@@ -510,22 +529,29 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
       textEl.removeEventListener('blur', onBlur);
       textEl.contentEditable = 'false';
       bubble.classList.remove('chat-bubble--editing');
-      this.editing = { active: false, msgId: null, original: '' };
-      if (!newText) { textEl.textContent = original; return; }
-      if (newText === original) return;
+      const originalHtml = this.editing.originalHtml;
+      this.editing = { active: false, msgId: null, original: '', originalHtml: '' };
+      if (!newText) { textEl.innerHTML = originalHtml; return; }
+      if (newText === original) { textEl.innerHTML = originalHtml; return; }
       const fd = new FormData();
       fd.append('body', newText);
       fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
       const r = await fetch(`/chat/message/${msgId}/edit/`, { method: 'POST', body: fd });
-      if (!r.ok) textEl.textContent = original;
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) {
+        textEl.innerHTML = originalHtml;
+        return;
+      }
+      const wrap = document.getElementById(`cmsg-${msgId}`);
+      if (wrap) setMessageBodyHtml(wrap, data.body, data.body_html);
     },
     _cancelInline(msgId, textEl, bubble, onKey, onBlur) {
       textEl.removeEventListener('keydown', onKey);
       textEl.removeEventListener('blur', onBlur);
-      textEl.textContent = this.editing.original;
+      textEl.innerHTML = this.editing.originalHtml || esc(this.editing.original);
       textEl.contentEditable = 'false';
       bubble.classList.remove('chat-bubble--editing');
-      this.editing = { active: false, msgId: null, original: '' };
+      this.editing = { active: false, msgId: null, original: '', originalHtml: '' };
     },
     cancelEdit() {
       if (!this.editing.active) return;
@@ -534,11 +560,11 @@ function clubChat(roomId, username, mentionCandidates, allowedEmoji) {
       const bubble = wrap.querySelector('.chat-bubble');
       const textEl = bubble.querySelector('.msg-text');
       if (textEl) {
-        textEl.textContent = this.editing.original;
+        textEl.innerHTML = this.editing.originalHtml || esc(this.editing.original);
         textEl.contentEditable = 'false';
       }
       bubble.classList.remove('chat-bubble--editing');
-      this.editing = { active: false, msgId: null, original: '' };
+      this.editing = { active: false, msgId: null, original: '', originalHtml: '' };
     },
 
     // Реакции

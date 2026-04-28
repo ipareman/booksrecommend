@@ -84,6 +84,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "type": "chat_message",
                 "message_id": msg["id"],
                 "body": msg["body"],
+                "body_html": msg["body_html"],
                 "username": msg["username"],
                 "avatar_url": msg["avatar_url"],
                 "avatar_gradient": msg["avatar_gradient"],
@@ -110,11 +111,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "id": event["message_id"],
             "body": event["body"],
+            "body_html": event.get("body_html", ""),
             "username": event["username"],
             "avatar_url": event.get("avatar_url", ""),
             "avatar_gradient": event.get("avatar_gradient", "orchid"),
             "created_at": event["created_at"],
             "book": event.get("book"),
+        }))
+
+    async def chat_edit(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "edit",
+            "id": event["message_id"],
+            "body": event["body"],
+            "body_html": event.get("body_html", ""),
+            "book": event.get("book"),
+            "book_html": event.get("book_html", ""),
         }))
 
     async def chat_reaction(self, event):
@@ -201,6 +213,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _save_message(self, user_id, room_id, body, book_id):
         from .models import ChatMessage
+        from .linkify import linkify_message_text
         from books.models import Book
 
         book = None
@@ -232,6 +245,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return {
             "id": msg.pk,
             "body": msg.body,
+            "body_html": str(linkify_message_text(msg.body)),
             "username": msg.user.username,
             "avatar_url": avatar_url,
             "avatar_gradient": avatar_gradient,

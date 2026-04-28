@@ -893,7 +893,7 @@ main { flex: 1 0 auto; }
   padding: 12px 16px; border-radius: var(--radius);
   border: 1px solid var(--border); background: var(--surface);
 }
-.price-block__avg { font-size: 22px; font-weight: 700; color: #16a34a; }
+.price-block__avg { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.1; }
 .price-block__label { font-size: 11px; color: var(--ghost); }
 .price-pending { font-size: 13px; color: var(--muted); font-style: italic; }
 
@@ -1011,7 +1011,18 @@ main { flex: 1 0 auto; }
   justify-content: space-between;
   gap: 16px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
+}
+.book-commerce-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.book-commerce-row__panel {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 .book-action-group {
   display: flex;
@@ -1020,6 +1031,7 @@ main { flex: 1 0 auto; }
   gap: 8px;
   flex-wrap: wrap;
   min-width: 0;
+  flex: 0 1 auto;
 }
 .book-recommend {
   position: relative;
@@ -1034,12 +1046,97 @@ main { flex: 1 0 auto; }
 .book-price-slot .price-block {
   margin-left: 0 !important;
 }
+.book-price-control {
+  display: inline-flex;
+  align-items: stretch;
+  min-height: 36px;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+}
+.book-price-control--pending,
+.book-price-control--plain {
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+.book-price-control--pending {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 7px 10px;
+}
+.book-price-control__value {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px 10px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+.book-price-control__value:hover {
+  background: var(--surface);
+}
+.book-price-control__meta {
+  display: grid;
+  align-content: center;
+  min-width: 86px;
+  padding: 5px 9px;
+  border-right: 1px solid var(--border);
+  color: var(--ghost);
+  font-size: 11px;
+  line-height: 1.25;
+}
+.book-price-control__meta:empty {
+  display: none;
+}
+.book-price-control__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-height: 34px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+.book-price-control__icon:last-child {
+  border-right: 0;
+}
+.book-price-control__icon:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+.book-price-control__muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+.book-price-control__error {
+  color: var(--err);
+  font-size: 12px;
+  margin: 0;
+}
 .book-price-slot > [id^="price-block"] > .btn,
 .book-price-slot > [id^="price-block"] > button {
   margin-left: 0 !important;
 }
 .book-inline-panel {
-  margin-bottom: 10px;
+  margin: 0 0 10px;
+}
+.book-commerce-row .book-inline-panel {
+  margin: 0;
 }
 .book-reader-panel,
 .book-upload-panel,
@@ -1871,6 +1968,13 @@ main { flex: 1 0 auto; }
   .book-action-strip .rating-block {
     padding: 10px 0;
   }
+  .book-commerce-row {
+    display: block;
+    margin-bottom: 10px;
+  }
+  .book-commerce-row__panel {
+    margin-bottom: 8px;
+  }
   .book-action-group {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1898,6 +2002,37 @@ main { flex: 1 0 auto; }
     width: 100%;
     justify-content: center;
     white-space: nowrap;
+  }
+  .book-price-control {
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+  }
+  .book-price-control__value {
+    flex: 1;
+    width: auto !important;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-right: 0;
+    justify-content: flex-start !important;
+    white-space: normal !important;
+  }
+  .book-price-control__meta {
+    display: none;
+  }
+  .book-price-control__icon {
+    width: 44px !important;
+    flex: 0 0 44px;
+    min-height: 44px;
+    border-right: 0;
+    font-size: 16px;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .book-price-control--pending,
+  .book-price-control--plain {
+    justify-content: center;
   }
   .book-recommend > .btn,
   .book-action-strip .btn {
@@ -2106,6 +2241,17 @@ main { flex: 1 0 auto; }
   .book-price-slot > [id^="price-block"] > .btn {
     padding-left: 10px;
     padding-right: 10px;
+  }
+  .book-price-control {
+    min-height: 44px;
+  }
+  .book-price-control__meta {
+    display: none;
+  }
+  .book-price-control__icon {
+    width: 44px !important;
+    flex: 0 0 44px;
+    min-height: 44px;
   }
   .book-reader-panel {
     padding: 10px;

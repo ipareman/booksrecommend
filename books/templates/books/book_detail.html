@@ -181,6 +181,16 @@
         <div class="rating-block__count">{{ book.rating_count }} оценок</div>
       </div>
     </div>
+  </div>
+
+  <div class="book-commerce-row">
+    <div class="book-commerce-row__panel">
+      {% if user.is_authenticated and book.avg_price %}
+        <div class="book-inline-panel">
+          {% include "books/_price_alert.html" with book=book alert=user_price_alert %}
+        </div>
+      {% endif %}
+    </div>
     <div class="book-action-group">
       {% if user.is_authenticated %}
       <div id="book-list-dropdown-{{ book.id }}">
@@ -209,11 +219,6 @@
     </div>
   </div>
   {% if user.is_authenticated %}
-  {% if book.avg_price %}
-  <div class="book-inline-panel">
-    {% include "books/_price_alert.html" with book=book alert=user_price_alert %}
-  </div>
-  {% endif %}
   {% if book.pages %}
   <div class="book-inline-panel">
     {% include "books/_reading_progress.html" with book=book progress=reading_progress %}

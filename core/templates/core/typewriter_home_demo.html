@@ -8,6 +8,22 @@
   <script src="{% static 'js/typewriter_home_demo.js' %}?v={% now 'U' %}" defer></script>
 </head>
 <body>
+  <nav class="typewriter-nav typewriter-nav--home" id="typewriter-nav" aria-label="Основная навигация">
+    <div class="typewriter-nav__inner">
+      <div class="typewriter-nav__center">
+        <a class="typewriter-nav__link typewriter-nav__link--community" href="{% url 'typewriter_community_demo' %}">Сообщество</a>
+        <a class="typewriter-nav__logo" id="typewriter-nav-logo" href="{% url 'typewriter_home_demo' %}" aria-label="На главную">
+          <img src="{% static 'img/design/icon.svg' %}" alt="Строка">
+        </a>
+        <a class="typewriter-nav__link typewriter-nav__link--catalog is-active" href="/books/">Каталог</a>
+      </div>
+      <div class="typewriter-nav__auth" aria-label="Аккаунт">
+        <a href="#">Войти</a>
+        <a href="#">Регистрация</a>
+        <a href="#">Выйти</a>
+      </div>
+    </div>
+  </nav>
   <main class="demo-home">
     <section class="first-screen" id="top-screen" aria-labelledby="main-title">
       <div class="first-screen__center">

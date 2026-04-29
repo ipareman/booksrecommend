@@ -13,6 +13,8 @@
   var scrollCue = document.getElementById("scroll-cue");
   var topScreen = document.getElementById("top-screen");
   var homeStream = document.getElementById("home-stream");
+  var typewriterNavLogo = document.getElementById("typewriter-nav-logo");
+  var heroMark = document.querySelector(".hero-mark");
   var mobileDialogQuery = window.matchMedia ? window.matchMedia("(max-width: 680px)") : null;
   var desktopInlineQuery = window.matchMedia ? window.matchMedia("(min-width: 681px)") : null;
   var settingsTrigger = document.getElementById("settings-trigger");
@@ -42,6 +44,11 @@
   var dialogEnterTimer = null;
   var dialogLeaveTimer = null;
   var dialogReturnTimer = null;
+  var navLogoTimer = null;
+  var navLogoFlight = null;
+  var navLogoAnimation = null;
+  var navLogoVisible = false;
+  var navLogoScrollTicking = false;
   var inputActive = false;
 
   function wait(ms) {
@@ -92,17 +99,19 @@
     typedPlaceholder.classList.toggle("is-hidden", !shouldShowGhost());
   }
 
-  searchInput.addEventListener("focus", function () {
-    inputActive = true;
-    refreshGhost();
-  });
+  if (searchInput) {
+    searchInput.addEventListener("focus", function () {
+      inputActive = true;
+      refreshGhost();
+    });
 
-  searchInput.addEventListener("blur", function () {
-    inputActive = false;
-    refreshGhost();
-  });
+    searchInput.addEventListener("blur", function () {
+      inputActive = false;
+      refreshGhost();
+    });
 
-  searchInput.addEventListener("input", refreshGhost);
+    searchInput.addEventListener("input", refreshGhost);
+  }
 
   function isDesktopInline() {
     return desktopInlineQuery && desktopInlineQuery.matches;
@@ -201,6 +210,111 @@
   }
 
   setDesktopMode("ai");
+
+  function clearNavLogoFlight() {
+    if (navLogoTimer) {
+      window.clearTimeout(navLogoTimer);
+      navLogoTimer = null;
+    }
+    if (navLogoAnimation) {
+      navLogoAnimation.onfinish = null;
+      navLogoAnimation.cancel();
+      navLogoAnimation = null;
+    }
+    if (navLogoFlight) {
+      navLogoFlight.remove();
+      navLogoFlight = null;
+    }
+  }
+
+  function setNavLogoVisible(show) {
+    if (!typewriterNavLogo || navLogoVisible === show) return;
+    if (!heroMark || reducedMotion) {
+      navLogoVisible = show;
+      document.body.classList.toggle("nav-logo-visible", show);
+      return;
+    }
+
+    var logoImage = typewriterNavLogo.querySelector("img");
+    if (!logoImage) return;
+
+    var fromElement = show ? heroMark : typewriterNavLogo;
+    var toElement = show ? typewriterNavLogo : heroMark;
+    var fromRect = fromElement.getBoundingClientRect();
+    var toRect = toElement.getBoundingClientRect();
+    if (!fromRect.width || !fromRect.height || !toRect.width || !toRect.height) return;
+
+    navLogoVisible = show;
+    clearNavLogoFlight();
+
+    navLogoFlight = document.createElement("div");
+    navLogoFlight.className = "nav-logo-flight";
+    navLogoFlight.style.left = fromRect.left + "px";
+    navLogoFlight.style.top = fromRect.top + "px";
+    navLogoFlight.style.width = fromRect.width + "px";
+    navLogoFlight.style.height = fromRect.height + "px";
+    navLogoFlight.appendChild(logoImage.cloneNode(true));
+    document.body.appendChild(navLogoFlight);
+
+    document.body.classList.add("nav-logo-flying");
+    document.body.classList.remove("nav-logo-visible");
+
+    var dx = toRect.left - fromRect.left;
+    var dy = toRect.top - fromRect.top;
+    var sx = toRect.width / fromRect.width;
+    var sy = toRect.height / fromRect.height;
+
+    function finishFlight() {
+      if (navLogoTimer) {
+        window.clearTimeout(navLogoTimer);
+        navLogoTimer = null;
+      }
+      if (navLogoFlight) {
+        navLogoFlight.remove();
+        navLogoFlight = null;
+      }
+      navLogoAnimation = null;
+      document.body.classList.remove("nav-logo-flying");
+      document.body.classList.toggle("nav-logo-visible", show);
+    }
+
+    if (!navLogoFlight.animate) {
+      finishFlight();
+      return;
+    }
+
+    navLogoAnimation = navLogoFlight.animate(
+      [
+        { transform: "translate3d(0, 0, 0) scale(1, 1)" },
+        { transform: "translate3d(" + dx + "px, " + dy + "px, 0) scale(" + sx + ", " + sy + ")" }
+      ],
+      {
+        duration: 620,
+        easing: "cubic-bezier(.2, .72, .18, 1)",
+        fill: "forwards"
+      }
+    );
+    navLogoAnimation.onfinish = finishFlight;
+    navLogoTimer = window.setTimeout(finishFlight, 760);
+  }
+
+  function updateNavLogoFromScroll() {
+    if (!typewriterNavLogo || !topScreen || !heroMark) return;
+    if (!navLogoVisible && window.scrollY > 10) {
+      setNavLogoVisible(true);
+    } else if (navLogoVisible && window.scrollY <= 1) {
+      setNavLogoVisible(false);
+    }
+  }
+
+  function requestNavLogoScrollUpdate() {
+    if (navLogoScrollTicking) return;
+    navLogoScrollTicking = true;
+    window.requestAnimationFrame(function () {
+      navLogoScrollTicking = false;
+      updateNavLogoFromScroll();
+    });
+  }
 
   function isMobileDialog() {
     return mobileDialogQuery && mobileDialogQuery.matches && !reducedMotion;
@@ -373,7 +487,7 @@
     });
   }
 
-  dialogSend.addEventListener("click", function () {
+  if (dialogSend) dialogSend.addEventListener("click", function () {
     var text = dialogInput.value.trim();
     if (!text) return;
 
@@ -463,13 +577,15 @@
     if (event.key === "Escape") closeModals();
   });
 
-  if ("IntersectionObserver" in window) {
+  if ("IntersectionObserver" in window && topScreen) {
     var topObserver = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         var topMode = !entry.isIntersecting;
-        scrollCue.classList.toggle("is-top-mode", topMode);
-        scrollCue.textContent = topMode ? "↑" : "↓";
-        scrollCue.setAttribute("aria-label", topMode ? "Наверх" : "Промотать вниз");
+        if (scrollCue) {
+          scrollCue.classList.toggle("is-top-mode", topMode);
+          scrollCue.textContent = topMode ? "↑" : "↓";
+          scrollCue.setAttribute("aria-label", topMode ? "Наверх" : "Промотать вниз");
+        }
       });
     }, { threshold: .18 });
     topObserver.observe(topScreen);
@@ -492,7 +608,13 @@
     });
   }
 
-  scrollCue.addEventListener("click", function () {
+  if (typewriterNavLogo && topScreen && heroMark) {
+    updateNavLogoFromScroll();
+    window.addEventListener("scroll", requestNavLogoScrollUpdate, { passive: true });
+    window.addEventListener("resize", requestNavLogoScrollUpdate);
+  }
+
+  if (scrollCue) scrollCue.addEventListener("click", function () {
     if (scrollCue.classList.contains("is-top-mode")) {
       topScreen.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
     } else {
@@ -500,7 +622,16 @@
     }
   });
 
-  typeLoop();
+  if (typewriterNavLogo && topScreen) {
+    typewriterNavLogo.addEventListener("click", function (event) {
+      var homeNav = typewriterNavLogo.closest(".typewriter-nav--home");
+      if (!homeNav) return;
+      event.preventDefault();
+      topScreen.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+    });
+  }
+
+  if (searchInput && typedPlaceholder) typeLoop();
 
   window.addEventListener("beforeunload", function () {
     if (typingTimer) window.clearTimeout(typingTimer);

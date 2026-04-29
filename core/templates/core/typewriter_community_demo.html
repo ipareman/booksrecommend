@@ -1,0 +1,90 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Демо сообщества — Строка</title>
+  <link rel="stylesheet" href="{% static 'css/typewriter_home_demo.css' %}?v={% now 'U' %}">
+  <script src="{% static 'js/typewriter_home_demo.js' %}?v={% now 'U' %}" defer></script>
+</head>
+<body class="community-demo-page">
+  <nav class="typewriter-nav typewriter-nav--solid" id="typewriter-nav" aria-label="Основная навигация">
+    <div class="typewriter-nav__inner">
+      <div class="typewriter-nav__center">
+        <a class="typewriter-nav__link typewriter-nav__link--community is-active" href="{% url 'typewriter_community_demo' %}">Сообщество</a>
+        <a class="typewriter-nav__logo is-visible" id="typewriter-nav-logo" href="{% url 'typewriter_home_demo' %}" aria-label="На главную">
+          <img src="{% static 'img/design/icon.svg' %}" alt="Строка">
+        </a>
+        <a class="typewriter-nav__link typewriter-nav__link--catalog" href="/books/">Каталог</a>
+      </div>
+      <div class="typewriter-nav__auth" aria-label="Аккаунт">
+        <a href="#">Войти</a>
+        <a href="#">Регистрация</a>
+        <a href="#">Выйти</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="community-demo">
+    <section class="community-hero" aria-labelledby="community-title">
+      <h1 id="community-title">Сообщество</h1>
+      <p>Книжные люди, их подборки, вопросы, уведомления и рабочие места модерации в одной спокойной ленте.</p>
+    </section>
+
+    <section class="community-board" aria-label="Сообщество">
+      <a class="community-card community-card--wide" href="#">
+        <span>Тикеты</span>
+        <strong>7 открытых вопросов</strong>
+        <em>заявки по книгам, авторам, клубам и доступу</em>
+      </a>
+      <a class="community-card community-card--wide" href="#">
+        <span>Уведомления</span>
+        <strong>12 новых событий</strong>
+        <em>ответы на рецензии, приглашения, реакции друзей</em>
+      </a>
+      <a class="community-card" href="#">
+        <span>Друзья</span>
+        <strong>люди, с которыми вы читаете рядом</strong>
+        <em>заявки, общие книги, последние действия</em>
+      </a>
+      <a class="community-card" href="#">
+        <span>Подборки</span>
+        <strong>публичные списки и личные полки</strong>
+        <em>редакция, сохранения, новые коллекции</em>
+      </a>
+      <a class="community-card" href="#">
+        <span>Книжные клубы</span>
+        <strong>обсуждения и текущие чтения</strong>
+        <em>встречи, участники, книга месяца</em>
+      </a>
+      <a class="community-card" href="#">
+        <span>Лента активности</span>
+        <strong>что читают и обсуждают сейчас</strong>
+        <em>рецензии, добавления, вступления в клубы</em>
+      </a>
+      <a class="community-card" href="#">
+        <span>Рецензии</span>
+        <strong>длинные тексты и короткие отзывы</strong>
+        <em>ответы, оценки, заметки к книгам</em>
+      </a>
+      <a class="community-card" href="#">
+        <span>Приглашения</span>
+        <strong>клубы, друзья и совместное чтение</strong>
+        <em>входящие запросы и ожидающие ответы</em>
+      </a>
+    </section>
+
+    <section class="community-admin" aria-labelledby="admin-title">
+      <div class="section-title-row">
+        <h2 id="admin-title">Админ-панель</h2>
+      </div>
+      <div class="admin-ledger">
+        <a href="#"><span>Модерация</span><strong>книги, авторы и серии на проверке</strong><em>24</em></a>
+        <a href="#"><span>Жалобы</span><strong>рецензии, комментарии, профили</strong><em>5</em></a>
+        <a href="#"><span>Тикеты</span><strong>пользовательские обращения</strong><em>7</em></a>
+        <a href="#"><span>Статистика</span><strong>активность сообщества за неделю</strong><em>отчёт</em></a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

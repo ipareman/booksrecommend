@@ -6,7 +6,7 @@
             hx-post="{% url 'collection_remove_book' collection.pk item.book.pk %}"
             hx-target="#selected-books"
             hx-swap="innerHTML"
-            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>&times;</button>
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>x</button>
     {% if item.book.cover_image %}
       <img src="{{ item.book.cover_image.url }}" alt=""
            style="width:80px;height:120px;object-fit:cover;border-radius:4px" loading="lazy">

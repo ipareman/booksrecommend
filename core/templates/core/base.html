@@ -61,7 +61,7 @@
           aria-controls="site-navigation"
           aria-label="Меню">
     <span x-show="!navOpen">☰</span>
-    <span x-show="navOpen" x-cloak>×</span>
+    <span x-show="navOpen" x-cloak>x</span>
   </button>
 
   <div id="site-navigation"
@@ -119,7 +119,7 @@
          @click="dismiss(m.id)"
          role="status">
       <div class="toast__bar"></div>
-      <button type="button" class="toast__close" aria-label="Закрыть" @click.stop="dismiss(m.id)">&times;</button>
+      <button type="button" class="toast__close" aria-label="Закрыть" @click.stop="dismiss(m.id)">x</button>
       <div class="toast__body" x-text="m.text"></div>
     </div>
   </template>

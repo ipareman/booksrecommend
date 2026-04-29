@@ -76,7 +76,7 @@
     </button>
     <button class="chat-ctx__item" x-show="ctxMenu.hasBook" x-cloak
             @click="detachBook()" style="color:var(--err,#c0392b)">
-      <span style="font-size:14px;line-height:1">✕</span>
+      <span style="font-size:14px;line-height:1">x</span>
       Открепить книгу
     </button>
   </div>
@@ -115,7 +115,7 @@
       </div>
       <button type="button" @click="attachedBook = null"
               title="Убрать книгу"
-              style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">×</button>
+              style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">x</button>
     </div>
 
     <div style="display:flex;gap:6px;align-items:center">

@@ -31,7 +31,7 @@
           hx-target="#critique-card-{{ critique.pk }}"
           hx-swap="outerHTML"
           hx-confirm="Удалить рецензию?"
-          hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>✕</button>
+          hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>x</button>
   {% endif %}
   </div>
   {% endfor %}

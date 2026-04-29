@@ -43,7 +43,7 @@
           <form method="post" action="{% url 'ai_admin_task_revoke' %}" style="display:flex;gap:4px">
             {% csrf_token %}
             <input type="hidden" name="task_id" value="{{ t.id }}">
-            <button type="submit" name="terminate" value="0" class="btn btn-sm btn-secondary" title="Отменить (дождаться)">✕</button>
+            <button type="submit" name="terminate" value="0" class="btn btn-sm btn-secondary" title="Отменить (дождаться)">x</button>
             <button type="submit" name="terminate" value="1" class="btn btn-sm" style="background:var(--err);color:#fff" title="Убить (SIGTERM)">⚡</button>
           </form>
         </td>

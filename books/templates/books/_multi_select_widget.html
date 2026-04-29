@@ -13,7 +13,7 @@
         {{ item.name }}
         <button type="button"
                 @click="{{ selected_model }} = {{ selected_model }}.filter(id => id !== {{ item.pk }})"
-                style="background:none;border:none;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:0">×</button>
+                style="background:none;border:none;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:0">x</button>
       </span>
     </template>
     {% endfor %}
@@ -25,7 +25,7 @@
       <span x-text="item.name"></span>
       <button type="button"
               @click="{{ selected_model }} = {{ selected_model }}.filter(id => id !== item.id)"
-              style="background:none;border:none;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:0">×</button>
+              style="background:none;border:none;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:0">x</button>
     </span>
   </template>
 </template>

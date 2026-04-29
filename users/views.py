@@ -102,7 +102,8 @@ def register(request):
     if request.user.is_authenticated:
         return redirect("home")
     form = UserCreationForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
+    consent_error = request.method == "POST" and request.POST.get("personal_data_consent") != "on"
+    if request.method == "POST" and form.is_valid() and not consent_error:
         email = request.POST.get("email", "").strip()
         user = form.save(commit=False)
         user.email = email
@@ -121,7 +122,12 @@ def register(request):
             return redirect("onboarding")
         _send_verification_email(user, request)
         return render(request, "users/email_verify_sent.html", {"email": email})
-    return render(request, "users/register.html", {"form": form})
+    return render(request, "users/register.html", {
+        "form": form,
+        "email_value": request.POST.get("email", "") if request.method == "POST" else "",
+        "consent_error": consent_error,
+        "consent_checked": request.POST.get("personal_data_consent") == "on",
+    })
 
 
 # def _send_verification_email(user, request):

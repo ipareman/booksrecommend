@@ -1,0 +1,12 @@
+{% if user_message %}
+<div class="ai-chat-row ai-chat-row--user" style="margin-bottom:12px">
+  {% include "users/_avatar.html" with person=user avatar_class="ai-chat-avatar" %}
+  <div style="display:inline-block;max-width:85%;padding:10px 14px;border-radius:12px;
+              font-size:13px;line-height:1.5;text-align:left;
+              background:var(--accent);color:#fff">
+    {{ user_message|linebreaksbr }}
+  </div>
+</div>
+{% endif %}
+
+{% include "ai_chat/_discovery_status.html" with task_id=task_id %}

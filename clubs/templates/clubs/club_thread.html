@@ -6,7 +6,7 @@
   <form style="display:none">{% csrf_token %}</form>
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px">
     <div>
-      <a href="{% url 'club_detail' club.pk %}" class="lnk-muted" style="font-size:13px">&larr; {{ club.name }}</a>
+      <a href="{% url 'club_detail' club.pk %}" class="lnk-muted" data-mobile-mode-back style="font-size:13px">&larr; {{ club.name }}</a>
       <h1 style="font-size:22px;margin-top:6px">{{ club_book.book.title }}</h1>
       <div style="font-size:13px;color:var(--muted)">Отдельное обсуждение книги в клубе</div>
     </div>

@@ -180,8 +180,19 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-CELERY_TASK_ALWAYS_EAGER = not _USE_REDIS_CACHE  # без Redis задачи выполняются синхронно
+CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "False") == "True"
+CELERY_WORKER_PREFETCH_MULTIPLIER = int(os.getenv("CELERY_WORKER_PREFETCH_MULTIPLIER", "1"))
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "socket_connect_timeout": int(os.getenv("CELERY_BROKER_SOCKET_CONNECT_TIMEOUT", "2")),
+    "socket_timeout": int(os.getenv("CELERY_BROKER_SOCKET_TIMEOUT", "2")),
+}
+CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
+    "socket_connect_timeout": int(os.getenv("CELERY_RESULT_SOCKET_CONNECT_TIMEOUT", "2")),
+    "socket_timeout": int(os.getenv("CELERY_RESULT_SOCKET_TIMEOUT", "2")),
+}
 CELERY_TIMEZONE = "Europe/Moscow"
+AI_CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv("AI_CELERY_TASK_SOFT_TIME_LIMIT", "90"))
+AI_CELERY_TASK_TIME_LIMIT = int(os.getenv("AI_CELERY_TASK_TIME_LIMIT", "120"))
 
 BOOKS_PER_PAGE = 20
 

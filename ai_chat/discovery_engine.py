@@ -198,6 +198,7 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
             "followup_options": cached.get("followup_options", []),
             "public_lists":     find_similar_public_lists(cached["book_ids"], user.pk),
             "from_cache":       True,
+            "message_id":        ai_msg.pk,
         }
 
     # ── ПОИСК КАНДИДАТОВ ──────────────────────────────────────────────────
@@ -272,6 +273,7 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
         return {
             "text": ai_msg.content, "books": [],
             "followup_options": [], "public_lists": [], "from_cache": False,
+            "message_id": ai_msg.pk,
         }
 
     # ── ПАРСИНГ ОТВЕТА ────────────────────────────────────────────────────
@@ -342,6 +344,7 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
         "followup_options": followup_options,
         "public_lists":     public_lists,
         "from_cache":       False,
+        "message_id":       ai_msg.pk,
     }
 
 

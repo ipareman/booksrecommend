@@ -1,0 +1,6 @@
+{% load chat_extras %}
+<div class="ai-chat-row ai-chat-row--user fade-up">
+  {% include "users/_avatar.html" with person=user avatar_class="ai-chat-avatar" %}
+  <div class="ai-chat-msg ai-chat-msg--user">{{ user_message|link_chapters:book }}</div>
+</div>
+{% include "ai_chat/_book_chat_status.html" with book=book task_id=task_id %}

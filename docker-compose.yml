@@ -29,6 +29,8 @@ services:
       - static_data:/app/staticfiles
       - media_data:/app/media
     env_file: .env
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_started}
@@ -40,6 +42,8 @@ services:
     volumes:
       - media_data:/app/media
     env_file: .env
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     depends_on: [web, redis]
 
   celery-beat:
@@ -47,6 +51,8 @@ services:
     restart: unless-stopped
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     env_file: .env
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     depends_on: [web, redis]
 
   nginx:

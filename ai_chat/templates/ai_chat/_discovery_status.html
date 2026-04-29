@@ -1,0 +1,10 @@
+<div class="ai-chat-row ai-chat-row--assistant ai-chat-pending"
+     style="margin-bottom:16px"
+     hx-get="{% url 'discovery_status' %}?task_id={{ task_id }}"
+     hx-trigger="load delay:1s"
+     hx-swap="outerHTML">
+  <span class="user-avatar ai-chat-avatar ai-chat-avatar--ai"><span>AI</span></span>
+  <div class="ai-chat-pending__bubble">
+    {% include "ai_chat/_typing_indicator.html" %}
+  </div>
+</div>

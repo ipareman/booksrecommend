@@ -12,6 +12,7 @@
   var dialogClose = document.getElementById("dialog-close");
   var dialogInput = document.getElementById("dialog-input");
   var dialogThread = document.getElementById("discovery-messages") || document.getElementById("dialog-thread");
+  var mobileModeBack = document.getElementById("typewriter-mobile-mode-back");
   var scrollCue = document.getElementById("scroll-cue");
   var topScreen = document.getElementById("top-screen");
   var homeStream = document.getElementById("home-stream");
@@ -41,6 +42,7 @@
   var dialogEnterTimer = null;
   var dialogLeaveTimer = null;
   var dialogReturnTimer = null;
+  var navLogoReturnTimer = null;
   var navLogoVisible = false;
   var navLogoFlight = null;
   var navLogoAnimation = null;
@@ -62,6 +64,10 @@
 
   function isMobileDialog() {
     return mobileDialogQuery && mobileDialogQuery.matches && !reducedMotion;
+  }
+
+  function isMobileViewport() {
+    return mobileDialogQuery && mobileDialogQuery.matches;
   }
 
   function activeInput() {
@@ -447,6 +453,45 @@
       if (timer) window.clearTimeout(timer);
     });
     dialogExitTimer = dialogEnterTimer = dialogLeaveTimer = dialogReturnTimer = null;
+    if (navLogoReturnTimer) window.clearTimeout(navLogoReturnTimer);
+    navLogoReturnTimer = null;
+  }
+
+  function updateNavLogoAfterDialogClose() {
+    if (navLogoReturnTimer) window.clearTimeout(navLogoReturnTimer);
+    navLogoReturnTimer = window.setTimeout(function () {
+      navLogoReturnTimer = null;
+      updateNavLogoFromScroll();
+    }, isDesktopInline() ? 620 : 0);
+  }
+
+  function hasChatModePage() {
+    return Boolean(document.querySelector(".chat-page, .club-chat-widget"));
+  }
+
+  function updateMobileModeBack() {
+    if (!mobileModeBack) return;
+    var dialogMode = document.body.classList.contains("dialog-open") ||
+      document.body.classList.contains("dialog-exiting") ||
+      document.body.classList.contains("dialog-entering") ||
+      document.body.classList.contains("dialog-leaving");
+    var visible = isMobileViewport() && (dialogMode || hasChatModePage());
+    mobileModeBack.hidden = !visible;
+    mobileModeBack.classList.toggle("is-visible", visible);
+  }
+
+  function leaveMobileMode() {
+    if (document.body.classList.contains("dialog-open") || document.body.classList.contains("dialog-exiting") || document.body.classList.contains("dialog-entering")) {
+      setDialog(false);
+      return;
+    }
+    var explicitBack = document.querySelector("a[data-mobile-mode-back], .chat-page__header a[href]");
+    if (explicitBack) {
+      window.location.href = explicitBack.href;
+      return;
+    }
+    if (window.history.length > 1) window.history.back();
+    else window.location.href = "/";
   }
 
   function setDialogState(open) {
@@ -460,6 +505,7 @@
     if (open && dialogThread) window.setTimeout(function () {
       dialogThread.scrollTop = dialogThread.scrollHeight;
     }, 40);
+    updateMobileModeBack();
   }
 
   function setDialog(open) {
@@ -484,6 +530,7 @@
       }
       document.body.classList.remove("dialog-exiting", "dialog-entering", "dialog-leaving", "dialog-returning");
       setDialogState(false);
+      updateNavLogoAfterDialogClose();
       return;
     }
 
@@ -492,6 +539,7 @@
     if (isMobileDialog()) {
       document.body.classList.remove("dialog-leaving", "dialog-returning");
       document.body.classList.add("dialog-exiting");
+      updateMobileModeBack();
       setDesktopMode("dialog");
       dialogExitTimer = window.setTimeout(function () {
         document.body.classList.remove("dialog-exiting");
@@ -505,12 +553,14 @@
       return;
     }
 
+    setNavLogoVisible(true);
     setDialogState(true);
     if (dialogInput) window.setTimeout(function () { dialogInput.focus(); }, 240);
   }
 
   if (dialogToggle) dialogToggle.addEventListener("click", function () { setDialog(); });
   if (dialogClose) dialogClose.addEventListener("click", function () { setDialog(false); });
+  if (mobileModeBack) mobileModeBack.addEventListener("click", leaveMobileMode);
   if (aiModeChoice) aiModeChoice.addEventListener("click", toggleAiMode);
   if (desktopAiMode) desktopAiMode.addEventListener("click", toggleAiMode);
   if (desktopDialogMode) desktopDialogMode.addEventListener("click", function () {
@@ -753,6 +803,12 @@
     });
   }
 
+  if (mobileDialogQuery) {
+    var onMobileModeChange = function () { updateMobileModeBack(); };
+    if (mobileDialogQuery.addEventListener) mobileDialogQuery.addEventListener("change", onMobileModeChange);
+    else if (mobileDialogQuery.addListener) mobileDialogQuery.addListener(onMobileModeChange);
+  }
+
   function initVoiceInput() {
     var voiceBtn = document.getElementById("dialog-voice");
     if (!voiceBtn || !dialogInput) return;
@@ -796,6 +852,7 @@
   renderLocalHistory();
   initAutocomplete();
   initVoiceInput();
+  updateMobileModeBack();
   if (searchInput && typedPlaceholder && searchShell) typeLoop();
   window.addEventListener("beforeunload", function () {
     if (typingTimer) window.clearTimeout(typingTimer);

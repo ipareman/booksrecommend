@@ -1,18 +1,16 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages as dj_messages
 from django.views.decorators.http import require_POST, require_GET
+from celery.result import AsyncResult
 
 from books.models import Book
-from .models import BookChat, BookChatMessage, DiscoveryChat, DiscoveryChatMessage
-from .engine import ask_about_book
+from .models import BookChat, DiscoveryChat, DiscoveryChatMessage
 from .discovery_engine import (
-    ask_discovery,
-    ask_elaborate,
     save_last_recommendations_as_list,
 )
 from .discovery_helpers import enrich_books_with_prices, find_similar_public_lists
+from .tasks import book_chat_send_task, discovery_elaborate_task, discovery_send_task
 
 
 # ─── BOOK CHAT (без изменений) ────────────────────────────────────────────────
@@ -33,20 +31,58 @@ def book_chat(request, book_id):
 @require_POST
 def book_chat_send(request, book_id):
     book = get_object_or_404(Book.objects.prefetch_related("authors"), pk=book_id)
-    chat, _ = BookChat.objects.get_or_create(user=request.user, book=book)
     user_message = request.POST.get("message", "").strip()
 
     if not user_message:
         return HttpResponse("")
 
-    ai_text = ask_about_book(chat, user_message)
+    try:
+        task = book_chat_send_task.delay(request.user.pk, book.pk, user_message)
+    except Exception:
+        return render(request, "ai_chat/_book_chat_result.html", {
+            "book": book,
+            "text": "Очередь AI сейчас недоступна. Проверьте Redis/Celery worker и попробуйте ещё раз.",
+        })
 
-    return render(request, "ai_chat/_messages.html", {
+    request.session[f"book_chat_task_{book.pk}"] = task.id
+
+    return render(request, "ai_chat/_book_chat_pending.html", {
         "book": book,
-        "new_messages": [
-            {"role": "user", "content": user_message},
-            {"role": "assistant", "content": ai_text},
-        ],
+        "user_message": user_message,
+        "task_id": task.id,
+    })
+
+
+@login_required
+@require_GET
+def book_chat_status(request, book_id):
+    book = get_object_or_404(Book.objects.prefetch_related("authors"), pk=book_id)
+    task_id = request.GET.get("task_id") or request.session.get(f"book_chat_task_{book.pk}")
+    result = AsyncResult(task_id) if task_id else None
+
+    try:
+        is_ready = result.ready() if result else False
+    except Exception:
+        return render(request, "ai_chat/_book_chat_result.html", {
+            "book": book,
+            "text": "Очередь AI сейчас недоступна. Проверьте Redis/Celery worker и попробуйте ещё раз.",
+        })
+
+    if is_ready:
+        if result.successful():
+            payload = result.result or {}
+            return render(request, "ai_chat/_book_chat_result.html", {
+                "book": book,
+                "text": payload.get("text", ""),
+            })
+        return render(request, "ai_chat/_book_chat_result.html", {
+            "book": book,
+            "text": "Извините, не удалось получить ответ AI. Попробуйте ещё раз.",
+        })
+
+    return render(request, "ai_chat/_book_chat_status.html", {
+        "book": book,
+        "task_id": task_id,
     })
 
 
@@ -107,19 +143,54 @@ def discovery_send(request):
         if x.isdigit():
             exclude_ids.append(int(x))
 
-    chat, _ = DiscoveryChat.objects.get_or_create(user=request.user)
-    result = ask_discovery(request.user, user_message, chat,
-                           extra_exclude_ids=exclude_ids)
+    try:
+        task = discovery_send_task.delay(request.user.pk, user_message, exclude_ids)
+    except Exception:
+        return render(request, "ai_chat/_discovery_error.html")
 
-    return render(request, "ai_chat/_discovery_response.html", {
-        "user_message":      user_message,
-        "text":              result["text"],
-        "books":             result["books"],
-        "followup_options":  result["followup_options"],
-        "public_lists":      result["public_lists"],
-        "from_cache":        result["from_cache"],
-        "chat":              chat,
+    request.session["discovery_task"] = task.id
+
+    return render(request, "ai_chat/_discovery_pending.html", {
+        "user_message": user_message,
+        "task_id": task.id,
     })
+
+
+@login_required
+@require_GET
+def discovery_status(request):
+    task_id = request.GET.get("task_id") or request.session.get("discovery_task")
+    result = AsyncResult(task_id) if task_id else None
+
+    try:
+        is_ready = result.ready() if result else False
+    except Exception:
+        return render(request, "ai_chat/_discovery_error.html")
+
+    if is_ready:
+        if not result.successful():
+            return render(request, "ai_chat/_discovery_error.html")
+
+        payload = result.result or {}
+        chat = get_object_or_404(DiscoveryChat, pk=payload.get("chat_id"), user=request.user)
+        msg = get_object_or_404(
+            DiscoveryChatMessage,
+            pk=payload.get("assistant_message_id"),
+            chat=chat,
+            role="assistant",
+        )
+        books = _hydrate_persisted_message(msg)
+        return render(request, "ai_chat/_discovery_assistant_result.html", {
+            "text": msg.content,
+            "books": books,
+            "followup_options": msg.followup_options,
+            "public_lists": find_similar_public_lists([item["book"].pk for item in books], request.user.pk) if books else [],
+            "from_cache": payload.get("from_cache", False),
+            "chat": chat,
+            "message_id": msg.pk,
+        })
+
+    return render(request, "ai_chat/_discovery_status.html", {"task_id": task_id})
 
 
 @login_required
@@ -194,12 +265,42 @@ def discovery_elaborate(request):
             'Контекст чата утерян. Обновите страницу.</div>'
         )
 
-    text = ask_elaborate(request.user, chat, book, short_reason=short_reason)
-    return HttpResponse(
-        f'<div style="font-size:12px;line-height:1.5;color:var(--muted);'
-        f'margin-top:6px;padding:10px;background:var(--surface);border-radius:6px">'
-        f'{text}</div>'
-    )
+    try:
+        task = discovery_elaborate_task.delay(request.user.pk, book.pk, short_reason)
+    except Exception:
+        return render(request, "ai_chat/_elaborate_result.html", {
+            "text": "Очередь AI сейчас недоступна. Проверьте Redis/Celery worker и попробуйте ещё раз.",
+        })
+
+    return render(request, "ai_chat/_elaborate_pending.html", {
+        "book": book,
+        "task_id": task.id,
+    })
+
+
+@login_required
+@require_GET
+def discovery_elaborate_status(request):
+    task_id = request.GET.get("task_id")
+    result = AsyncResult(task_id) if task_id else None
+
+    try:
+        is_ready = result.ready() if result else False
+    except Exception:
+        return render(request, "ai_chat/_elaborate_result.html", {
+            "text": "Очередь AI сейчас недоступна. Проверьте Redis/Celery worker и попробуйте ещё раз.",
+        })
+
+    if is_ready:
+        if result.successful():
+            payload = result.result or {}
+            if payload.get("ok"):
+                return render(request, "ai_chat/_elaborate_result.html", {"text": payload.get("text", "")})
+        return render(request, "ai_chat/_elaborate_result.html", {
+            "text": "Не удалось получить развёрнутое объяснение.",
+        })
+
+    return render(request, "ai_chat/_elaborate_pending.html", {"task_id": task_id})
 
 
 @login_required

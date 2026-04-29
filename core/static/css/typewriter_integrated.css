@@ -108,6 +108,7 @@ html.theme-fade-from-dark:has(body.typewriter-reader-page)::before {
 }
 
 .typewriter-mobile-trigger,
+.typewriter-mobile-mode-back,
 .typewriter-mobile-nav {
   display: none;
 }
@@ -154,6 +155,48 @@ html.theme-fade-from-dark:has(body.typewriter-reader-page)::before {
 .htmx-request .htmx-indicator,
 .htmx-request.htmx-indicator {
   opacity: 1;
+}
+
+.ai-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 34px;
+  min-height: 16px;
+  vertical-align: middle;
+}
+
+.ai-typing span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .32;
+  animation: aiTypingDot 1.05s ease-in-out infinite;
+}
+
+.ai-typing span:nth-child(2) {
+  animation-delay: .14s;
+}
+
+.ai-typing span:nth-child(3) {
+  animation-delay: .28s;
+}
+
+.ai-chat-pending__bubble,
+.ai-elaborate-pending {
+  color: var(--muted);
+}
+
+@keyframes aiTypingDot {
+  0%, 70%, 100% {
+    opacity: .28;
+    transform: translateY(0);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
 }
 
 .tw-autocomplete {
@@ -421,6 +464,37 @@ html.theme-fade-from-dark:has(body.typewriter-reader-page)::before {
   border-radius: 0 !important;
 }
 
+@media (max-width: 680px) {
+  .search-shell.is-dialog .dialog-panel__head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: transparent;
+  }
+
+  .search-shell.is-dialog {
+    padding-top: 76px;
+  }
+
+  .search-shell.is-dialog .dialog-panel__back {
+    display: none;
+  }
+
+  .search-shell.is-dialog .dialog-panel__thread {
+    display: flex;
+    flex-direction: column;
+    align-content: stretch;
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow-y: auto;
+  }
+
+  .search-shell.is-dialog .dialog-panel__thread .message-row {
+    flex: 0 0 auto;
+  }
+
+}
+
 .typewriter-footer {
   width: min(1180px, calc(100% - 48px));
   margin: 0 auto;
@@ -537,7 +611,27 @@ html.theme-fade-from-dark:has(body.typewriter-reader-page)::before {
     font: inherit;
   }
 
-  .reader-drawer-open .typewriter-mobile-trigger {
+  .typewriter-mobile-mode-back {
+    position: fixed;
+    top: 22px;
+    left: 70px;
+    z-index: 310;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 0;
+    border-bottom: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+  }
+
+  .typewriter-mobile-mode-back.is-visible {
+    display: grid;
+  }
+
+  .reader-drawer-open .typewriter-mobile-trigger,
+  .reader-drawer-open .typewriter-mobile-mode-back {
     display: none;
   }
 

@@ -45,6 +45,8 @@
   var navLogoFlight = null;
   var navLogoAnimation = null;
   var navLogoTimer = null;
+  var navLogoCleanupTimer = null;
+  var navLogoCleanupFlight = null;
   var navLogoTicking = false;
   var navLogoReady = false;
 
@@ -562,6 +564,12 @@
   function clearNavLogoFlight() {
     if (navLogoTimer) window.clearTimeout(navLogoTimer);
     navLogoTimer = null;
+    if (navLogoCleanupTimer) window.clearTimeout(navLogoCleanupTimer);
+    navLogoCleanupTimer = null;
+    if (navLogoCleanupFlight) {
+      navLogoCleanupFlight.remove();
+      navLogoCleanupFlight = null;
+    }
     if (navLogoAnimation) {
       navLogoAnimation.onfinish = null;
       navLogoAnimation.cancel();
@@ -613,13 +621,23 @@
     function finishFlight() {
       if (navLogoTimer) window.clearTimeout(navLogoTimer);
       navLogoTimer = null;
-      if (navLogoFlight) {
-        navLogoFlight.remove();
-        navLogoFlight = null;
-      }
       navLogoAnimation = null;
-      document.body.classList.remove("nav-logo-flying");
       document.body.classList.toggle("nav-logo-visible", show);
+      document.body.classList.remove("nav-logo-flying");
+      var finishedFlight = navLogoFlight;
+      navLogoFlight = null;
+      if (finishedFlight) {
+        navLogoCleanupFlight = finishedFlight;
+        finishedFlight.style.transition = "opacity .16s ease";
+        finishedFlight.style.opacity = "0";
+      }
+      navLogoCleanupTimer = window.setTimeout(function () {
+        navLogoCleanupTimer = null;
+        if (navLogoCleanupFlight) {
+          navLogoCleanupFlight.remove();
+          navLogoCleanupFlight = null;
+        }
+      }, 180);
     }
 
     if (!navLogoFlight.animate) {

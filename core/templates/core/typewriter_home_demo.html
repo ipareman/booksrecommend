@@ -1,0 +1,314 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Демо главной — Строка</title>
+  <link rel="stylesheet" href="{% static 'css/typewriter_home_demo.css' %}?v={% now 'U' %}">
+  <script src="{% static 'js/typewriter_home_demo.js' %}?v={% now 'U' %}" defer></script>
+</head>
+<body>
+  <main class="demo-home">
+    <section class="first-screen" id="top-screen" aria-labelledby="main-title">
+      <div class="first-screen__center">
+        <img class="hero-mark" src="{% static 'img/design/icon.svg' %}" alt="Строка">
+        <h1 id="main-title"><em>“Найдётся всё”</em></h1>
+
+        <div class="search-shell" id="search-shell">
+          <form class="main-search" action="#" autocomplete="off">
+            <label class="main-search__input-wrap" for="main-search-input">
+              <input id="main-search-input" type="text" aria-label="Поиск книг">
+              <span class="typed-placeholder" id="typed-placeholder" aria-hidden="true"></span>
+            </label>
+            <button class="main-search__submit" type="button" aria-label="Искать">→</button>
+          </form>
+
+          <div class="dialog-panel" id="dialog-panel" aria-hidden="true">
+            <div class="dialog-panel__head">
+              <button type="button" class="dialog-panel__back" id="dialog-close" aria-label="Закрыть диалог">←</button>
+              <div class="dialog-panel__ai-avatar">AI</div>
+              <div>
+                <strong>Диалог со Строкой</strong>
+                <span>подбор книг без перехода со страницы</span>
+              </div>
+            </div>
+            <div class="dialog-panel__thread" id="dialog-thread">
+              <div class="message-row message-row--assistant">
+                <div class="message-avatar">AI</div>
+                <div class="message-stack">
+                  <p class="message message--assistant">Опишите состояние, жанр или проблему. Я подберу книги и объясню, почему они подходят.</p>
+                </div>
+              </div>
+              <div class="message-row message-row--user">
+                <div class="message-avatar">Я</div>
+                <div class="message-stack">
+                  <p class="message message--user">Хочу тихую книгу после тяжёлой недели.</p>
+                </div>
+              </div>
+              <div class="message-row message-row--assistant">
+                <div class="message-avatar">AI</div>
+                <div class="message-stack">
+                  <p class="message message--assistant">Начал бы с «Летней книги» Туве Янссон: короткие сцены, много воздуха, без лишнего давления.</p>
+                  <div class="attached-books" aria-label="Прикреплённые книги">
+                    <a href="#">
+                      <span class="mini-cover">Книга</span>
+                      <strong>Летняя книга</strong>
+                      <em>Туве Янссон</em>
+                    </a>
+                    <a href="#">
+                      <span class="mini-cover mini-cover--light">Книга</span>
+                      <strong>Одинокий город</strong>
+                      <em>Оливия Лэнг</em>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <form class="dialog-panel__form" action="#">
+              <input id="dialog-input" type="text" value="А если хочется чуть больше сюжета?">
+              <button type="button" class="dialog-voice" id="dialog-voice" aria-label="Голосовой ввод">◦</button>
+              <button type="button" class="dialog-send" id="dialog-send" aria-label="Отправить">→</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="search-actions" aria-label="Действия поиска">
+          <div class="search-actions__left">
+            <button type="button" id="settings-trigger" data-open-modal="settings-modal" aria-expanded="false">Настройки</button>
+          </div>
+          <button type="button" id="history-trigger" data-open-modal="history-modal" aria-expanded="false">История запросов</button>
+        </div>
+
+        <div class="desktop-text-panels" aria-label="Быстрые панели поиска">
+          <div class="desktop-text-panel desktop-text-panel--settings" id="desktop-settings-panel" aria-hidden="true">
+            <button type="button" class="desktop-mode is-active" id="desktop-ai-mode" data-typewrite="Найти с помощью ИИ">
+              <span></span>
+            </button>
+            <button type="button" class="desktop-mode" id="desktop-dialog-mode" data-typewrite="Диалог">
+              <span></span>
+            </button>
+          </div>
+          <div class="desktop-text-panel desktop-text-panel--history" id="desktop-history-panel" aria-hidden="true">
+            <button type="button" data-typewrite="книга после тяжёлой недели"><span></span></button>
+            <button type="button" data-typewrite="роман о выборе и памяти"><span></span></button>
+            <button type="button" data-typewrite="закрытый мир и длинный сюжет"><span></span></button>
+            <button type="button" data-typewrite="что читать после выгорания"><span></span></button>
+            <button type="button" data-typewrite="короткая проза с тихим светом"><span></span></button>
+            <button type="button" data-typewrite="детектив без жестокости"><span></span></button>
+            <button type="button" data-typewrite="семейная сага на зиму"><span></span></button>
+            <button type="button" data-typewrite="книги о городе и одиночестве"><span></span></button>
+            <button type="button" data-typewrite="умная любовь без мелодрамы"><span></span></button>
+            <button type="button" data-typewrite="магический реализм"><span></span></button>
+            <button type="button" data-typewrite="что почитать после Дюны"><span></span></button>
+            <button type="button" data-typewrite="романы с сильным голосом"><span></span></button>
+            <button type="button" data-typewrite="спокойная книга перед сном"><span></span></button>
+            <button type="button" data-typewrite="современная русская проза"><span></span></button>
+            <button type="button" data-typewrite="эссе о чтении"><span></span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <button class="scroll-cue" id="scroll-cue" type="button" aria-label="Промотать вниз">↓</button>
+
+    <section class="home-stream" id="home-stream">
+      <section class="home-section home-section--week reveal-block">
+        <div class="section-title-row">
+          <h2>Книга недели</h2>
+          <a href="#">подробнее</a>
+        </div>
+        <div class="week-layout">
+          <div class="cover cover--large"><span>Книга</span></div>
+          <div class="ledger-table">
+            <div><span>Название</span><strong>Летняя книга</strong></div>
+            <div><span>Автор</span><strong>Туве Янссон</strong></div>
+            <div><span>Почему сейчас</span><strong>много воздуха, короткие главы, спокойный ритм</strong></div>
+            <div><span>Настроение</span><strong>тихое восстановление</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-section reveal-block">
+        <div class="section-title-row">
+          <h2>Настроения</h2>
+          <a href="#">в каталог</a>
+        </div>
+        <div class="mood-lines">
+          <a href="#">после тяжёлой недели</a>
+          <a href="#">закрытый мир</a>
+          <a href="#">умная любовь</a>
+          <a href="#">короткая проза</a>
+          <a href="#">семейная сага</a>
+          <a href="#">город и одиночество</a>
+        </div>
+      </section>
+
+      <section class="home-section reveal-block">
+        <div class="section-title-row">
+          <h2>Рекомендовано для вас</h2>
+          <a href="#">профиль</a>
+        </div>
+        <div class="book-shelf">
+          <a href="#"><span class="cover">Название</span><strong>Одинокий город</strong><em>Оливия Лэнг</em></a>
+          <a href="#"><span class="cover cover--gray">Книга</span><strong>Дом, в котором...</strong><em>Мариам Петросян</em></a>
+          <a href="#"><span class="cover cover--cream">Книга</span><strong>Облачный атлас</strong><em>Дэвид Митчелл</em></a>
+          <a href="#"><span class="cover">Название</span><strong>Пока течёт река</strong><em>Диана Сеттерфилд</em></a>
+        </div>
+      </section>
+
+      <section class="home-section reveal-block">
+        <div class="section-title-row">
+          <h2>Что читают</h2>
+          <a href="#">лента</a>
+        </div>
+        <div class="activity-ledger">
+          <a href="#"><span>Мария</span><strong>добавила «Щегол» в список</strong><em>2 мин</em></a>
+          <a href="#"><span>Илья</span><strong>написал отзыв на «Дом духов»</strong><em>18 мин</em></a>
+          <a href="#"><span>Клуб</span><strong>обсуждает «Солярис»</strong><em>сегодня</em></a>
+        </div>
+      </section>
+
+      <section class="home-section reveal-block">
+        <div class="section-title-row">
+          <h2>Популярное</h2>
+          <a href="#">все</a>
+        </div>
+        <div class="book-shelf book-shelf--wide">
+          <a href="#"><span class="cover cover--cream">Книга</span><strong>Сто лет одиночества</strong><em>Габриэль Гарсиа Маркес</em></a>
+          <a href="#"><span class="cover">Название</span><strong>Мастер и Маргарита</strong><em>Михаил Булгаков</em></a>
+          <a href="#"><span class="cover cover--gray">Книга</span><strong>1984</strong><em>Джордж Оруэлл</em></a>
+          <a href="#"><span class="cover">Название</span><strong>Маленькая жизнь</strong><em>Ханья Янагихара</em></a>
+          <a href="#"><span class="cover cover--cream">Книга</span><strong>Дюна</strong><em>Фрэнк Герберт</em></a>
+        </div>
+      </section>
+
+      <section class="home-section reveal-block">
+        <div class="section-title-row">
+          <h2>Подборки</h2>
+          <a href="#">все</a>
+        </div>
+        <div class="collection-grid">
+          <a href="#"><span>01</span><strong>Книги для возвращения к чтению</strong><em>12 книг</em></a>
+          <a href="#"><span>02</span><strong>Большие романы на зиму</strong><em>9 книг</em></a>
+          <a href="#"><span>03</span><strong>Тексты с сильным голосом</strong><em>16 книг</em></a>
+        </div>
+      </section>
+
+      <section class="home-section reveal-block">
+        <div class="section-title-row">
+          <h2>Серии книг</h2>
+          <a href="#">смотреть</a>
+        </div>
+        <div class="series-ledger">
+          <a href="#"><strong>Земноморье</strong><span>6 книг</span></a>
+          <a href="#"><strong>Неаполитанский квартет</strong><span>4 книги</span></a>
+          <a href="#"><strong>Тёмные начала</strong><span>3 книги</span></a>
+        </div>
+      </section>
+
+      <section class="home-section home-section--quote reveal-block">
+        <div class="section-title-row">
+          <h2>Цитаты</h2>
+          <a href="#">ещё</a>
+        </div>
+        <blockquote>
+          <p>Мы читаем, чтобы знать, что мы не одиноки.</p>
+          <footer>«Земля теней», Уильям Николсон</footer>
+        </blockquote>
+      </section>
+
+      <section class="home-section reveal-block">
+        <div class="section-title-row">
+          <h2>Новинки</h2>
+          <a href="#">все</a>
+        </div>
+        <div class="book-shelf">
+          <a href="#"><span class="cover cover--gray">Книга</span><strong>Новый роман</strong><em>2026</em></a>
+          <a href="#"><span class="cover">Название</span><strong>Тихая вода</strong><em>2025</em></a>
+          <a href="#"><span class="cover cover--cream">Книга</span><strong>Северный дом</strong><em>2025</em></a>
+          <a href="#"><span class="cover">Название</span><strong>Письма на полях</strong><em>2024</em></a>
+        </div>
+      </section>
+
+      <section class="home-section reveal-block">
+        <div class="section-title-row">
+          <h2>Книжные клубы</h2>
+          <a href="#">вступить</a>
+        </div>
+        <div class="club-grid">
+          <a href="#"><strong>Медленное чтение</strong><span>сейчас читают «Солярис»</span></a>
+          <a href="#"><strong>Романы по воскресеньям</strong><span>следующая встреча через 4 дня</span></a>
+          <a href="#"><strong>Короткая проза</strong><span>рассказы и эссе</span></a>
+        </div>
+      </section>
+
+      <section class="home-section reveal-block">
+        <div class="section-title-row">
+          <h2>Свежие рецензии</h2>
+          <a href="#">читать</a>
+        </div>
+        <div class="review-ledger">
+          <a href="#"><span>Рецензия</span><strong>Как «Щегол» держит внимание на длинной дистанции</strong></a>
+          <a href="#"><span>Разбор</span><strong>Почему «Солярис» всё ещё работает как вопрос</strong></a>
+        </div>
+      </section>
+
+      <section class="home-section reveal-block">
+        <div class="section-title-row">
+          <h2>Свежие отзывы</h2>
+          <a href="#">все</a>
+        </div>
+        <div class="review-ledger review-ledger--short">
+          <a href="#"><span>5/5</span><strong>Очень тихая книга, но после неё трудно сразу начать другую.</strong></a>
+          <a href="#"><span>4/5</span><strong>Неожиданно точное совпадение с запросом.</strong></a>
+          <a href="#"><span>5/5</span><strong>Сохранила в закладки почти всю подборку.</strong></a>
+        </div>
+      </section>
+
+      <section class="home-section home-section--stats reveal-block">
+        <div class="section-title-row">
+          <h2>Статистика</h2>
+        </div>
+        <div class="stats-row">
+          <div><strong>12 480</strong><span>книг</span></div>
+          <div><strong>3 102</strong><span>отзыва</span></div>
+          <div><strong>86</strong><span>клубов</span></div>
+          <div><strong>214</strong><span>подборок</span></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="modal" id="settings-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close-modal></div>
+    <section class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal__head">
+        <h2 id="settings-title">Настройки поиска</h2>
+        <button type="button" data-close-modal aria-label="Закрыть">×</button>
+      </div>
+      <div class="modal__body">
+        <button type="button" class="settings-option" id="ai-mode-choice">Найти с помощью ИИ</button>
+        <button type="button" class="settings-option" id="dialog-toggle" aria-pressed="false">
+          <span>Диалог</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="history-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close-modal></div>
+    <section class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="history-title">
+      <div class="modal__head">
+        <h2 id="history-title">История запросов</h2>
+        <button type="button" data-close-modal aria-label="Закрыть">×</button>
+      </div>
+      <div class="modal__body history-list">
+        <button type="button">роман о выборе и памяти</button>
+        <button type="button">книга после тяжёлой недели</button>
+        <button type="button">закрытый мир и длинный сюжет</button>
+        <button type="button">что читать после выгорания</button>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

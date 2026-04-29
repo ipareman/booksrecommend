@@ -184,6 +184,14 @@ def home(request):
     return render(request, "core/home.html", ctx)
 
 
+def design_demos(request):
+    return render(request, "core/design_demos.html")
+
+
+def typewriter_home_demo(request):
+    return render(request, "core/typewriter_home_demo.html")
+
+
 def custom_404(request, exception):
     return render(request, "404.html", status=404)
 

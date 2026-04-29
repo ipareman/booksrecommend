@@ -1,0 +1,321 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Демо дизайна — Строка</title>
+  <link rel="stylesheet" href="{% static 'css/design_demos.css' %}?v={% now 'U' %}">
+</head>
+<body>
+  <header class="demo-top">
+    <a class="demo-brand" href="{% url 'home' %}" aria-label="На главную">
+      <img src="{% static 'img/design/logo-stroka.svg' %}" alt="">
+      <span>Строка</span>
+    </a>
+    <nav class="demo-nav" aria-label="Варианты">
+      <a href="#variant-1">Вариант 1</a>
+      <a href="#variant-2">Вариант 2</a>
+      <a href="#variant-3">Вариант 3</a>
+    </nav>
+  </header>
+
+  <main class="demo-page">
+    <section class="demo-intro" aria-labelledby="demo-title">
+      <div>
+        <p class="demo-kicker">черновики направления</p>
+        <h1 id="demo-title">Печатная машинка, бумага, строгая строка</h1>
+      </div>
+      <p>
+        Три самостоятельных подхода к главной странице и карточке книги. Это не перенос старого макета,
+        а разные способы сохранить его характер: машинописный шрифт, бумажный фон, линии, таблицы и тихую графику.
+      </p>
+    </section>
+
+    <section class="variant variant--one" id="variant-1" aria-labelledby="variant-1-title">
+      <div class="variant__head">
+        <span>Вариант 1</span>
+        <h2 id="variant-1-title">Чистая строка</h2>
+      </div>
+
+      <div class="screen-pair">
+        <article class="screen screen--home">
+          <header class="site-line">
+            <nav>
+              <a class="is-current" href="#">Строка</a>
+              <a href="#">Подборки</a>
+              <a href="#">Закладки</a>
+              <a href="#">Профиль</a>
+            </nav>
+            <span>поиск книг</span>
+          </header>
+
+          <div class="search-stage">
+            <form class="stroke-search" action="#">
+              <input type="search" value="роман о выборе и памяти" aria-label="Поиск">
+              <button type="button" aria-label="Искать">
+                <img src="{% static 'img/design/arrow.svg' %}" alt="">
+              </button>
+            </form>
+            <div class="search-tools">
+              <button type="button">Настройки</button>
+              <button type="button">История запросов</button>
+            </div>
+          </div>
+
+          <div class="quote-strip">
+            <div>
+              <span>Ближайшее совпадение</span>
+              <a href="#">Непереносимая легкость бытия</a>
+            </div>
+            <div>
+              <span>Причина</span>
+              <p>личная память, выбор, политический фон</p>
+            </div>
+          </div>
+
+          <div class="result-ledger">
+            <a class="ledger-row" href="#">
+              <span>01</span>
+              <strong>Милан Кундера</strong>
+              <em>роман</em>
+            </a>
+            <a class="ledger-row" href="#">
+              <span>02</span>
+              <strong>Вирджиния Вулф</strong>
+              <em>внутренний монолог</em>
+            </a>
+            <a class="ledger-row" href="#">
+              <span>03</span>
+              <strong>Кадзуо Исигуро</strong>
+              <em>память</em>
+            </a>
+          </div>
+        </article>
+
+        <article class="screen screen--book">
+          <header class="site-line site-line--book">
+            <a href="#">← каталог</a>
+            <span>книга</span>
+          </header>
+
+          <div class="book-ledger">
+            <div class="book-ledger__meta">
+              <div>
+                <span>Название</span>
+                <strong>Непереносимая легкость бытия</strong>
+              </div>
+              <div>
+                <span>Автор</span>
+                <strong>Милан Кундера</strong>
+              </div>
+              <div>
+                <span>Тема</span>
+                <strong>выбор, любовь, память</strong>
+              </div>
+              <div>
+                <span>Подойдёт</span>
+                <strong>если хочется спокойной, умной прозы</strong>
+              </div>
+            </div>
+            <div class="cover-note">
+              <div class="cover-swatch"><span>Название</span></div>
+              <button type="button">В список</button>
+              <button type="button">Задать вопрос</button>
+            </div>
+          </div>
+
+          <div class="answer-fade">
+            <p>
+              Эта книга подходит к запросу через мотив личного выбора: герои постоянно сверяют чувство,
+              страх и память, а большой исторический фон остаётся напечатанным между строк.
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="variant variant--two" id="variant-2" aria-labelledby="variant-2-title">
+      <div class="variant__head">
+        <span>Вариант 2</span>
+        <h2 id="variant-2-title">Картотека</h2>
+      </div>
+
+      <div class="screen-pair">
+        <article class="screen screen--home">
+          <header class="cabinet-top">
+            <a href="#">Строка</a>
+            <nav>
+              <a href="#">Книги</a>
+              <a href="#">Авторы</a>
+              <a href="#">Коллекции</a>
+            </nav>
+          </header>
+
+          <div class="cabinet-layout">
+            <aside class="filter-column">
+              <button type="button" class="is-active">везде</button>
+              <button type="button">название</button>
+              <button type="button">автор</button>
+              <button type="button">настроение</button>
+            </aside>
+
+            <div class="cabinet-main">
+              <form class="file-search" action="#">
+                <label for="cabinet-search">Введите запрос</label>
+                <div>
+                  <input id="cabinet-search" type="search" value="книга после тяжёлой недели">
+                  <button type="button">найти</button>
+                </div>
+              </form>
+
+              <div class="file-list">
+                <a href="#">
+                  <span>001</span>
+                  <strong>Тёплая проза без наивности</strong>
+                  <em>7 книг</em>
+                </a>
+                <a href="#">
+                  <span>002</span>
+                  <strong>Медленное восстановление</strong>
+                  <em>5 книг</em>
+                </a>
+                <a href="#">
+                  <span>003</span>
+                  <strong>Город, одиночество, надежда</strong>
+                  <em>11 книг</em>
+                </a>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen screen--book">
+          <header class="cabinet-top">
+            <a href="#">Строка</a>
+            <nav>
+              <a href="#">обзор</a>
+              <a href="#">цитаты</a>
+              <a href="#">похожие</a>
+            </nav>
+          </header>
+
+          <div class="dossier">
+            <div class="dossier-cover">
+              <div class="cover-swatch cover-swatch--cream"><span>Книга</span></div>
+            </div>
+            <div class="dossier-main">
+              <dl>
+                <div>
+                  <dt>Название</dt>
+                  <dd>Дом, в котором...</dd>
+                </div>
+                <div>
+                  <dt>Автор</dt>
+                  <dd>Мариам Петросян</dd>
+                </div>
+                <div>
+                  <dt>Запрос</dt>
+                  <dd>найти длинную книгу с закрытым миром</dd>
+                </div>
+                <div>
+                  <dt>Совпадение</dt>
+                  <dd>89%</dd>
+                </div>
+              </dl>
+              <div class="dossier-actions">
+                <button type="button">читать</button>
+                <button type="button">в закладки</button>
+                <button type="button">спросить AI</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-grid">
+            <p>Сильная сторона варианта — ощущение архивной системы: поиск превращается в работу с карточками.</p>
+            <p>Страница книги держится на таблице, поэтому её проще расширять метаданными, рейтингами и магазинами.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="variant variant--three" id="variant-3" aria-labelledby="variant-3-title">
+      <div class="variant__head">
+        <span>Вариант 3</span>
+        <h2 id="variant-3-title">Поля рукописи</h2>
+      </div>
+
+      <div class="screen-pair">
+        <article class="screen screen--home">
+          <div class="manuscript">
+            <aside>
+              <a class="is-current" href="#">поиск</a>
+              <a href="#">история</a>
+              <a href="#">полка</a>
+            </aside>
+
+            <div class="manuscript-body">
+              <form class="margin-search" action="#">
+                <input type="search" value="что читать, если хочется света без простоты">
+                <button type="button">→</button>
+              </form>
+
+              <div class="personal-lines">
+                <a href="#">
+                  <span>по вашему вкусу</span>
+                  <strong>Оливия Лэнг, «Одинокий город»</strong>
+                </a>
+                <a href="#">
+                  <span>мягкий вход</span>
+                  <strong>Фредрик Бакман, «Вторая жизнь Уве»</strong>
+                </a>
+                <a href="#">
+                  <span>сложнее</span>
+                  <strong>Туве Янссон, «Летняя книга»</strong>
+                </a>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen screen--book">
+          <div class="book-manuscript">
+            <aside class="book-margin">
+              <span>совпадение</span>
+              <strong>92</strong>
+              <button type="button">сохранить</button>
+            </aside>
+
+            <div class="book-sheet">
+              <div class="book-sheet__top">
+                <div>
+                  <span>Название</span>
+                  <h3>Летняя книга</h3>
+                  <p>Туве Янссон</p>
+                </div>
+                <div class="cover-swatch cover-swatch--small"><span>Книга</span></div>
+              </div>
+
+              <div class="typed-columns">
+                <section>
+                  <h4>Почему подходит</h4>
+                  <p>
+                    Много воздуха, короткие сцены и спокойная точность. Книга не давит сюжетом,
+                    но оставляет чувство живого разговора.
+                  </p>
+                </section>
+                <section>
+                  <h4>Вопрос к книге</h4>
+                  <form action="#">
+                    <input type="search" value="почему её советуют после выгорания?">
+                    <button type="button">спросить</button>
+                  </form>
+                </section>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

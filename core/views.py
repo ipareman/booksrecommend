@@ -192,6 +192,10 @@ def typewriter_home_demo(request):
     return render(request, "core/typewriter_home_demo.html")
 
 
+def typewriter_community_demo(request):
+    return render(request, "core/typewriter_community_demo.html")
+
+
 def custom_404(request, exception):
     return render(request, "404.html", status=404)
 

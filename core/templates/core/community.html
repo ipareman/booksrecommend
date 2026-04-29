@@ -1,0 +1,68 @@
+{% extends "core/base.html" %}
+{% block title %}Сообщество — Строка{% endblock %}
+
+{% block content %}
+<div class="community-demo">
+  <section class="community-hero" aria-labelledby="community-title">
+    <h1 id="community-title">Сообщество</h1>
+    <p>Люди, подборки, клубы, обращения и уведомления собраны рядом, но каждый раздел остаётся своим рабочим инструментом.</p>
+  </section>
+
+  <section class="community-board" aria-label="Разделы сообщества">
+      <a class="community-card community-card--wide" href="{% url 'ticket_list' %}">
+        <span>Тикеты</span>
+        <strong>{% if community_stats.tickets is not None %}{{ community_stats.tickets }} открытых{% else %}обращения и жалобы{% endif %}</strong>
+        <em>вопросы по книгам, авторам, клубам и доступу</em>
+      </a>
+      <a class="community-card community-card--wide" href="{% url 'notifications_list' %}">
+        <span>Уведомления</span>
+        <strong>{% if notifications_unread %}{{ notifications_unread }} новых{% else %}ответы и события{% endif %}</strong>
+        <em>реакции друзей, приглашения, ответы и системные события</em>
+      </a>
+      <a class="community-card" href="{% url 'friend_list' %}">
+        <span>Друзья</span>
+        <strong>{% if community_stats.friends %}{{ community_stats.friends }} рядом{% else %}люди, с которыми вы читаете рядом{% endif %}</strong>
+        <em>заявки, общие книги, личные рекомендации</em>
+      </a>
+      <a class="community-card" href="{% url 'collections_list' %}">
+        <span>Подборки</span>
+        <strong>{% if community_stats.collections %}{{ community_stats.collections }} публичных{% else %}публичные списки и личные полки{% endif %}</strong>
+        <em>редакция, сохранения, новые коллекции</em>
+      </a>
+      <a class="community-card" href="{% url 'clubs_list' %}">
+        <span>Книжные клубы</span>
+        <strong>{% if community_stats.clubs %}{{ community_stats.clubs }} открытых{% else %}обсуждения и текущие чтения{% endif %}</strong>
+        <em>участники, опросы, общие книги и чат</em>
+      </a>
+      <a class="community-card" href="{% url 'activity_feed' %}">
+        <span>Лента активности</span>
+        <strong>что читают и обсуждают сейчас</strong>
+        <em>отзывы, добавления, вступления в клубы</em>
+      </a>
+      <a class="community-card" href="{% url 'my_recommendations' %}">
+        <span>Рекомендации</span>
+        <strong>{% if community_stats.recommendations %}{{ community_stats.recommendations }} непрочитанных{% else %}книги от друзей{% endif %}</strong>
+        <em>личные советы, которые можно открыть позже</em>
+      </a>
+      <a class="community-card" href="{% url 'leaderboard' %}">
+        <span>Топ</span>
+        <strong>самые активные читатели</strong>
+        <em>рейтинги, полки и публичная активность</em>
+      </a>
+  </section>
+
+  {% if user.is_staff %}
+  <section class="community-admin" aria-labelledby="community-admin-title">
+      <div class="section-title-row">
+        <h2 id="community-admin-title">Админ-панель</h2>
+      </div>
+      <div class="admin-ledger">
+        <a href="{% url 'admin_panel' %}"><span>Пользователи</span><strong>блокировки, уведомления, магазины</strong><em>панель</em></a>
+        <a href="{% url 'ai_admin_dashboard' %}"><span>AI-admin</span><strong>логи, задачи, настройки AI</strong><em>AI</em></a>
+        <a href="{% url 'api_dashboard' %}"><span>API</span><strong>ключи, лимиты и документация</strong><em>API</em></a>
+        <a href="{% url 'ticket_list' %}"><span>Тикеты</span><strong>пользовательские обращения</strong><em>{% if community_stats.tickets %}{{ community_stats.tickets }}{% else %}0{% endif %}</em></a>
+      </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

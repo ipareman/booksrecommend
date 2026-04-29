@@ -4,113 +4,104 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Строка{% endblock %}</title>
-  {# Тема (dark/light) применяется ДО загрузки CSS, чтобы не было вспышки светлого фона. #}
-  {# Источники в порядке приоритета: localStorage → системная prefers-color-scheme. #}
   <script>
     (function () {
       try {
-        var saved = localStorage.getItem('theme');
-        if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          saved = 'dark';
-        }
-        if (saved === 'dark') {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        }
-      } catch (e) { /* приватный режим / SSR — ок, остаёмся на светлой */ }
+        var saved = localStorage.getItem("theme");
+        if (!saved && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) saved = "dark";
+        if (saved === "dark") document.documentElement.setAttribute("data-theme", "dark");
+      } catch (e) {}
     })();
   </script>
-  {# Кеш-бустинг: к URL CSS приклеиваем unix-time старта процесса — #}
-  {# при каждом рестарте Django URL меняется, браузер обязан перекачать файл. #}
   <link rel="stylesheet" href="{% static 'css/main.css' %}?v={% now 'U' %}">
+  <link rel="stylesheet" href="{% static 'css/typewriter_home_demo.css' %}?v={% now 'U' %}">
+  <link rel="stylesheet" href="{% static 'css/typewriter_integrated.css' %}?v={% now 'U' %}">
 </head>
-<body>
-
-<nav class="nav">
-  <div class="wrap">
-    <div class="nav__inner" x-data="{ navOpen: false }" @keydown.escape.window="navOpen = false" @click.outside="navOpen = false">
-      <a href="{% url 'home' %}" class="nav__logo">Строка</a>
-      <button class="nav__hamburger" @click="navOpen = !navOpen" :aria-expanded="navOpen.toString()" aria-controls="site-navigation" aria-label="Меню">
-        <span x-show="!navOpen">&#9776;</span>
-        <span x-show="navOpen" x-cloak>&#10005;</span>
-      </button>
-      <div id="site-navigation" class="nav__links" :class="{ 'nav__links--open': navOpen }">
-        {# Переключатель темы. Чистый JS, без Alpine — работает даже до загрузки JS-фреймворков. #}
-        <button type="button" class="theme-toggle"
-                aria-label="Переключить тему"
-                title="Переключить тему"
-                onclick="(function(){var d=document.documentElement;var dark=d.getAttribute('data-theme')==='dark';if(dark){d.removeAttribute('data-theme');try{localStorage.setItem('theme','light')}catch(e){}}else{d.setAttribute('data-theme','dark');try{localStorage.setItem('theme','dark')}catch(e){}}})()">
-          <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-          <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="4"/>
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-          </svg>
-          <span class="theme-toggle__label">Тема</span>
-        </button>
-        <a href="{% url 'catalog' %}"
-           class="nav__link {% if request.resolver_match.url_name == 'catalog' %}nav__link--active{% endif %}">
+{% with current=request.resolver_match.url_name %}
+<body class="typewriter-real-page {% if current == 'home' %}typewriter-home-page{% endif %} {% if current == 'community' %}community-demo-page{% endif %}">
+<div class="typewriter-nav-shell" x-data="{ navOpen: false }" @keydown.escape.window="navOpen = false">
+  <nav class="typewriter-nav {% if current == 'home' %}typewriter-nav--home{% else %}typewriter-nav--solid{% endif %}" id="typewriter-nav" aria-label="Основная навигация">
+    <div class="typewriter-nav__inner">
+      <div class="typewriter-nav__center">
+        <a class="typewriter-nav__link typewriter-nav__link--community {% if current == 'community' or current == 'activity_feed' or current == 'friend_list' or current == 'joint_recs' or current == 'my_recommendations' or current == 'ticket_list' or current == 'ticket_detail' or current == 'ticket_create' or current == 'notifications_list' or current == 'collections_list' or current == 'collection_detail' or current == 'collection_create' or current == 'collection_edit' or current == 'clubs_list' or current == 'club_detail' or current == 'club_create' or current == 'club_book_thread' %}is-active{% endif %}" href="{% url 'community' %}">
+          Сообщество
+        </a>
+        <a class="typewriter-nav__logo {% if current != 'home' %}is-visible{% endif %}" id="typewriter-nav-logo" href="{% url 'home' %}" aria-label="На главную">
+          <img src="{% static 'img/design/icon.svg' %}" alt="Строка">
+        </a>
+        <a class="typewriter-nav__link typewriter-nav__link--catalog {% if current == 'home' or current == 'catalog' or current == 'book_detail' or current == 'author_detail' or current == 'publisher_detail' or current == 'series_detail' or current == 'search' or current == 'book_chat' %}is-active{% endif %}" href="{% url 'catalog' %}">
           Каталог
         </a>
-        <a href="{% url 'collections_list' %}"
-           class="nav__link {% if request.resolver_match.url_name == 'collections_list' %}nav__link--active{% endif %}">
-          Подборки
-        </a>
-        <a href="{% url 'clubs_list' %}"
-           class="nav__link {% if request.resolver_match.url_name == 'clubs_list' %}nav__link--active{% endif %}">
-          Клубы
-        </a>
-        <a href="{% url 'leaderboard' %}"
-           class="nav__link {% if request.resolver_match.url_name == 'leaderboard' %}nav__link--active{% endif %}">
-          Топ
-        </a>
+      </div>
+
+      <div class="typewriter-nav__auth" aria-label="Аккаунт">
+        <button type="button"
+                class="typewriter-nav__theme"
+                aria-label="Переключить тему"
+                title="Переключить тему"
+                onclick="(function(){var d=document.documentElement;var dark=d.getAttribute('data-theme')==='dark';if(dark){d.removeAttribute('data-theme');try{localStorage.setItem('theme','light')}catch(e){}}else{d.setAttribute('data-theme','dark');try{localStorage.setItem('theme','dark')}catch(e){}}})()">◐</button>
         {% if user.is_authenticated %}
-          <a href="{% url 'notifications_list' %}"
-             class="nav__link {% if request.resolver_match.url_name == 'notifications_list' %}nav__link--active{% endif %}"
-             style="position:relative">
-            Уведомления{% include "notifications/_badge.html" %}
-          </a>
-          <a href="{% url 'ticket_list' %}"
-             class="nav__link {% if request.resolver_match.url_name == 'ticket_list' or request.resolver_match.url_name == 'ticket_detail' or request.resolver_match.url_name == 'ticket_create' %}nav__link--active{% endif %}">
-            Тикеты
-          </a>
-          <a href="{% url 'friend_list' %}"
-             class="nav__link {% if request.resolver_match.url_name == 'friend_list' %}nav__link--active{% endif %}"
-             style="position:relative">
-            Друзья{% if social_unread %}<span style="position:absolute;top:-4px;right:-8px;background:var(--err);color:#fff;font-size:10px;min-width:16px;height:16px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 4px">{{ social_unread }}</span>{% endif %}
-          </a>
-          <a href="{% url 'profile' %}"
-             class="nav__link {% if request.resolver_match.url_name == 'profile' %}nav__link--active{% endif %}">
-            {{ user.username }}
-          </a>
-          {% if user.is_staff %}
-            <a href="{% url 'admin_panel' %}"
-               class="nav__link {% if request.resolver_match.url_name == 'admin_panel' %}nav__link--active{% endif %}">
-              Панель
-            </a>
-            <a href="{% url 'api_dashboard' %}"
-               class="nav__link {% if request.resolver_match.url_name == 'api_dashboard' %}nav__link--active{% endif %}">
-              API
-            </a>
-          {% endif %}
-          <form method="post" action="{% url 'logout' %}" style="display:inline">
+          <a href="{% url 'profile' %}" class="typewriter-nav__auth-link {% if current == 'profile' %}is-active{% endif %}">{{ user.username }}</a>
+          <form method="post" action="{% url 'logout' %}" class="typewriter-nav__logout">
             {% csrf_token %}
-            <button type="submit" class="nav__link" style="background:none;border:none;cursor:pointer;font-size:13px;padding:0;font-family:inherit">
-              Выйти
-            </button>
+            <button type="submit" class="typewriter-nav__auth-link">Выйти</button>
           </form>
         {% else %}
-          <a href="{% url 'login' %}" class="nav__link">Войти</a>
-          <a href="{% url 'register' %}" class="btn btn-primary btn-sm">Регистрация</a>
+          <a href="{% url 'login' %}" class="typewriter-nav__auth-link {% if current == 'login' %}is-active{% endif %}">Войти</a>
+          <a href="{% url 'register' %}" class="typewriter-nav__auth-link {% if current == 'register' %}is-active{% endif %}">Регистрация</a>
         {% endif %}
       </div>
     </div>
-  </div>
-</nav>
+  </nav>
 
-{# ── Django flash-сообщения (messages framework) ────────────────────────────── #}
-{# Тематика сайта (.toast в main.css). Каждый тост живёт 5с, прогресс-бар сверху. #}
-{# Наведение курсора ставит CSS-анимацию на паузу, клик по × или по телу закрывает. #}
+  <button class="typewriter-mobile-trigger"
+          type="button"
+          @click="navOpen = !navOpen"
+          :aria-expanded="navOpen.toString()"
+          aria-controls="site-navigation"
+          aria-label="Меню">
+    <span x-show="!navOpen">☰</span>
+    <span x-show="navOpen" x-cloak>×</span>
+  </button>
+
+  <div id="site-navigation"
+       class="typewriter-mobile-nav"
+       :class="{ 'typewriter-mobile-nav--open': navOpen }"
+       @click.self="navOpen = false"
+       x-cloak>
+    <div class="typewriter-mobile-nav__sheet">
+      <a href="{% url 'community' %}" class="typewriter-mobile-nav__link"><span data-type-label="Сообщество">Сообщество</span></a>
+      <a href="{% url 'catalog' %}" class="typewriter-mobile-nav__link"><span data-type-label="Каталог">Каталог</span></a>
+      <a href="{% url 'collections_list' %}" class="typewriter-mobile-nav__link"><span data-type-label="Подборки">Подборки</span></a>
+      <a href="{% url 'clubs_list' %}" class="typewriter-mobile-nav__link"><span data-type-label="Клубы">Клубы</span></a>
+      <a href="{% url 'leaderboard' %}" class="typewriter-mobile-nav__link"><span data-type-label="Топ">Топ</span></a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'notifications_list' %}" class="typewriter-mobile-nav__link typewriter-mobile-nav__badge-host"><span data-type-label="Уведомления">Уведомления</span>{% include "notifications/_badge.html" %}</a>
+        <a href="{% url 'ticket_list' %}" class="typewriter-mobile-nav__link"><span data-type-label="Тикеты">Тикеты</span></a>
+        <a href="{% url 'friend_list' %}" class="typewriter-mobile-nav__link typewriter-mobile-nav__badge-host"><span data-type-label="Друзья">Друзья</span>{% if social_unread %}<span class="typewriter-count-badge">{{ social_unread }}</span>{% endif %}</a>
+        <a href="{% url 'profile' %}" class="typewriter-mobile-nav__link"><span data-type-label="Профиль">Профиль</span></a>
+        {% if user.is_staff %}
+          <a href="{% url 'admin_panel' %}" class="typewriter-mobile-nav__link"><span data-type-label="Панель">Панель</span></a>
+          <a href="{% url 'ai_admin_dashboard' %}" class="typewriter-mobile-nav__link"><span data-type-label="AI-admin">AI-admin</span></a>
+          <a href="{% url 'api_dashboard' %}" class="typewriter-mobile-nav__link"><span data-type-label="API">API</span></a>
+        {% endif %}
+        <form method="post" action="{% url 'logout' %}" class="typewriter-mobile-nav__form">
+          {% csrf_token %}
+          <button type="submit" class="typewriter-mobile-nav__link"><span data-type-label="Выйти">Выйти</span></button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}" class="typewriter-mobile-nav__link"><span data-type-label="Войти">Войти</span></a>
+        <a href="{% url 'register' %}" class="typewriter-mobile-nav__link"><span data-type-label="Регистрация">Регистрация</span></a>
+      {% endif %}
+      <button type="button"
+              class="typewriter-mobile-nav__link typewriter-mobile-nav__theme"
+              onclick="(function(){var d=document.documentElement;var dark=d.getAttribute('data-theme')==='dark';if(dark){d.removeAttribute('data-theme');try{localStorage.setItem('theme','light')}catch(e){}}else{d.setAttribute('data-theme','dark');try{localStorage.setItem('theme','dark')}catch(e){}}})()">
+        <span data-type-label="Тема">Тема</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 {% if messages and not suppress_toasts %}
 <div class="toasts"
      x-data="{
@@ -125,9 +116,7 @@
          @click="dismiss(m.id)"
          role="status">
       <div class="toast__bar"></div>
-      <button type="button" class="toast__close"
-              aria-label="Закрыть"
-              @click.stop="dismiss(m.id)">&times;</button>
+      <button type="button" class="toast__close" aria-label="Закрыть" @click.stop="dismiss(m.id)">&times;</button>
       <div class="toast__body" x-text="m.text"></div>
     </div>
   </template>
@@ -136,44 +125,19 @@
 
 <main>{% block content %}{% endblock %}</main>
 
-{% if request.resolver_match.url_name == 'home' %}
-<footer class="site-footer">
-  <div class="wrap">
-    <div class="site-footer__inner">
-      <div class="site-footer__brand">
-        <a href="{% url 'home' %}" class="site-footer__logo">Строка</a>
-        <p class="site-footer__text">Книжные полки, клубы и разговоры вокруг прочитанного.</p>
-      </div>
-
-      <nav class="site-footer__nav" aria-label="Нижняя навигация">
-        <div class="site-footer__group">
-          <div class="site-footer__title">Разделы</div>
-          <a href="{% url 'catalog' %}" class="site-footer__link">Каталог</a>
-          <a href="{% url 'collections_list' %}" class="site-footer__link">Подборки</a>
-          <a href="{% url 'clubs_list' %}" class="site-footer__link">Клубы</a>
-          <a href="{% url 'leaderboard' %}" class="site-footer__link">Топ</a>
-        </div>
-        <div class="site-footer__group">
-          <div class="site-footer__title">Аккаунт</div>
-          {% if user.is_authenticated %}
-            <a href="{% url 'profile' %}" class="site-footer__link">Профиль</a>
-            <a href="{% url 'notifications_list' %}" class="site-footer__link">Уведомления</a>
-            <a href="{% url 'ticket_list' %}" class="site-footer__link">Тикеты</a>
-            <a href="{% url 'friend_list' %}" class="site-footer__link">Друзья</a>
-            {% if user.is_staff %}
-              <a href="{% url 'admin_panel' %}" class="site-footer__link">Панель</a>
-              <a href="{% url 'api_dashboard' %}" class="site-footer__link">API</a>
-            {% endif %}
-          {% else %}
-            <a href="{% url 'login' %}" class="site-footer__link">Войти</a>
-            <a href="{% url 'register' %}" class="site-footer__link">Регистрация</a>
-          {% endif %}
-        </div>
-      </nav>
+{% if current == 'home' %}
+<footer class="site-footer typewriter-footer">
+  <div class="site-footer__inner">
+    <div class="site-footer__brand">
+      <a href="{% url 'home' %}" class="site-footer__logo">Строка</a>
+      <p class="site-footer__text">Книжные полки, клубы и разговоры вокруг прочитанного.</p>
     </div>
-    <div class="site-footer__bottom">
-      <span>© {% now "Y" %} Строка</span>
-    </div>
+    <nav class="site-footer__nav" aria-label="Нижняя навигация">
+      <a href="{% url 'catalog' %}" class="site-footer__link">Каталог</a>
+      <a href="{% url 'community' %}" class="site-footer__link">Сообщество</a>
+      <a href="{% url 'collections_list' %}" class="site-footer__link">Подборки</a>
+      <a href="{% url 'clubs_list' %}" class="site-footer__link">Клубы</a>
+    </nav>
   </div>
 </footer>
 {% endif %}
@@ -182,25 +146,27 @@
 <script src="https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js" defer></script>
 {% if recaptcha_public_key %}<script src="https://www.google.com/recaptcha/api.js" async defer></script>{% endif %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener("DOMContentLoaded", function() {
   var obs = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) {
       if (e.isIntersecting) {
-        var cls = e.target.className;
-        if (cls.indexOf('reveal-scale') !== -1) e.target.classList.add('reveal-scale--visible');
-        else if (cls.indexOf('reveal-left') !== -1) e.target.classList.add('reveal-left--visible');
-        else if (cls.indexOf('stagger') !== -1) e.target.classList.add('stagger--visible');
-        else e.target.classList.add('reveal--visible');
+        if (e.target.className.indexOf("reveal-block") !== -1) e.target.classList.add("is-visible");
+        else if (e.target.className.indexOf("reveal-scale") !== -1) e.target.classList.add("reveal-scale--visible");
+        else if (e.target.className.indexOf("reveal-left") !== -1) e.target.classList.add("reveal-left--visible");
+        else if (e.target.className.indexOf("stagger") !== -1) e.target.classList.add("stagger--visible");
+        else e.target.classList.add("reveal--visible");
         obs.unobserve(e.target);
       }
     });
-  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  }, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" });
 
-  document.querySelectorAll('.reveal, .reveal-scale, .reveal-left, .stagger').forEach(function(el) {
+  document.querySelectorAll(".reveal, .reveal-scale, .reveal-left, .stagger, .reveal-block").forEach(function(el) {
     obs.observe(el);
   });
 });
 </script>
+<script src="{% static 'js/typewriter_integrated.js' %}?v={% now 'U' %}" defer></script>
 {% block extra_scripts %}{% endblock %}
 </body>
+{% endwith %}
 </html>

@@ -1,117 +1,234 @@
 {% extends "core/base.html" %}
-{% block title %}Строка — каталог книг{% endblock %}
+{% load static %}
+{% block title %}Строка — персональный поиск книг{% endblock %}
 
 {% block content %}
-{# Floating blobs + ink wash spots (viewport-fixed background) #}
-<div class="bg-blobs">
-  <div class="bg-blob bg-blob--1"></div>
-  <div class="bg-blob bg-blob--2"></div>
-  <div class="bg-blob bg-blob--3"></div>
-  <div class="ink-spot ink-spot--1"></div>
-  <div class="ink-spot ink-spot--2"></div>
-  <div class="ink-spot ink-spot--3"></div>
-  <div class="ink-spot ink-spot--4"></div>
-  <div class="ink-spot ink-spot--5"></div>
-</div>
+<div class="demo-home" x-data="{ hasQuery: {{ query|yesno:'true,false' }} }"
+     @htmx:after-request.window="hasQuery = (document.getElementById('main-search-input') && document.getElementById('main-search-input').value.trim().length > 0)">
 
-{% include "social/_ticker.html" %}
+  <section class="first-screen" id="top-screen" aria-labelledby="main-title">
+    <div class="first-screen__center">
+      <img class="hero-mark" src="{% static 'img/design/icon.svg' %}" alt="Строка">
+      <h1 id="main-title"><em>«Найдётся всё»</em></h1>
 
-<div class="wrap page ink-wash-container" style="padding-top:40px"
-     x-data="{ hasQuery: {{ query|yesno:'true,false' }} }"
-     @htmx:after-request.window="hasQuery = document.getElementById('search-input').value.trim().length > 0">
+      <div class="search-shell" id="search-shell">
+        <form method="get" action="{% url 'search' %}" id="search-form" class="main-search main-search--standard" autocomplete="off">
+          <label class="main-search__input-wrap" for="main-search-input">
+            <input id="main-search-input"
+                   type="text"
+                   name="q"
+                   value="{{ query|default:'' }}"
+                   autocomplete="off"
+                   autofocus
+                   aria-label="Поиск книг"
+                   hx-get="{% url 'search' %}"
+                   hx-trigger="input changed delay:400ms[event.target.value.trim().length > 0], search"
+                   hx-target="#search-results-htmx"
+                   hx-swap="innerHTML"
+                   hx-include="#search-form"
+                   hx-indicator="#search-spinner"
+                   @input="hasQuery = $el.value.trim().length > 0"
+                   @keydown.escape="document.getElementById('autocomplete-dropdown').innerHTML = ''">
+            <span class="typed-placeholder" id="typed-placeholder" aria-hidden="true"></span>
+          </label>
+          <button class="main-search__submit" type="submit" aria-label="Искать">→</button>
+          <span id="search-spinner" class="htmx-indicator main-search__spinner"><span class="spinner"></span></span>
+          <div hx-get="{% url 'search_autocomplete' %}"
+               hx-trigger="keyup from:#main-search-input delay:200ms"
+               hx-target="#autocomplete-dropdown"
+               hx-include="#search-form">
+          </div>
+          <div id="autocomplete-dropdown" class="tw-autocomplete"></div>
+        </form>
 
-  {# ── ПОИСК ──────────────────────────────────────────────────────────────── #}
-  <div style="max-width:520px;margin:0 auto 48px" x-data="{ aiMode: false }">
-    <h1 style="font-size:28px;text-align:center;margin-bottom:20px">Найти книгу</h1>
+        <form method="post" action="{% url 'ai_search' %}" id="ai-search-form" class="main-search main-search--ai" autocomplete="off">
+          {% csrf_token %}
+          <label class="main-search__input-wrap" for="ai-search-input">
+            <input id="ai-search-input"
+                   type="text"
+                   name="q"
+                   autocomplete="off"
+                   aria-label="AI-поиск книг"
+                   placeholder="Опишите книгу, настроение или задачу">
+          </label>
+          <button class="main-search__submit" type="submit" aria-label="Искать с AI">→</button>
+        </form>
 
-    {# Обычный поиск (GET + HTMX) #}
-    <form method="get" action="{% url 'search' %}" id="search-form" x-show="!aiMode">
-      <div x-data="{ open: false }" @click.outside="open = false" style="position:relative">
-        <div hx-get="{% url 'search_autocomplete' %}"
-             hx-trigger="keyup from:#search-input delay:200ms"
-             hx-target="#autocomplete-dropdown"
-             hx-include="#search-form"
-             @htmx:after-request="open = document.getElementById('autocomplete-dropdown').innerHTML.trim() !== ''">
-          <input id="search-input"
-                 class="form-input form-input--search"
-                 type="text" name="q"
-                 placeholder="Название, автор, жанр, описание..."
-                 value="{{ query|default:'' }}"
-                 autocomplete="off" autofocus
-                 hx-get="{% url 'search' %}"
-                 hx-trigger="input changed delay:400ms[event.target.value.trim().length > 0], search"
-                 hx-target="#search-results-htmx"
-                 hx-swap="innerHTML"
-                 hx-include="#search-form"
-                 hx-indicator="#search-spinner"
-                 @input="hasQuery = $el.value.trim().length > 0"
-                 @focus="if ($el.value.length >= 2) open = true"
-                 @keydown.escape="open = false">
-          <span id="search-spinner" class="htmx-indicator"
-                style="position:absolute;right:12px;top:50%;transform:translateY(-50%)">
-            <span class="spinner"></span>
-          </span>
-        </div>
-        <div id="autocomplete-dropdown" x-show="open" x-transition x-cloak
-             style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;
-                    background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
-                    box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden">
+        <div class="dialog-panel" id="dialog-panel" aria-hidden="true">
+          <div class="dialog-panel__head">
+            <button type="button" class="dialog-panel__back" id="dialog-close" aria-label="Закрыть диалог">←</button>
+            <div class="dialog-panel__ai-avatar">AI</div>
+            <div>
+              <strong>Диалог</strong>
+              <span>персональный подбор книг</span>
+            </div>
+            {% if user.is_authenticated %}
+              <button type="button"
+                      class="dialog-panel__clear"
+                      hx-post="{% url 'discovery_clear' %}"
+                      hx-target="#discovery-messages"
+                      hx-swap="innerHTML"
+                      hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+                очистить
+              </button>
+            {% endif %}
+          </div>
+
+          <div class="dialog-panel__thread" id="discovery-messages">
+            {% if user.is_authenticated %}
+              {% if discovery_messages %}
+                {% for msg in discovery_messages %}
+                  <div class="message-row message-row--{{ msg.role }}">
+                    {% if msg.role == "user" %}
+                      {% include "users/_avatar.html" with person=user avatar_class="message-avatar message-avatar--user" %}
+                    {% else %}
+                      <div class="message-avatar message-avatar--ai">AI</div>
+                    {% endif %}
+                    <div class="message-stack">
+                      <p class="message message--{{ msg.role }}">{{ msg.content|linebreaksbr }}</p>
+                      {% if msg.role == "assistant" and msg.books %}
+                        <div class="attached-books">
+                          {% for item in msg.books %}
+                            {% include "ai_chat/_book_card.html" with book=item.book reason=item.reason price=item.price message_id=msg.msg_id %}
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                      {% if msg.role == "assistant" and msg.followup_options %}
+                        <div class="dialog-followups">
+                          {% for opt in msg.followup_options %}
+                            <button type="button" class="disc-chip" data-prompt="{{ opt.prompt }}">{{ opt.label }}</button>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="message-row message-row--assistant">
+                  <div class="message-avatar message-avatar--ai">AI</div>
+                  <div class="message-stack">
+                    <p class="message message--assistant">Опишите, какую книгу ищете: настроение, длину, жанр, похожую книгу или ситуацию.</p>
+                    <div class="dialog-followups">
+                      <button type="button" class="disc-chip" data-prompt="Короткая книга на один вечер, спокойная и умная">на один вечер</button>
+                      <button type="button" class="disc-chip" data-prompt="Книга после тяжёлой недели, без лишней жестокости">после тяжёлой недели</button>
+                      <button type="button" class="disc-chip" data-prompt="Классика, которую стоит прочитать первой">классика для старта</button>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+            {% else %}
+              <div class="message-row message-row--assistant">
+                <div class="message-avatar message-avatar--ai">AI</div>
+                <div class="message-stack">
+                  <p class="message message--assistant">Диалог с AI доступен после входа. Обычный поиск работает сразу.</p>
+                  <a href="{% url 'login' %}?next={{ request.path|urlencode }}" class="dialog-login-link">Войти</a>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          {% if user.is_authenticated %}
+          <form id="discovery-form"
+                class="dialog-panel__form"
+                hx-post="{% url 'discovery_send' %}"
+                hx-target="#discovery-messages"
+                hx-swap="beforeend"
+                hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+                hx-indicator="#disc-spinner"
+                hx-on::after-request="this.querySelector('input[name=message]').value=''; document.getElementById('discovery-messages').scrollTop = document.getElementById('discovery-messages').scrollHeight;">
+            <input id="dialog-input" type="text" name="message" autocomplete="off" placeholder="А если хочется чуть больше сюжета?" required>
+            <button type="button" class="dialog-voice" id="dialog-voice" aria-label="Голосовой ввод">◦</button>
+            <button type="submit" class="dialog-send" id="dialog-send" aria-label="Отправить">→</button>
+            <span id="disc-spinner" class="htmx-indicator dialog-spinner">…</span>
+          </form>
+          {% else %}
+          <div class="dialog-panel__form dialog-panel__form--locked">
+            <a href="{% url 'login' %}?next={{ request.path|urlencode }}">Войти, чтобы начать диалог</a>
+          </div>
+          {% endif %}
         </div>
       </div>
-    </form>
 
-    {# AI-поиск (POST → redirect на каталог) #}
-    <form method="post" action="{% url 'ai_search' %}" id="ai-search-form" x-show="aiMode" x-cloak>
-      {% csrf_token %}
-      <input class="form-input form-input--search"
-             type="text" name="q"
-             placeholder="Опишите, что хотите почитать..."
-             autocomplete="off">
-      <div style="text-align:center;margin-top:12px">
-        <button type="submit" class="btn btn-primary" style="font-size:13px;min-width:180px">
-          Найти с помощью AI
-        </button>
-      </div>
-    </form>
-
-    {# Toggle #}
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px">
-      <span style="font-size:12px;color:var(--muted)" x-show="aiMode" x-cloak>AI разберёт запрос на фильтры</span>
-      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--muted);user-select:none">
-        <span>AI-поиск</span>
-        <div style="position:relative;width:36px;height:20px" @click="aiMode = !aiMode">
-          <div :style="'width:36px;height:20px;border-radius:10px;transition:background .2s;background:' + (aiMode ? 'var(--accent)' : 'var(--border)')"></div>
-          <div :style="'position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);left:' + (aiMode ? '18px' : '2px')"></div>
+      <div class="search-actions" aria-label="Действия поиска">
+        <div class="search-actions__left">
+          <button type="button" id="settings-trigger" data-open-modal="settings-modal" aria-expanded="false">Настройки</button>
         </div>
-      </label>
-    </div>
-  </div>
+        <button type="button" id="history-trigger" data-open-modal="history-modal" aria-expanded="false">История запросов</button>
+      </div>
 
-  {# ── AI DISCOVERY ────────────────────────────────────────────────────────── #}
-  {% if user.is_authenticated %}
-  <div style="text-align:center;margin-bottom:32px">
-    <a href="{% url 'discovery_chat' %}" class="btn btn-secondary"
-       style="font-size:13px;gap:6px;display:inline-flex;align-items:center">
-      ✨ Не знаете, что почитать? Спросите AI
-    </a>
-  </div>
-  {% endif %}
-
-  {# ── РЕЗУЛЬТАТЫ ПОИСКА (HTMX) #}
-  <div id="search-results">
-    <div id="search-results-htmx" x-show="hasQuery">
-      {% if query %}{% include "search/_results.html" %}{% endif %}
+      <div class="desktop-text-panels" aria-hidden="true">
+        <div class="desktop-text-panel desktop-text-panel--settings" id="desktop-settings-panel" aria-hidden="true">
+          <button type="button" class="desktop-mode" id="desktop-ai-mode" data-typewrite="Найти с помощью ИИ">
+            <span>Найти с помощью ИИ</span>
+          </button>
+          <button type="button" class="desktop-mode" id="desktop-dialog-mode" data-typewrite="Диалог">
+            <span>Диалог</span>
+          </button>
+        </div>
+        <div class="desktop-text-panel desktop-text-panel--history" id="desktop-history-panel" aria-hidden="true">
+          {% if search_history %}
+            {% for item in search_history %}
+              <button type="button" data-typewrite="{{ item }}"><span>{{ item }}</span></button>
+            {% endfor %}
+          {% else %}
+            <button type="button" data-local-history-empty data-typewrite="История появится после первых запросов"><span>История появится после первых запросов</span></button>
+          {% endif %}
+          <div data-local-history></div>
+        </div>
+      </div>
     </div>
-    <div x-show="!hasQuery">
-      {% include "core/_home_sections.html" %}
-    </div>
-  </div>
 
+    <button class="scroll-cue" id="scroll-cue" type="button" aria-label="Промотать вниз">↓</button>
+  </section>
+
+  <section class="home-stream" id="home-stream">
+    {% include "social/_ticker.html" %}
+    <div id="search-results" class="typewriter-search-results">
+      <div id="search-results-htmx" x-show="hasQuery" x-cloak>
+        {% if query %}{% include "search/_results.html" %}{% endif %}
+      </div>
+      <div x-show="!hasQuery">
+        {% include "core/_home_sections_typewriter.html" %}
+      </div>
+    </div>
+  </section>
 </div>
 
-{# ── ОНБОРДИНГ-МОДАЛ (только авторизованным при первом входе) ─────────────── #}
+<div class="modal" id="settings-modal" aria-hidden="true">
+  <div class="modal__backdrop" data-close-modal></div>
+  <section class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <header class="modal__head">
+      <h2 id="settings-title">Настройки</h2>
+      <button type="button" data-close-modal aria-label="Закрыть">×</button>
+    </header>
+    <div class="modal__body">
+      <button type="button" class="settings-option" id="ai-mode-choice" aria-pressed="false">Найти с помощью ИИ</button>
+      <button type="button" class="settings-option" id="dialog-toggle" aria-pressed="false">Диалог</button>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="history-modal" aria-hidden="true">
+  <div class="modal__backdrop" data-close-modal></div>
+  <section class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="history-title">
+    <header class="modal__head">
+      <h2 id="history-title">История запросов</h2>
+      <button type="button" data-close-modal aria-label="Закрыть">×</button>
+    </header>
+    <div class="modal__body history-list">
+      {% if search_history %}
+        {% for item in search_history %}
+          <button type="button" data-history-query="{{ item }}">{{ item }}</button>
+        {% endfor %}
+      {% else %}
+        <p class="history-empty">История появится после первых запросов.</p>
+      {% endif %}
+      <div data-local-history-mobile></div>
+    </div>
+  </section>
+</div>
+
 {% if user.is_authenticated and not user.profile.onboarding_done %}
 {% include "core/_onboarding_modal.html" %}
 {% endif %}
-
 {% endblock %}

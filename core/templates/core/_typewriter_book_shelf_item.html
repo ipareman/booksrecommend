@@ -1,0 +1,11 @@
+<a href="{% url 'book_detail' book.pk %}">
+  <span class="cover">
+    {% if book.cover_image %}
+      <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" loading="lazy">
+    {% else %}
+      {{ book.title|truncatechars:26 }}
+    {% endif %}
+  </span>
+  <strong>{{ book.title }}</strong>
+  <em>{% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% empty %}{% if book.publication_year %}{{ book.publication_year }}{% endif %}{% endfor %}</em>
+</a>

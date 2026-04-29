@@ -1,0 +1,236 @@
+{% if book_of_week %}
+<section class="home-section home-section--week reveal-block">
+  <div class="section-title-row">
+    <h2>Книга недели</h2>
+    <a href="{% url 'book_detail' book_of_week.pk %}">подробнее</a>
+  </div>
+  <div class="week-layout">
+    <a class="cover cover--large" href="{% url 'book_detail' book_of_week.pk %}">
+      {% if book_of_week.cover_image %}
+        <img src="{{ book_of_week.cover_image.url }}" alt="{{ book_of_week.title }}" loading="lazy">
+      {% else %}
+        <span>{{ book_of_week.title|truncatechars:28 }}</span>
+      {% endif %}
+    </a>
+    <div class="ledger-table">
+      <div><span>Название</span><strong>{{ book_of_week.title }}</strong></div>
+      <div><span>Автор</span><strong>{% for a in book_of_week.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% empty %}не указан{% endfor %}</strong></div>
+      {% if book_of_week.description %}
+        <div><span>Почему сейчас</span><strong>{{ book_of_week.description|truncatewords:24 }}</strong></div>
+      {% endif %}
+      <div>
+        <span>Метки</span>
+        <strong>
+          {% if book_of_week.avg_rating %}★ {{ book_of_week.avg_rating|floatformat:1 }}{% endif %}
+          {% for g in book_of_week.genres.all|slice:":3" %}{% if book_of_week.avg_rating or not forloop.first %} · {% endif %}{{ g.name }}{% endfor %}
+        </strong>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if mood_tags %}
+<section class="home-section reveal-block">
+  <div class="section-title-row">
+    <h2>Настроения</h2>
+    <a href="{% url 'catalog' %}">в каталог</a>
+  </div>
+  <div class="mood-lines">
+    {% for mood in mood_tags %}
+      <a href="{% url 'catalog' %}?mood={{ mood.pk }}">{{ mood.name }}</a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if personal_recs %}
+<section class="home-section reveal-block">
+  <div class="section-title-row">
+    <h2>Рекомендовано для вас</h2>
+    <a href="{% url 'profile' %}">профиль</a>
+  </div>
+  <div class="book-shelf">
+    {% for book in personal_recs|slice:":4" %}
+      {% include "core/_typewriter_book_shelf_item.html" with book=book %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if feed_events %}
+<section class="home-section reveal-block">
+  <div class="section-title-row">
+    <h2>Что читают</h2>
+    <a href="{% url 'activity_feed' %}">лента</a>
+  </div>
+  <div class="activity-ledger">
+    {% for event in feed_events|slice:":6" %}
+      <a href="{% if event.book %}{% url 'book_detail' event.book.pk %}{% else %}{% url 'activity_feed' %}{% endif %}">
+        <span>{{ event.user.username }}</span>
+        <strong>
+          {% if event.event_type == "review" and event.book %}
+            написал(а) отзыв на «{{ event.book.title }}»
+          {% elif event.event_type == "join_club" %}
+            вступил(а) в клуб{% if event.metadata.club_name %} «{{ event.metadata.club_name }}»{% endif %}
+          {% elif event.event_type == "new_friendship" and event.target_user %}
+            теперь читает рядом с {{ event.target_user.username }}
+          {% else %}
+            новое действие в сообществе
+          {% endif %}
+        </strong>
+        <em>сейчас</em>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="home-section reveal-block">
+  <div class="section-title-row">
+    <h2>Популярное</h2>
+    <a href="{% url 'catalog' %}?ordering=-rating_count">все</a>
+  </div>
+  {% if popular %}
+  <div class="book-shelf book-shelf--wide">
+    {% for book in popular|slice:":5" %}
+      {% include "core/_typewriter_book_shelf_item.html" with book=book %}
+    {% endfor %}
+  </div>
+  {% else %}
+    <p class="empty">Книги ещё не добавлены.</p>
+  {% endif %}
+</section>
+
+{% if home_collections %}
+<section class="home-section reveal-block">
+  <div class="section-title-row">
+    <h2>Подборки</h2>
+    <a href="{% url 'collections_list' %}">все</a>
+  </div>
+  <div class="collection-grid">
+    {% for item in home_collections %}
+      <a href="{% url 'collection_detail' item.obj.pk %}">
+        <span>{% if forloop.counter < 10 %}0{% endif %}{{ forloop.counter }}</span>
+        <strong>{{ item.obj.title }}</strong>
+        <em>{{ item.obj.num_books }} книг</em>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if home_series %}
+<section class="home-section reveal-block">
+  <div class="section-title-row">
+    <h2>Серии книг</h2>
+    <a href="{% url 'catalog' %}">смотреть</a>
+  </div>
+  <div class="series-ledger">
+    {% for item in home_series %}
+      <a href="{% url 'series_detail' item.obj.pk %}">
+        <strong>{{ item.obj.name }}</strong>
+        <span>{{ item.num_books }} книг</span>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if home_quotes %}
+<section class="home-section home-section--quote reveal-block">
+  <div class="section-title-row">
+    <h2>Цитаты</h2>
+    <a href="{% url 'catalog' %}">ещё</a>
+  </div>
+  {% for quote in home_quotes %}
+    {% if forloop.first %}
+      <blockquote>
+        <p>{{ quote.text }}</p>
+        <footer>«{{ quote.book.title }}»{% for a in quote.book.authors.all %}{% if forloop.first %}, {{ a.name }}{% endif %}{% endfor %}</footer>
+      </blockquote>
+    {% endif %}
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="home-section reveal-block">
+  <div class="section-title-row">
+    <h2>Новинки</h2>
+    <a href="{% url 'catalog' %}?ordering=-publication_year">все</a>
+  </div>
+  {% if newest %}
+  <div class="book-shelf">
+    {% for book in newest|slice:":4" %}
+      {% include "core/_typewriter_book_shelf_item.html" with book=book %}
+    {% endfor %}
+  </div>
+  {% else %}
+    <p class="empty">Книги ещё не добавлены.</p>
+  {% endif %}
+</section>
+
+{% if home_clubs %}
+<section class="home-section reveal-block">
+  <div class="section-title-row">
+    <h2>Книжные клубы</h2>
+    <a href="{% url 'clubs_list' %}">вступить</a>
+  </div>
+  <div class="club-grid">
+    {% for item in home_clubs|slice:":3" %}
+      <a href="{% url 'club_detail' item.obj.pk %}">
+        <strong>{{ item.obj.name }}</strong>
+        <span>{% if item.current_book %}сейчас читают «{{ item.current_book.book.title }}»{% else %}{{ item.obj.num_members }} участников{% endif %}</span>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if home_critiques %}
+<section class="home-section reveal-block">
+  <div class="section-title-row">
+    <h2>Свежие рецензии</h2>
+    <a href="{% url 'activity_feed' %}">читать</a>
+  </div>
+  <div class="review-ledger">
+    {% for critique in home_critiques|slice:":2" %}
+      <a href="{% url 'critique_detail' critique.pk %}">
+        <span>Рецензия</span>
+        <strong>{{ critique.title|default:critique.book.title|truncatewords:18 }}</strong>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if home_reviews %}
+<section class="home-section reveal-block">
+  <div class="section-title-row">
+    <h2>Свежие отзывы</h2>
+    <a href="{% url 'activity_feed' %}">все</a>
+  </div>
+  <div class="review-ledger review-ledger--short">
+    {% for review in home_reviews|slice:":3" %}
+      <a href="{% url 'book_detail' review.book.pk %}">
+        <span>{% if review.rating %}{{ review.rating }}/5{% else %}отзыв{% endif %}</span>
+        <strong>{{ review.text|truncatewords:24 }}</strong>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if platform_stats %}
+<section class="home-section home-section--stats reveal-block">
+  <div class="section-title-row">
+    <h2>Статистика</h2>
+  </div>
+  <div class="stats-row">
+    <div><strong>{{ platform_stats.books }}</strong><span>книг</span></div>
+    <div><strong>{{ platform_stats.reviews }}</strong><span>отзывов</span></div>
+    <div><strong>{{ platform_stats.clubs }}</strong><span>клубов</span></div>
+    <div><strong>{{ platform_stats.collections }}</strong><span>подборок</span></div>
+  </div>
+</section>
+{% endif %}

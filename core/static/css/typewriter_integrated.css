@@ -1,0 +1,434 @@
+[x-cloak] {
+  display: none !important;
+}
+
+:root[data-theme="dark"] {
+  --paper: #20201d;
+  --ink: #ecebe4;
+  --muted: #b8b6ad;
+  --soft: #6d6a60;
+  --line: rgba(236, 235, 228, .25);
+  --line-strong: rgba(236, 235, 228, .62);
+  --cover: #5c5b55;
+  --cover-light: #33332f;
+}
+
+:root[data-theme="dark"] body {
+  background:
+    linear-gradient(rgba(32, 32, 29, .88), rgba(32, 32, 29, .92)),
+    url("../img/design/paper-soft.jpg") center / cover fixed;
+}
+
+.typewriter-real-page main {
+  position: relative;
+  z-index: 1;
+}
+
+.typewriter-nav__auth-link,
+.typewriter-nav__logout button,
+.typewriter-nav__theme {
+  padding: 0 0 5px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  line-height: 1;
+  transition: color .18s ease, border-color .18s ease;
+}
+
+.typewriter-nav__auth-link:hover,
+.typewriter-nav__logout button:hover,
+.typewriter-nav__theme:hover,
+.typewriter-nav__auth-link.is-active {
+  color: var(--ink);
+  border-color: currentColor;
+}
+
+.typewriter-nav__logout {
+  margin: 0;
+}
+
+.typewriter-nav__theme,
+.typewriter-nav__auth-link,
+.typewriter-nav__logout {
+  animation: navEnterRight .52s cubic-bezier(.2, .72, .18, 1) both;
+}
+
+.typewriter-nav__auth > *:nth-child(1) { animation-delay: .08s; }
+.typewriter-nav__auth > *:nth-child(2) { animation-delay: .12s; }
+.typewriter-nav__auth > *:nth-child(3) { animation-delay: .16s; }
+.typewriter-nav__auth > *:nth-child(4) { animation-delay: .20s; }
+.typewriter-nav__auth > *:nth-child(5) { animation-delay: .24s; }
+
+.typewriter-nav--solid .typewriter-nav__logo {
+  animation-delay: 1s;
+}
+
+.typewriter-nav__logout button,
+.typewriter-nav__theme {
+  font: inherit;
+  cursor: pointer;
+}
+
+.typewriter-nav__theme {
+  width: 24px;
+  text-align: center;
+}
+
+.typewriter-mobile-trigger,
+.typewriter-mobile-nav {
+  display: none;
+}
+
+.typewriter-count-badge,
+.typewriter-mobile-nav__badge-host #notif-badge > span {
+  position: static !important;
+  min-width: 18px;
+  height: 18px;
+  display: inline-grid !important;
+  place-items: center;
+  margin-left: 8px;
+  padding: 0 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--ink) !important;
+  font-size: 12px;
+}
+
+.main-search--ai {
+  display: none;
+}
+
+.search-shell.is-ai .main-search--standard {
+  display: none;
+}
+
+.search-shell.is-ai .main-search--ai {
+  display: grid;
+}
+
+.main-search__spinner,
+.dialog-spinner {
+  align-self: end;
+  padding: 0 0 14px;
+  color: var(--muted);
+}
+
+.htmx-indicator {
+  opacity: 0;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  opacity: 1;
+}
+
+.tw-autocomplete {
+  position: absolute;
+  left: 0;
+  right: 44px;
+  top: 62px;
+  z-index: 20;
+  display: grid;
+  border-top: 1px solid var(--line);
+  background:
+    linear-gradient(rgba(250, 250, 247, .94), rgba(250, 250, 247, .96)),
+    url("../img/design/paper-soft.jpg") center / cover;
+}
+
+.tw-autocomplete:empty {
+  display: none;
+}
+
+.tw-autocomplete a,
+.tw-autocomplete button,
+.tw-autocomplete .autocomplete-item {
+  display: block;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  text-align: left;
+}
+
+.tw-autocomplete a:hover,
+.tw-autocomplete button:hover,
+.tw-autocomplete .autocomplete-item:hover {
+  color: var(--ink);
+}
+
+.cover {
+  overflow: hidden;
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.empty,
+.history-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.ticker-wrap {
+  margin: 0 0 42px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+  color: var(--muted);
+}
+
+.ticker-row,
+.ticker-inner,
+.ticker-set {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.ticker-event a {
+  color: var(--ink);
+}
+
+.ticker-dot::after {
+  content: " / ";
+  padding: 0 18px;
+  color: var(--soft);
+}
+
+.typewriter-search-results .results-grid,
+.typewriter-search-results .search-results,
+.typewriter-search-results .book-grid {
+  margin-top: 30px;
+}
+
+.dialog-panel__clear {
+  margin-left: auto;
+  margin-bottom: 0 !important;
+}
+
+.dialog-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.disc-chip,
+.dialog-login-link,
+.dialog-panel__form--locked a {
+  display: inline-block;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+
+.disc-chip:hover,
+.dialog-login-link:hover,
+.dialog-panel__form--locked a:hover {
+  color: var(--ink);
+  border-bottom-color: var(--line-strong);
+}
+
+.dialog-panel__form--locked {
+  display: block;
+  padding: 18px 0;
+}
+
+.dialog-panel .user-avatar.message-avatar,
+.dialog-panel .message-avatar {
+  overflow: hidden;
+  border-radius: 0;
+}
+
+.dialog-panel .user-avatar.message-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dialog-panel .ai-chat-row {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 10px !important;
+  margin-bottom: 12px !important;
+}
+
+.dialog-panel .ai-chat-row--user {
+  flex-direction: row-reverse !important;
+}
+
+.dialog-panel .ai-chat-row--user > div[style],
+.dialog-panel .ai-chat-row--assistant > div > div[style]:first-child {
+  padding: 12px 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--ink) !important;
+  font-size: 17px !important;
+  line-height: 1.45 !important;
+}
+
+.dialog-panel .ai-chat-row--assistant > div {
+  min-width: 0;
+}
+
+.dialog-panel .chat-book-card {
+  max-width: none !important;
+  padding: 10px 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--line) !important;
+  border-bottom: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.dialog-panel .chat-book-card a {
+  color: var(--ink) !important;
+}
+
+.dialog-panel .chat-book-card img,
+.dialog-panel .chat-book-card a > div:first-child {
+  border-radius: 0 !important;
+}
+
+.typewriter-footer {
+  width: min(1180px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 34px 0 56px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.typewriter-footer .site-footer__inner {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.typewriter-footer .site-footer__logo,
+.typewriter-footer .site-footer__link:hover {
+  color: var(--ink);
+}
+
+.typewriter-footer .site-footer__nav {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 920px) {
+  .community-demo-page .typewriter-nav {
+    display: none;
+  }
+
+  .typewriter-mobile-trigger {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 60;
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 0;
+    border-bottom: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+  }
+
+  .typewriter-mobile-nav {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    display: block;
+    pointer-events: none;
+  }
+
+  .typewriter-mobile-nav::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(41, 41, 32, .22);
+    opacity: 0;
+    transition: opacity .22s ease;
+  }
+
+  .typewriter-mobile-nav__sheet {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(320px, 84vw);
+    display: grid;
+    align-content: start;
+    gap: 0;
+    padding: 76px 24px 24px;
+    border-right: 1px solid var(--line-strong);
+    background:
+      linear-gradient(rgba(250, 250, 247, .94), rgba(250, 250, 247, .97)),
+      url("../img/design/paper-soft.jpg") center / cover;
+    transform: translateX(-100%);
+    transition: transform .34s cubic-bezier(.2, .72, .18, 1);
+  }
+
+  .typewriter-mobile-nav--open {
+    pointer-events: auto;
+  }
+
+  .typewriter-mobile-nav--open::before {
+    opacity: 1;
+  }
+
+  .typewriter-mobile-nav--open .typewriter-mobile-nav__sheet {
+    transform: translateX(0);
+  }
+
+  .typewriter-mobile-nav__link,
+  .typewriter-mobile-nav__form button {
+    width: 100%;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 12px 0;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+  }
+
+  .typewriter-mobile-nav__form {
+    margin: 0;
+  }
+
+  .typewriter-mobile-nav__theme {
+    cursor: pointer;
+  }
+}
+
+@media (max-width: 680px) {
+  .tw-autocomplete {
+    right: 34px;
+  }
+
+  .typewriter-footer .site-footer__inner {
+    display: grid;
+  }
+
+  .activity-ledger a,
+  .collection-grid a,
+  .review-ledger a,
+  .review-ledger--short a {
+    gap: 6px;
+  }
+}

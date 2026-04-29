@@ -3,6 +3,46 @@ from django.db.models import Count, Q
 from books.models import Book, Genre, Author, MoodTag, Quote, Series
 
 
+def _unique_recent_queries(queryset, limit=15):
+    seen = set()
+    out = []
+    for item in queryset:
+        query = (getattr(item, "query", "") or "").strip()
+        key = query.lower()
+        if not query or key in seen:
+            continue
+        seen.add(key)
+        out.append(query)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _discovery_messages_for_home(user):
+    if not user.is_authenticated:
+        return []
+    try:
+        from ai_chat.models import DiscoveryChat
+        from ai_chat.views import _hydrate_persisted_message
+    except Exception:
+        return []
+
+    chat = DiscoveryChat.objects.filter(user=user).first()
+    if not chat:
+        return []
+
+    messages = []
+    for msg in chat.messages.order_by("created_at")[:20]:
+        messages.append({
+            "role": msg.role,
+            "content": msg.content,
+            "msg_id": msg.pk,
+            "followup_options": msg.followup_options if msg.role == "assistant" else [],
+            "books": _hydrate_persisted_message(msg) if msg.role == "assistant" else [],
+        })
+    return messages
+
+
 def _book_of_the_week():
     """Книга с наибольшим числом добавлений в списки за последние 7 дней."""
     from django.utils import timezone
@@ -146,10 +186,16 @@ def home(request):
     # Персональные рекомендации для авторизованных пользователей
     if request.user.is_authenticated:
         from books.recommendations import recommended_for_user
+        from search.models import SearchHistory
         try:
             ctx["personal_recs"] = recommended_for_user(request.user, limit=6)
         except Exception:
             ctx["personal_recs"] = []
+
+        ctx["search_history"] = _unique_recent_queries(
+            SearchHistory.objects.filter(user=request.user).only("query").order_by("-created_at")[:60]
+        )
+        ctx["discovery_messages"] = _discovery_messages_for_home(request.user)
 
         # Лента активности (последние 10 событий для главной)
         from social.models import ActivityEvent
@@ -182,6 +228,32 @@ def home(request):
             )
 
     return render(request, "core/home.html", ctx)
+
+
+def community(request):
+    stats = {}
+    if request.user.is_authenticated:
+        try:
+            from tickets.models import Ticket
+            from social.models import BookRecommendation, Friendship
+            from curated.models import Collection
+            from clubs.models import BookClub
+
+            stats = {
+                "tickets": Ticket.objects.exclude(status=Ticket.STATUS_CLOSED).count()
+                if request.user.is_staff
+                else Ticket.objects.filter(user=request.user).exclude(status=Ticket.STATUS_CLOSED).count(),
+                "recommendations": BookRecommendation.objects.filter(to_user=request.user, is_read=False).count(),
+                "friends": Friendship.objects.filter(status="accepted").filter(
+                    Q(from_user=request.user) | Q(to_user=request.user)
+                ).count(),
+                "collections": Collection.objects.filter(is_published=True).count(),
+                "clubs": BookClub.objects.filter(is_public=True).count(),
+            }
+        except Exception:
+            stats = {}
+
+    return render(request, "core/community.html", {"community_stats": stats})
 
 
 def design_demos(request):

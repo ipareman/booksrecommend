@@ -12,6 +12,40 @@
         if (!saved && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) saved = "dark";
         if (saved === "dark") document.documentElement.setAttribute("data-theme", "dark");
       } catch (e) {}
+      window.typewriterSetTheme = function (theme) {
+        var d = document.documentElement;
+        var oldTheme = d.getAttribute("data-theme") === "dark" ? "dark" : "light";
+        if (oldTheme === theme) {
+          if (theme === "dark") d.setAttribute("data-theme", "dark");
+          else d.removeAttribute("data-theme");
+          try { localStorage.setItem("theme", theme); } catch (e) {}
+          return;
+        }
+        d.classList.add("theme-is-changing");
+        d.classList.remove("theme-fade-from-light", "theme-fade-from-dark", "theme-fade-active");
+        d.classList.add(oldTheme === "dark" ? "theme-fade-from-dark" : "theme-fade-from-light");
+        void d.offsetHeight;
+        if (theme === "dark") {
+          d.setAttribute("data-theme", "dark");
+          try { localStorage.setItem("theme", "dark"); } catch (e) {}
+        } else {
+          d.removeAttribute("data-theme");
+          try { localStorage.setItem("theme", "light"); } catch (e) {}
+        }
+        window.requestAnimationFrame(function () {
+          window.requestAnimationFrame(function () {
+            d.classList.add("theme-fade-active");
+          });
+        });
+        window.clearTimeout(window.__themeTransitionTimer);
+        window.__themeTransitionTimer = window.setTimeout(function () {
+          d.classList.remove("theme-is-changing", "theme-fade-from-light", "theme-fade-from-dark", "theme-fade-active");
+        }, 680);
+      };
+      window.typewriterToggleTheme = function () {
+        var d = document.documentElement;
+        window.typewriterSetTheme(d.getAttribute("data-theme") === "dark" ? "light" : "dark");
+      };
     })();
   </script>
   <link rel="stylesheet" href="{% static 'css/main.css' %}?v={% now 'U' %}">
@@ -39,7 +73,7 @@
                 class="typewriter-nav__theme"
                 aria-label="Переключить тему"
                 title="Переключить тему"
-                onclick="(function(){var d=document.documentElement;var dark=d.getAttribute('data-theme')==='dark';if(dark){d.removeAttribute('data-theme');try{localStorage.setItem('theme','light')}catch(e){}}else{d.setAttribute('data-theme','dark');try{localStorage.setItem('theme','dark')}catch(e){}}})()">◐</button>
+                onclick="window.typewriterToggleTheme && window.typewriterToggleTheme()">◐</button>
         {% if user.is_authenticated %}
           <a href="{% url 'profile' %}" class="typewriter-nav__auth-link {% if current_url == 'profile' %}is-active{% endif %}">{{ user.username }}</a>
           <form method="post" action="{% url 'logout' %}" class="typewriter-nav__logout">
@@ -98,7 +132,7 @@
       {% endif %}
       <button type="button"
               class="typewriter-mobile-nav__link typewriter-mobile-nav__theme"
-              onclick="(function(){var d=document.documentElement;var dark=d.getAttribute('data-theme')==='dark';if(dark){d.removeAttribute('data-theme');try{localStorage.setItem('theme','light')}catch(e){}}else{d.setAttribute('data-theme','dark');try{localStorage.setItem('theme','dark')}catch(e){}}})()">
+              onclick="window.typewriterToggleTheme && window.typewriterToggleTheme()">
         <span data-type-label="Тема">Тема</span>
       </button>
     </div>

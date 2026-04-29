@@ -57,6 +57,76 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+.theme-is-changing body,
+.theme-is-changing main,
+.theme-is-changing nav,
+.theme-is-changing header,
+.theme-is-changing footer,
+.theme-is-changing section,
+.theme-is-changing article,
+.theme-is-changing aside,
+.theme-is-changing a,
+.theme-is-changing button,
+.theme-is-changing input,
+.theme-is-changing textarea,
+.theme-is-changing select,
+.theme-is-changing [class] {
+  transition:
+    background-color .42s ease,
+    background .42s ease,
+    color .42s ease,
+    border-color .42s ease,
+    box-shadow .42s ease,
+    opacity .42s ease;
+}
+
+.theme-fade-from-light::before,
+.theme-fade-from-dark::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity .58s ease;
+}
+
+.theme-fade-from-light::before {
+  background: #ffffff;
+}
+
+.theme-fade-from-dark::before {
+  background: #0f1115;
+}
+
+.theme-fade-active::before {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-is-changing body,
+  .theme-is-changing main,
+  .theme-is-changing nav,
+  .theme-is-changing header,
+  .theme-is-changing footer,
+  .theme-is-changing section,
+  .theme-is-changing article,
+  .theme-is-changing aside,
+  .theme-is-changing a,
+  .theme-is-changing button,
+  .theme-is-changing input,
+  .theme-is-changing textarea,
+  .theme-is-changing select,
+  .theme-is-changing [class] {
+    transition-duration: .01ms;
+  }
+
+  .theme-fade-from-light::before,
+  .theme-fade-from-dark::before {
+    transition-duration: .01ms;
+  }
+}
 ::selection { background: var(--ink); color: var(--bg); }
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }

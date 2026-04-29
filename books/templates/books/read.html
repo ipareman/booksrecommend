@@ -244,7 +244,8 @@
              'font-size': fontSize + 'px',
              'max-width': bodyMaxWidth,
              'font-family': bodyFontFamily,
-             'line-height': bodyLineHeight
+             'line-height': bodyLineHeight,
+             'color': fgColor
            }">
 
     {% if current.title %}
@@ -347,7 +348,7 @@
   .reader-root {
     min-height: 100vh;
     background: transparent !important;
-    transition: background .2s, color .2s;
+    transition: background .42s ease, color .42s ease;
   }
 
   .reader-root::before {
@@ -695,7 +696,7 @@
     padding: 40px 24px 140px;
     line-height: 1.65;
     font-family: Georgia, 'Times New Roman', serif;
-    transition: max-width .25s;
+    transition: max-width .25s, color .42s ease;
   }
   .reader-chapter-title {
     font-size: 1.6em;
@@ -713,6 +714,11 @@
     line-height: 1.55;
     opacity: .72;
     text-align: center;
+  }
+  .reader-content,
+  .reader-content * {
+    color: inherit !important;
+    transition: color .42s ease, border-color .42s ease;
   }
   .reader-content p {
     margin: 0 0 1em;
@@ -955,12 +961,14 @@
       setTheme(t) {
         this.theme = t;
         localStorage.setItem("reader_theme", t);
-        if (t === "dark") {
+        if (window.typewriterSetTheme) {
+          window.typewriterSetTheme(t === "dark" ? "dark" : "light");
+        } else if (t === "dark") {
           document.documentElement.setAttribute("data-theme", "dark");
-          localStorage.setItem("theme", "dark");
+          try { localStorage.setItem("theme", "dark"); } catch (e) {}
         } else {
           document.documentElement.removeAttribute("data-theme");
-          localStorage.setItem("theme", "light");
+          try { localStorage.setItem("theme", "light"); } catch (e) {}
         }
       },
       setWidth(w) {

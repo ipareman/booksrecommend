@@ -176,9 +176,118 @@
     });
   }
 
+  function typeAutocomplete(root) {
+    if (!root || reducedMotion) return;
+    (root._autotypeTimers || []).forEach(function (timer) {
+      window.clearTimeout(timer);
+      window.clearInterval(timer);
+    });
+    root._autotypeTimers = [];
+    var nodes = Array.prototype.slice.call(root.querySelectorAll("[data-autotype]"));
+    nodes.forEach(function (node) {
+      node.setAttribute("data-autotype-full", (node.textContent || "").trim());
+      node.textContent = "";
+    });
+    nodes.forEach(function (node, index) {
+      var text = node.getAttribute("data-autotype-full") || "";
+      var delayTimer = window.setTimeout(function () {
+        var i = 0;
+        var timer = window.setInterval(function () {
+          node.textContent = text.slice(0, i);
+          i += 1;
+          if (i > text.length) window.clearInterval(timer);
+        }, 12);
+        root._autotypeTimers.push(timer);
+      }, index * 34);
+      root._autotypeTimers.push(delayTimer);
+    });
+  }
+
+  function catalogSearchUrl(query) {
+    if (!standardSearchForm) return "";
+    var base = standardSearchForm.getAttribute("data-catalog-url") || standardSearchForm.action || "/books/";
+    var separator = base.indexOf("?") === -1 ? "?" : "&";
+    return base + separator + "search=" + encodeURIComponent((query || "").trim());
+  }
+
+  function goToCatalogSearch(query) {
+    query = (query || "").trim();
+    if (!query) return;
+    rememberQuery(query);
+    window.location.href = catalogSearchUrl(query);
+  }
+
+  function initAutocomplete() {
+    var dropdown = document.getElementById("autocomplete-dropdown");
+    if (!searchInput || !dropdown) return;
+    var url = dropdown.getAttribute("data-autocomplete-url") || dropdown.getAttribute("hx-get");
+    if (!url || !window.fetch) return;
+
+    var timer = null;
+    var controller = null;
+    var lastQuery = "";
+
+    function clearDropdown() {
+      dropdown.innerHTML = "";
+      lastQuery = "";
+    }
+
+    function loadSuggestions() {
+      var query = (searchInput.value || "").trim();
+      if (query.length < 2) {
+        clearDropdown();
+        return;
+      }
+      if (query === lastQuery) return;
+      lastQuery = query;
+      if (controller) controller.abort();
+      controller = new AbortController();
+      fetch(url + "?q=" + encodeURIComponent(query), {
+        credentials: "same-origin",
+        signal: controller.signal
+      })
+        .then(function (response) {
+          if (!response.ok) throw new Error("autocomplete");
+          return response.text();
+        })
+        .then(function (html) {
+          if ((searchInput.value || "").trim() !== query) return;
+          dropdown.innerHTML = html;
+          typeAutocomplete(dropdown);
+        })
+        .catch(function (error) {
+          if (error && error.name === "AbortError") return;
+          clearDropdown();
+        });
+    }
+
+    searchInput.addEventListener("input", function () {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(loadSuggestions, 180);
+    });
+    searchInput.addEventListener("search", loadSuggestions);
+    searchInput.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") clearDropdown();
+    });
+    document.addEventListener("click", function (event) {
+      if (event.target.closest("#search-shell") || event.target.closest("#autocomplete-dropdown")) return;
+      clearDropdown();
+    });
+  }
+
+  document.body.addEventListener("htmx:afterSwap", function (event) {
+    if (event.target && event.target.id === "autocomplete-dropdown") typeAutocomplete(event.target);
+  });
+
   if (standardSearchForm) {
-    standardSearchForm.addEventListener("submit", function () {
-      rememberQuery(searchInput && searchInput.value);
+    standardSearchForm.addEventListener("submit", function (event) {
+      var query = searchInput && searchInput.value;
+      if ((query || "").trim()) {
+        event.preventDefault();
+        goToCatalogSearch(query);
+        return;
+      }
+      rememberQuery(query);
     });
   }
 
@@ -668,6 +777,7 @@
   }
 
   renderLocalHistory();
+  initAutocomplete();
   initVoiceInput();
   if (searchInput && typedPlaceholder && searchShell) typeLoop();
   window.addEventListener("beforeunload", function () {

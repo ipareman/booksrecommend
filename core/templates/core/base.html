@@ -1,5 +1,6 @@
 {% load static %}<!DOCTYPE html>
 <html lang="ru">
+{% with current_url=request.resolver_match.url_name %}
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,19 +18,18 @@
   <link rel="stylesheet" href="{% static 'css/typewriter_home_demo.css' %}?v={% now 'U' %}">
   <link rel="stylesheet" href="{% static 'css/typewriter_integrated.css' %}?v={% now 'U' %}">
 </head>
-{% with current=request.resolver_match.url_name %}
-<body class="typewriter-real-page {% if current == 'home' %}typewriter-home-page{% endif %} {% if current == 'community' %}community-demo-page{% endif %}">
+<body class="typewriter-real-page {% if current_url == 'home' %}typewriter-home-page{% else %}typewriter-inner-page{% endif %} {% if current_url == 'community' %}community-demo-page{% endif %} {% if current_url == 'book_read' or current_url == 'book_read_chapter' %}typewriter-reader-page{% endif %}">
 <div class="typewriter-nav-shell" x-data="{ navOpen: false }" @keydown.escape.window="navOpen = false">
-  <nav class="typewriter-nav {% if current == 'home' %}typewriter-nav--home{% else %}typewriter-nav--solid{% endif %}" id="typewriter-nav" aria-label="Основная навигация">
+  <nav class="typewriter-nav {% if current_url == 'home' %}typewriter-nav--home{% else %}typewriter-nav--solid{% endif %}" id="typewriter-nav" aria-label="Основная навигация">
     <div class="typewriter-nav__inner">
       <div class="typewriter-nav__center">
-        <a class="typewriter-nav__link typewriter-nav__link--community {% if current == 'community' or current == 'activity_feed' or current == 'friend_list' or current == 'joint_recs' or current == 'my_recommendations' or current == 'ticket_list' or current == 'ticket_detail' or current == 'ticket_create' or current == 'notifications_list' or current == 'collections_list' or current == 'collection_detail' or current == 'collection_create' or current == 'collection_edit' or current == 'clubs_list' or current == 'club_detail' or current == 'club_create' or current == 'club_book_thread' %}is-active{% endif %}" href="{% url 'community' %}">
+        <a class="typewriter-nav__link typewriter-nav__link--community {% if current_url == 'community' or current_url == 'activity_feed' or current_url == 'friend_list' or current_url == 'joint_recs' or current_url == 'my_recommendations' or current_url == 'ticket_list' or current_url == 'ticket_detail' or current_url == 'ticket_create' or current_url == 'notifications_list' or current_url == 'collections_list' or current_url == 'collection_detail' or current_url == 'collection_create' or current_url == 'collection_edit' or current_url == 'clubs_list' or current_url == 'club_detail' or current_url == 'club_create' or current_url == 'club_book_thread' %}is-active{% endif %}" href="{% url 'community' %}">
           Сообщество
         </a>
-        <a class="typewriter-nav__logo {% if current != 'home' %}is-visible{% endif %}" id="typewriter-nav-logo" href="{% url 'home' %}" aria-label="На главную">
+        <a class="typewriter-nav__logo {% if current_url != 'home' %}is-visible{% endif %}" id="typewriter-nav-logo" href="{% url 'home' %}" aria-label="На главную">
           <img src="{% static 'img/design/icon.svg' %}" alt="Строка">
         </a>
-        <a class="typewriter-nav__link typewriter-nav__link--catalog {% if current == 'home' or current == 'catalog' or current == 'book_detail' or current == 'author_detail' or current == 'publisher_detail' or current == 'series_detail' or current == 'search' or current == 'book_chat' %}is-active{% endif %}" href="{% url 'catalog' %}">
+        <a class="typewriter-nav__link typewriter-nav__link--catalog {% if current_url == 'home' or current_url == 'catalog' or current_url == 'book_detail' or current_url == 'author_detail' or current_url == 'publisher_detail' or current_url == 'series_detail' or current_url == 'search' or current_url == 'book_chat' %}is-active{% endif %}" href="{% url 'catalog' %}">
           Каталог
         </a>
       </div>
@@ -41,14 +41,14 @@
                 title="Переключить тему"
                 onclick="(function(){var d=document.documentElement;var dark=d.getAttribute('data-theme')==='dark';if(dark){d.removeAttribute('data-theme');try{localStorage.setItem('theme','light')}catch(e){}}else{d.setAttribute('data-theme','dark');try{localStorage.setItem('theme','dark')}catch(e){}}})()">◐</button>
         {% if user.is_authenticated %}
-          <a href="{% url 'profile' %}" class="typewriter-nav__auth-link {% if current == 'profile' %}is-active{% endif %}">{{ user.username }}</a>
+          <a href="{% url 'profile' %}" class="typewriter-nav__auth-link {% if current_url == 'profile' %}is-active{% endif %}">{{ user.username }}</a>
           <form method="post" action="{% url 'logout' %}" class="typewriter-nav__logout">
             {% csrf_token %}
             <button type="submit" class="typewriter-nav__auth-link">Выйти</button>
           </form>
         {% else %}
-          <a href="{% url 'login' %}" class="typewriter-nav__auth-link {% if current == 'login' %}is-active{% endif %}">Войти</a>
-          <a href="{% url 'register' %}" class="typewriter-nav__auth-link {% if current == 'register' %}is-active{% endif %}">Регистрация</a>
+          <a href="{% url 'login' %}" class="typewriter-nav__auth-link {% if current_url == 'login' %}is-active{% endif %}">Войти</a>
+          <a href="{% url 'register' %}" class="typewriter-nav__auth-link {% if current_url == 'register' %}is-active{% endif %}">Регистрация</a>
         {% endif %}
       </div>
     </div>
@@ -70,6 +70,9 @@
        @click.self="navOpen = false"
        x-cloak>
     <div class="typewriter-mobile-nav__sheet">
+      <a class="typewriter-mobile-nav__brand" href="{% url 'home' %}" aria-label="На главную">
+        <img src="{% static 'img/design/icon.svg' %}" alt="Строка">
+      </a>
       <a href="{% url 'community' %}" class="typewriter-mobile-nav__link"><span data-type-label="Сообщество">Сообщество</span></a>
       <a href="{% url 'catalog' %}" class="typewriter-mobile-nav__link"><span data-type-label="Каталог">Каталог</span></a>
       <a href="{% url 'collections_list' %}" class="typewriter-mobile-nav__link"><span data-type-label="Подборки">Подборки</span></a>
@@ -125,7 +128,7 @@
 
 <main>{% block content %}{% endblock %}</main>
 
-{% if current == 'home' %}
+{% if current_url == 'home' %}
 <footer class="site-footer typewriter-footer">
   <div class="site-footer__inner">
     <div class="site-footer__brand">

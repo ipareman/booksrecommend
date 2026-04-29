@@ -12,7 +12,7 @@
       <h1 id="main-title"><em>«Найдётся всё»</em></h1>
 
       <div class="search-shell" id="search-shell">
-        <form method="get" action="{% url 'search' %}" id="search-form" class="main-search main-search--standard" autocomplete="off">
+        <form method="get" action="{% url 'search' %}" data-catalog-url="{% url 'catalog' %}" id="search-form" class="main-search main-search--standard" autocomplete="off">
           <label class="main-search__input-wrap" for="main-search-input">
             <input id="main-search-input"
                    type="text"
@@ -33,12 +33,6 @@
           </label>
           <button class="main-search__submit" type="submit" aria-label="Искать">→</button>
           <span id="search-spinner" class="htmx-indicator main-search__spinner"><span class="spinner"></span></span>
-          <div hx-get="{% url 'search_autocomplete' %}"
-               hx-trigger="keyup from:#main-search-input delay:200ms"
-               hx-target="#autocomplete-dropdown"
-               hx-include="#search-form">
-          </div>
-          <div id="autocomplete-dropdown" class="tw-autocomplete"></div>
         </form>
 
         <form method="post" action="{% url 'ai_search' %}" id="ai-search-form" class="main-search main-search--ai" autocomplete="off">
@@ -148,6 +142,10 @@
           {% endif %}
         </div>
       </div>
+
+      <div id="autocomplete-dropdown"
+           class="tw-autocomplete"
+           data-autocomplete-url="{% url 'search_autocomplete' %}"></div>
 
       <div class="search-actions" aria-label="Действия поиска">
         <div class="search-actions__left">

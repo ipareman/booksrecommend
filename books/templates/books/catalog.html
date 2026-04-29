@@ -6,7 +6,6 @@
 
   <div class="section-head">
     <h1 class="section-title">Каталог</h1>
-    <span class="section-meta">{{ total }} книг</span>
     {% if user.is_staff %}
     <a href="{% url 'book_add' %}" class="btn btn-primary btn-sm">+ Создать книгу</a>
     {% endif %}

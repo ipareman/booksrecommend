@@ -24,6 +24,24 @@
   z-index: 1;
 }
 
+.typewriter-inner-page:not(.typewriter-reader-page) main {
+  padding-top: 86px;
+}
+
+.typewriter-nav__logo img,
+.hero-mark,
+.typewriter-mobile-nav__brand img,
+.nav-logo-flight img {
+  transition: filter .34s ease, opacity .24s ease;
+}
+
+:root[data-theme="dark"] .typewriter-nav__logo img,
+:root[data-theme="dark"] .hero-mark,
+:root[data-theme="dark"] .typewriter-mobile-nav__brand img,
+:root[data-theme="dark"] .nav-logo-flight img {
+  filter: brightness(0) invert(1);
+}
+
 .typewriter-nav__auth-link,
 .typewriter-nav__logout button,
 .typewriter-nav__theme {
@@ -125,35 +143,86 @@
 }
 
 .tw-autocomplete {
-  position: absolute;
-  left: 0;
-  right: 44px;
-  top: 62px;
-  z-index: 20;
+  position: relative;
+  z-index: 4;
   display: grid;
+  width: 100%;
+  max-height: 0;
+  overflow: hidden;
+  margin: 0;
+  opacity: 0;
   border-top: 1px solid var(--line);
-  background:
-    linear-gradient(rgba(250, 250, 247, .94), rgba(250, 250, 247, .96)),
-    url("../img/design/paper-soft.jpg") center / cover;
+  background: transparent;
+  transition: max-height .32s cubic-bezier(.2, .72, .18, 1), margin .32s ease, opacity .18s ease;
 }
 
 .tw-autocomplete:empty {
   display: none;
 }
 
+.tw-autocomplete:not(:empty) {
+  max-height: min(34vh, 280px);
+  margin: 14px 0 4px;
+  opacity: 1;
+  overflow-y: auto;
+}
+
+.tw-autocomplete .autocomplete-list {
+  display: grid;
+}
+
+.tw-autocomplete .autocomplete-section {
+  padding: 10px 0 7px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .tw-autocomplete a,
 .tw-autocomplete button,
 .tw-autocomplete .autocomplete-item {
-  display: block;
-  padding: 10px 0;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 18px;
+  align-items: baseline;
+  padding: 11px 0;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
   text-align: left;
+  background: transparent;
 }
 
 .tw-autocomplete a:hover,
 .tw-autocomplete button:hover,
 .tw-autocomplete .autocomplete-item:hover {
+  color: var(--ink);
+}
+
+.tw-autocomplete .autocomplete-kind {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.tw-autocomplete .autocomplete-text {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.tw-autocomplete .autocomplete-title {
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tw-autocomplete .autocomplete-sub {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.tw-autocomplete .autocomplete-footer {
+  grid-template-columns: 1fr;
   color: var(--ink);
 }
 
@@ -325,15 +394,29 @@
 }
 
 @media (max-width: 920px) {
+  .typewriter-nav-shell::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 299;
+    height: 70px;
+    pointer-events: none;
+    background: transparent;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
   .community-demo-page .typewriter-nav {
     display: none;
   }
 
   .typewriter-mobile-trigger {
     position: fixed;
-    top: 16px;
-    left: 16px;
-    z-index: 60;
+    top: 22px;
+    left: 22px;
+    z-index: 310;
     display: grid;
     width: 38px;
     height: 38px;
@@ -345,10 +428,18 @@
     font: inherit;
   }
 
+  .reader-drawer-open .typewriter-mobile-trigger {
+    display: none;
+  }
+
+  .typewriter-inner-page:not(.typewriter-reader-page) main {
+    padding-top: 70px;
+  }
+
   .typewriter-mobile-nav {
     position: fixed;
     inset: 0;
-    z-index: 55;
+    z-index: 300;
     display: block;
     pointer-events: none;
   }
@@ -371,13 +462,24 @@
     display: grid;
     align-content: start;
     gap: 0;
-    padding: 76px 24px 24px;
+    padding: 28px 24px 24px;
     border-right: 1px solid var(--line-strong);
     background:
       linear-gradient(rgba(250, 250, 247, .94), rgba(250, 250, 247, .97)),
       url("../img/design/paper-soft.jpg") center / cover;
     transform: translateX(-100%);
     transition: transform .34s cubic-bezier(.2, .72, .18, 1);
+  }
+
+  .typewriter-mobile-nav__brand {
+    display: block;
+    width: 146px;
+    margin: 0 auto 26px;
+  }
+
+  .typewriter-mobile-nav__brand img {
+    width: 100%;
+    height: auto;
   }
 
   .typewriter-mobile-nav--open {
@@ -418,7 +520,16 @@
 
 @media (max-width: 680px) {
   .tw-autocomplete {
-    right: 34px;
+    font-size: 14px;
+  }
+
+  .tw-autocomplete:not(:empty) {
+    max-height: 32vh;
+  }
+
+  .tw-autocomplete .autocomplete-item {
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 12px;
   }
 
   .typewriter-footer .site-footer__inner {
@@ -430,5 +541,54 @@
   .review-ledger a,
   .review-ledger--short a {
     gap: 6px;
+  }
+}
+
+body.typewriter-reader-page {
+  background:
+    linear-gradient(rgba(250, 250, 247, .86), rgba(250, 250, 247, .9)),
+    url("../img/design/paper-soft.jpg") center / cover fixed;
+}
+
+:root[data-theme="dark"] body.typewriter-reader-page {
+  background:
+    linear-gradient(rgba(32, 32, 29, .88), rgba(32, 32, 29, .92)),
+    url("../img/design/paper-soft.jpg") center / cover fixed;
+}
+
+.typewriter-reader-page .typewriter-footer {
+  display: none !important;
+}
+
+.typewriter-reader-page main {
+  padding-top: 86px !important;
+  z-index: auto;
+}
+
+.typewriter-reader-page .reader-bar {
+  top: auto !important;
+  bottom: 0 !important;
+}
+
+.typewriter-reader-page .typewriter-nav {
+  background: transparent;
+  border-bottom: 0;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding-bottom: 14px;
+}
+
+:root[data-theme="dark"] .typewriter-reader-page .typewriter-nav {
+  background: transparent;
+}
+
+@media (max-width: 920px) {
+  .typewriter-reader-page main {
+    padding-top: 70px !important;
+  }
+
+  .typewriter-reader-page .reader-bar {
+    top: auto !important;
+    bottom: 0 !important;
   }
 }

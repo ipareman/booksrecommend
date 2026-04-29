@@ -1098,21 +1098,34 @@ def book_read(request, pk, chapter_order=None):
         messages.info(request, "У этой книги пока нет загруженного текста.")
         return redirect("book_detail", pk=pk)
 
-    chapters = list(text.chapters.order_by("order"))
+    all_chapters = list(text.chapters.order_by("order"))
+    chapters = [
+        ch for ch in all_chapters
+        if (ch.html or "").strip() or (ch.text or "").strip()
+    ]
     if not chapters:
         messages.info(request, "У этой книги пока нет загруженного текста.")
         return redirect("book_detail", pk=pk)
 
     # Выбор текущей главы
     progress, _ = ReadingProgress.objects.get_or_create(user=request.user, book=book)
+    chapter_ids = {ch.id for ch in chapters}
 
     if chapter_order is None:
-        if progress.current_chapter_id and progress.current_chapter.book_text_id == text.id:
+        if (
+            progress.current_chapter_id in chapter_ids
+            and progress.current_chapter.book_text_id == text.id
+        ):
             current = progress.current_chapter
         else:
             current = chapters[0]
     else:
         current = next((c for c in chapters if c.order == chapter_order), None)
+        if current is None:
+            current = (
+                next((c for c in chapters if c.order > chapter_order), None)
+                or next((c for c in reversed(chapters) if c.order < chapter_order), None)
+            )
         if current is None:
             raise Http404("Глава не найдена")
 

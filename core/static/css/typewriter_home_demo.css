@@ -272,7 +272,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 .community-demo {
   width: min(1180px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 132px 0 120px;
+  padding: 0px 0 120px;
 }
 
 .community-hero {

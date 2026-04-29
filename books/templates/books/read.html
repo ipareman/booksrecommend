@@ -2,12 +2,12 @@
 {% block title %}{{ book.title }} — Читать{% endblock %}
 
 {% block content %}
-<div x-data="reader()" x-init="init()" x-bind:data-theme="theme"
+<div x-data="reader()" x-init="init()" x-effect="document.body.classList.toggle('reader-drawer-open', showToc || showSettings || showNotesDrawer)" x-bind:data-theme="theme"
      class="reader-root"
      x-bind:style="{background: bgColor, color: fgColor}">
 
   {# ── Верхняя панель (всегда видна, sticky, минималистичная) ───────────── #}
-  <header class="reader-bar" x-bind:style="{background: barBg, color: fgColor, borderColor: 'rgba(127,127,127,.18)'}">
+  <header class="reader-bar" x-bind:style="{color: fgColor}">
     <button class="reader-icon-btn" @click="showToc = true" title="Содержание"
             x-bind:style="{color: fgColor}">
       <span aria-hidden="true">☰</span>
@@ -17,7 +17,7 @@
        x-bind:style="{color: fgColor}">
       <span class="reader-bar__title-main">{{ book.title }}</span>
       <span class="reader-bar__title-sub">
-        Гл. {{ current.order|add:1 }}/{{ total_ch }} · <span x-text="percent + '%'"></span>
+        Гл. {{ current_idx|add:1 }}/{{ total_ch }} · <span x-text="percent + '%'"></span>
       </span>
     </a>
 
@@ -250,9 +250,16 @@
     {% if current.title %}
       <h1 class="reader-chapter-title">{{ current.title }}</h1>
     {% endif %}
+    {% if current.summary %}
+      <p class="reader-chapter-summary">{{ current.summary }}</p>
+    {% endif %}
 
     <div class="reader-content" id="reader-content">
-      {{ current.html|safe }}
+      {% if current.html %}
+        {{ current.html|safe }}
+      {% else %}
+        {{ current.text|linebreaksbr }}
+      {% endif %}
     </div>
 
     {# ── Всплывашка «В цитаты» / «Заметка» при выделении текста ──────── #}
@@ -339,36 +346,71 @@
 <style>
   .reader-root {
     min-height: 100vh;
+    background: transparent !important;
     transition: background .2s, color .2s;
   }
 
+  .reader-root::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at center,
+        rgba(0, 0, 0, 0) 40%,
+        rgba(0, 0, 0, .08) 82%,
+        rgba(0, 0, 0, .12) 100%);
+    mix-blend-mode: multiply;
+  }
+
+  .reader-root > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .reader-root[data-theme="dark"]::before {
+    background:
+      radial-gradient(ellipse at center,
+        rgba(0, 0, 0, 0) 36%,
+        rgba(0, 0, 0, .22) 82%,
+        rgba(0, 0, 0, .34) 100%);
+    mix-blend-mode: normal;
+  }
+
   /* ── Top bar ─────────────────────────────────────────────────────── */
-  /* Верхняя панель читалки стоит под глобальным .nav сайта (52px высотой, z-index: 100). */
   .reader-bar {
-    position: sticky;
-    top: 52px;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: 90;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    border-bottom: 1px solid rgba(127,127,127,.18);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    gap: 18px;
+    padding: 11px min(32px, 5vw) 14px;
+    border: 0;
+    background: transparent;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    font-family: "Mltsvfont", monospace;
+  }
+  .reader-root[data-theme="dark"] .reader-bar {
+    background: transparent;
   }
   .reader-bar__title {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     text-decoration: none;
     overflow: hidden;
-    padding: 2px 4px;
+    padding: 0;
   }
   .reader-bar__title-main {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 400;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -380,22 +422,26 @@
 
   .reader-icon-btn {
     flex-shrink: 0;
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(127,127,127,.22);
+    border: 0;
+    border-bottom: 1px solid currentColor;
     background: transparent;
-    border-radius: 10px;
+    border-radius: 0;
     cursor: pointer;
-    font-size: 18px;
+    color: inherit;
+    opacity: .72;
+    font-size: 17px;
     line-height: 1;
-    transition: background .15s, border-color .15s, transform .1s;
+    transition: opacity .15s, border-color .15s;
     font-family: inherit;
   }
-  .reader-icon-btn:hover { background: rgba(127,127,127,.12); }
-  .reader-icon-btn:active { transform: scale(.96); }
+  .reader-icon-btn:hover {
+    opacity: 1;
+  }
   .reader-icon-btn--sm {
     width: 32px; height: 32px; font-size: 15px;
   }
@@ -412,9 +458,10 @@
     display: flex;
   }
   .reader-drawer {
+    position: relative;
     width: min(360px, 82vw);
     height: 100%;
-    padding: 18px 20px 24px;
+    padding: 18px 20px 86px;
     overflow-y: auto;
     box-shadow: 0 10px 40px rgba(0,0,0,.25);
     animation: reader-drawer-slide .22s ease;
@@ -439,9 +486,24 @@
   .reader-drawer__head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     margin-bottom: 16px;
     font-size: 15px;
+  }
+  .reader-drawer__head .reader-icon-btn--sm {
+    position: fixed;
+    bottom: 18px;
+    width: 44px;
+    height: 44px;
+    z-index: 3;
+    background: inherit;
+    box-shadow: 0 6px 18px rgba(0,0,0,.16);
+  }
+  .reader-drawer--left .reader-drawer__head .reader-icon-btn--sm {
+    left: 20px;
+  }
+  .reader-drawer--right .reader-drawer__head .reader-icon-btn--sm {
+    right: 20px;
   }
 
   /* ── TOC список ─────────────────────────────────────────────────── */
@@ -471,11 +533,11 @@
   .reader-toc-num { opacity: .5; font-size: 12px; flex-shrink: 0; }
   .reader-toc-title { flex: 1; }
   .reader-toc-summary {
-    margin-top: 4px;
+    margin-top: 6px;
     padding-left: 20px;
     font-size: 12px;
-    line-height: 1.4;
-    opacity: .68;
+    line-height: 1.45;
+    opacity: .82;
     font-weight: 400;
   }
   /* Chapter search */
@@ -641,6 +703,17 @@
     margin: 0 0 30px;
     text-align: center;
   }
+  .reader-chapter-summary {
+    max-width: 680px;
+    margin: -14px auto 34px;
+    padding: 0 0 18px;
+    border-bottom: 1px solid rgba(127,127,127,.18);
+    color: inherit;
+    font-size: .86em;
+    line-height: 1.55;
+    opacity: .72;
+    text-align: center;
+  }
   .reader-content p {
     margin: 0 0 1em;
     text-indent: 1.5em;
@@ -789,10 +862,10 @@
 
   /* ── Мобилка ────────────────────────────────────────────────────── */
   @media (max-width: 620px) {
-    .reader-bar { padding: 8px 10px; gap: 6px; }
+    .reader-bar { padding: 9px 12px 12px; gap: 12px; }
     .reader-bar__title-main { font-size: 13px; }
     .reader-bar__title-sub  { font-size: 10px; }
-    .reader-icon-btn { width: 40px; height: 40px; font-size: 20px; }
+    .reader-icon-btn { width: 34px; height: 34px; font-size: 18px; }
     .reader-body { padding: 28px 16px 120px; }
     .reader-drawer { width: 86vw; }
     .reader-chap-nav { flex-direction: column; }
@@ -800,9 +873,14 @@
 </style>
 
 <script>
+  function initialReaderTheme() {
+    if (document.documentElement.getAttribute("data-theme") === "dark") return "dark";
+    return localStorage.getItem("reader_theme") || "light";
+  }
+
   function reader() {
     return {
-      theme: localStorage.getItem("reader_theme") || "light",
+      theme: initialReaderTheme(),
       fontSize: parseInt(localStorage.getItem("reader_fontsize") || "18", 10),
       width: localStorage.getItem("reader_width") || "normal",
       // Семейство шрифта (serif/sans) и межстрочный интервал — оба хранятся в localStorage,
@@ -877,6 +955,13 @@
       setTheme(t) {
         this.theme = t;
         localStorage.setItem("reader_theme", t);
+        if (t === "dark") {
+          document.documentElement.setAttribute("data-theme", "dark");
+          localStorage.setItem("theme", "dark");
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+          localStorage.setItem("theme", "light");
+        }
       },
       setWidth(w) {
         this.width = w;
@@ -928,6 +1013,8 @@
       },
 
       init() {
+        this.setTheme(this.theme);
+
         // Восстанавливаем scroll offset текущей главы
         const initialOffset = {{ progress.scroll_offset|default:0|stringformat:".4f" }};
         if (initialOffset > 0.001) {

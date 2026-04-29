@@ -4,7 +4,7 @@
 {% block content %}
 <div x-data="reader()" x-init="init()" x-effect="document.body.classList.toggle('reader-drawer-open', showToc || showSettings || showNotesDrawer)" x-bind:data-theme="theme"
      class="reader-root"
-     x-bind:style="{background: bgColor, color: fgColor}">
+     x-bind:style="{background: bgColor, color: fgColor, '--reader-body-width': bodyMaxWidth}">
 
   {# ── Верхняя панель (всегда видна, sticky, минималистичная) ───────────── #}
   <header class="reader-bar" x-bind:style="{color: fgColor}">
@@ -382,19 +382,32 @@
   /* ── Top bar ─────────────────────────────────────────────────────── */
   .reader-bar {
     position: fixed;
-    right: 0;
+    right: min(32px, 5vw);
     bottom: 0;
-    left: 0;
+    left: min(32px, 5vw);
     z-index: 90;
+    width: min(var(--reader-body-width, 720px), calc(100% - min(64px, 10vw)));
+    margin: 0 auto;
     display: flex;
     align-items: center;
     gap: 18px;
-    padding: 11px min(32px, 5vw) 14px;
+    padding: 11px 0 14px;
     border: 0;
+    background: transparent;
+    font-family: "Mltsvfont", monospace;
+  }
+  .reader-bar::before {
+    content: "";
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: -1;
+    height: 68px;
+    pointer-events: none;
     background: transparent;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    font-family: "Mltsvfont", monospace;
   }
   .reader-root[data-theme="dark"] .reader-bar {
     background: transparent;
@@ -868,7 +881,13 @@
 
   /* ── Мобилка ────────────────────────────────────────────────────── */
   @media (max-width: 620px) {
-    .reader-bar { padding: 9px 12px 12px; gap: 12px; }
+    .reader-bar {
+      right: 16px;
+      left: 16px;
+      width: calc(100% - 32px);
+      padding: 9px 0 12px;
+      gap: 12px;
+    }
     .reader-bar__title-main { font-size: 13px; }
     .reader-bar__title-sub  { font-size: 10px; }
     .reader-icon-btn { width: 34px; height: 34px; font-size: 18px; }

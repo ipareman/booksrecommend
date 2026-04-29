@@ -424,26 +424,82 @@ html.theme-fade-from-dark:has(body.typewriter-reader-page)::before {
 .typewriter-footer {
   width: min(1180px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 34px 0 56px;
+  padding: 36px 0 42px;
   border-top: 1px solid var(--line);
+  background: transparent;
   color: var(--muted);
 }
 
 .typewriter-footer .site-footer__inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
   justify-content: space-between;
-  gap: 24px;
+  gap: 48px;
+  padding: 0 0 28px;
 }
 
-.typewriter-footer .site-footer__logo,
+.typewriter-footer .site-footer__brand {
+  max-width: 360px;
+}
+
+.typewriter-footer .site-footer__logo {
+  display: inline-block;
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-family: "Mltsvfont", monospace;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.typewriter-footer .site-footer__text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.typewriter-footer .site-footer__title {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.typewriter-footer .site-footer__link {
+  width: fit-content;
+  padding: 3px 0;
+  border-bottom: 1px solid transparent;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.3;
+  transition: color .16s ease, border-color .16s ease;
+}
+
 .typewriter-footer .site-footer__link:hover {
   color: var(--ink);
+  border-bottom-color: var(--line-strong);
 }
 
 .typewriter-footer .site-footer__nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 38px;
+}
+
+.typewriter-footer .site-footer__group {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+}
+
+.typewriter-footer .site-footer__bottom {
   display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--line);
+  color: var(--soft);
+  font-size: 13px;
 }
 
 @media (max-width: 920px) {
@@ -587,6 +643,27 @@ html.theme-fade-from-dark:has(body.typewriter-reader-page)::before {
 
   .typewriter-footer .site-footer__inner {
     display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding-bottom: 24px;
+  }
+
+  .typewriter-footer .site-footer__nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .typewriter-footer {
+    width: min(100% - 28px, 560px);
+    padding-bottom: 34px;
+  }
+
+  .typewriter-footer .site-footer__logo {
+    font-size: 20px;
+  }
+
+  .typewriter-footer .site-footer__text {
+    font-size: 14px;
   }
 
   .activity-ledger a,

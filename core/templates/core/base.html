@@ -170,11 +170,20 @@
       <p class="site-footer__text">Книжные полки, клубы и разговоры вокруг прочитанного.</p>
     </div>
     <nav class="site-footer__nav" aria-label="Нижняя навигация">
-      <a href="{% url 'catalog' %}" class="site-footer__link">Каталог</a>
-      <a href="{% url 'community' %}" class="site-footer__link">Сообщество</a>
-      <a href="{% url 'collections_list' %}" class="site-footer__link">Подборки</a>
-      <a href="{% url 'clubs_list' %}" class="site-footer__link">Клубы</a>
+      <div class="site-footer__group">
+        <span class="site-footer__title">Книги</span>
+        <a href="{% url 'catalog' %}" class="site-footer__link">Каталог</a>
+        <a href="{% url 'collections_list' %}" class="site-footer__link">Подборки</a>
+      </div>
+      <div class="site-footer__group">
+        <span class="site-footer__title">Люди</span>
+        <a href="{% url 'community' %}" class="site-footer__link">Сообщество</a>
+        <a href="{% url 'clubs_list' %}" class="site-footer__link">Клубы</a>
+      </div>
     </nav>
+  </div>
+  <div class="site-footer__bottom">
+    <span>© {% now "Y" %} Строка</span>
   </div>
 </footer>
 {% endif %}

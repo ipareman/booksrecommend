@@ -1312,9 +1312,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   }
 
   body.dialog-open .desktop-text-panels {
-    opacity: 0;
-    transform: translateY(96px);
-    pointer-events: none;
+    z-index: 35;
   }
 
   .desktop-text-panel {

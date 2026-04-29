@@ -432,6 +432,16 @@
     if (input) window.setTimeout(function () { input.focus(); }, 80);
   }
 
+  function toggleAiMode() {
+    if (!searchShell) return;
+    if (searchShell.classList.contains("is-ai")) {
+      setSearchMode("standard");
+      return;
+    }
+    setDialog(false);
+    setSearchMode("ai");
+  }
+
   function clearDialogTimers() {
     [dialogExitTimer, dialogEnterTimer, dialogLeaveTimer, dialogReturnTimer].forEach(function (timer) {
       if (timer) window.clearTimeout(timer);
@@ -501,27 +511,16 @@
 
   if (dialogToggle) dialogToggle.addEventListener("click", function () { setDialog(); });
   if (dialogClose) dialogClose.addEventListener("click", function () { setDialog(false); });
-  if (aiModeChoice) aiModeChoice.addEventListener("click", function () {
-    setDialog(false);
-    setSearchMode("ai");
-  });
-  if (desktopAiMode) desktopAiMode.addEventListener("click", function () {
-    setDialog(false);
-    setSearchMode("ai");
-  });
+  if (aiModeChoice) aiModeChoice.addEventListener("click", toggleAiMode);
+  if (desktopAiMode) desktopAiMode.addEventListener("click", toggleAiMode);
   if (desktopDialogMode) desktopDialogMode.addEventListener("click", function () {
-    setDialog(true);
+    setDialog();
   });
 
   document.querySelectorAll("[data-open-modal]").forEach(function (button) {
     button.addEventListener("click", function () {
       var modalId = button.getAttribute("data-open-modal");
       if (isDesktopInline() && modalId === "settings-modal") {
-        if (searchShell && searchShell.classList.contains("is-dialog")) {
-          setDialog(false);
-          window.setTimeout(function () { animateTypedPanel("settings", true); }, 360);
-          return;
-        }
         toggleTypedPanel("settings");
         return;
       }

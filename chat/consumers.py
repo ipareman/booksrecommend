@@ -117,6 +117,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "avatar_gradient": event.get("avatar_gradient", "orchid"),
             "created_at": event["created_at"],
             "book": event.get("book"),
+            "voice_url": event.get("voice_url", ""),
         }))
 
     async def chat_edit(self, event):

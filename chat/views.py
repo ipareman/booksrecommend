@@ -348,6 +348,71 @@ def chat_history(request, room_id):
 
 
 @login_required
+@require_POST
+def chat_voice_upload(request, room_id):
+    """
+    Принимает WebM/OGG аудиофайл, сохраняет как голосовое сообщение,
+    рассылает событие по WebSocket всем участникам комнаты.
+    Лимит: 5 МБ.
+    """
+    room = get_object_or_404(ChatRoom, pk=room_id)
+    if not ChatParticipant.objects.filter(room=room, user=request.user).exists():
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    audio = request.FILES.get("audio")
+    if not audio:
+        return JsonResponse({"error": "no_file"}, status=400)
+
+    MAX_BYTES = 5 * 1024 * 1024
+    if audio.size > MAX_BYTES:
+        return JsonResponse({"error": "too_large"}, status=400)
+
+    allowed_types = {"audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav"}
+    content_type = audio.content_type or ""
+    if content_type.split(";")[0].strip() not in allowed_types:
+        if not audio.name.lower().endswith((".webm", ".ogg", ".mp3", ".wav", ".m4a")):
+            return JsonResponse({"error": "invalid_type"}, status=400)
+
+    msg = ChatMessage.objects.create(
+        room=room,
+        user=request.user,
+        body="",
+        voice_message=audio,
+    )
+
+    profile = getattr(request.user, "profile", None)
+    avatar_url = profile.avatar_image.url if (profile and getattr(profile, "avatar_image", None) and profile.avatar_image) else ""
+    avatar_gradient = getattr(profile, "avatar_gradient", "orchid") if profile else "orchid"
+
+    voice_url = msg.voice_message.url if msg.voice_message else ""
+
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        layer = get_channel_layer()
+        if layer is not None:
+            async_to_sync(layer.group_send)(
+                f"chat_{room.pk}",
+                {
+                    "type": "chat_message",
+                    "message_id": msg.pk,
+                    "body": "",
+                    "body_html": "",
+                    "username": request.user.username,
+                    "avatar_url": avatar_url,
+                    "avatar_gradient": avatar_gradient,
+                    "created_at": msg.created_at.strftime("%H:%M"),
+                    "book": None,
+                    "voice_url": voice_url,
+                },
+            )
+    except Exception:
+        pass
+
+    return JsonResponse({"ok": True, "id": msg.pk, "voice_url": voice_url})
+
+
+@login_required
 def chat_book_search(request):
     """
     JSON-эндпоинт для пикера книг в чате: GET ?q=… → список книг с минимумом полей.

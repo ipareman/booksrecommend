@@ -65,6 +65,12 @@ class ChatMessage(models.Model):
         blank=True,
         related_name="+",
     )
+    voice_message = models.FileField(
+        upload_to="voice_messages/",
+        blank=True,
+        null=True,
+        help_text="Голосовое сообщение (WebM/OGG аудио)",
+    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

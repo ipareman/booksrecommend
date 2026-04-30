@@ -26,6 +26,16 @@
           <div class="chat-bubble {% if msg.user == user %}chat-bubble--own{% else %}chat-bubble--other{% endif %}"
              data-msg-id="{{ msg.pk }}"
              @contextmenu.prevent="{% if msg.user == user %}openCtx($event, {{ msg.pk }}){% endif %}">
+          {% if msg.voice_message %}
+          <div class="voice-msg" data-src="{{ msg.voice_message.url }}">
+            <button type="button" class="voice-msg__play" onclick="voiceTogglePlay(this)" aria-label="Воспроизвести">
+              <svg class="voice-msg__icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+              <svg class="voice-msg__icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            </button>
+            <div class="voice-msg__bar"><div class="voice-msg__progress"></div></div>
+            <span class="voice-msg__dur">0:00</span>
+          </div>
+          {% endif %}
           {% if msg.body %}<span class="msg-text">{{ msg.body|chat_linkify }}</span>{% endif %}
           {% if msg.attached_book %}
             {% include "ai_chat/_book_card.html" with book=msg.attached_book reason="" %}
@@ -125,8 +135,19 @@
               style="padding:6px 10px">📎</button>
       <input type="text" class="form-input" placeholder="Сообщение…"
              x-model="text" @keydown.enter="send()" maxlength="2000" style="flex:1">
+      <button id="voice-btn" type="button" class="voice-rec-btn" title="Голосовое сообщение"
+              onmousedown="voiceStart(event)" onmouseup="voiceStop(event)"
+              ontouchstart="voiceStart(event)" ontouchend="voiceStop(event)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="2" width="6" height="12" rx="3"/>
+          <path d="M5 10a7 7 0 0014 0"/><line x1="12" y1="19" x2="12" y2="22"/>
+          <line x1="8" y1="22" x2="16" y2="22"/>
+        </svg>
+      </button>
       <button class="btn btn-primary btn-sm" @click="send()">↑</button>
     </div>
+    <div id="voice-status" style="display:none;font-size:11px;color:var(--err);padding:4px 0 0"></div>
 
     {# Пикер книги (inline-дропдаун) #}
     <div x-show="pickerOpen" x-cloak
@@ -223,6 +244,7 @@ function chatRoom(roomId, username, allowedEmoji) {
     if (!isOwn) html += `<span class="chat-msg__author">${esc(data.username)}</span>`;
 
     let bubbleInner = '';
+    if (data.voice_url) bubbleInner += voiceMsgHtml(data.voice_url);
     if (data.body) bubbleInner += `<span class="msg-text">${data.body_html || esc(data.body)}</span>`;
     if (data.book) {
       const b = data.book;
@@ -642,6 +664,194 @@ function chatRoom(roomId, username, allowedEmoji) {
       this.attachedBook = null;
     }
   };
+}
+
+// ── ГОЛОСОВЫЕ СООБЩЕНИЯ ──────────────────────────────────────────────────────
+
+function voiceMsgHtml(src) {
+  return `<div class="voice-msg" data-src="${src}">
+    <button type="button" class="voice-msg__play" onclick="voiceTogglePlay(this)" aria-label="Воспроизвести">
+      <svg class="voice-msg__icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+      <svg class="voice-msg__icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    </button>
+    <div class="voice-msg__bar"><div class="voice-msg__progress"></div></div>
+    <span class="voice-msg__dur">0:00</span>
+  </div>`;
+}
+
+// Глобальный текущий Audio — один плеер на страницу
+let _voiceAudio = null;
+let _voiceActiveDot = null;
+
+function _fmtTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+function voiceTogglePlay(btn) {
+  const wrap = btn.closest('.voice-msg');
+  const src = wrap.dataset.src;
+  const bar  = wrap.querySelector('.voice-msg__progress');
+  const dur  = wrap.querySelector('.voice-msg__dur');
+  const play = wrap.querySelector('.voice-msg__icon-play');
+  const pause = wrap.querySelector('.voice-msg__icon-pause');
+
+  // Если уже играет это же сообщение — пауза
+  if (_voiceAudio && _voiceActiveDot === wrap) {
+    if (!_voiceAudio.paused) {
+      _voiceAudio.pause();
+      play.style.display = '';
+      pause.style.display = 'none';
+      return;
+    } else {
+      _voiceAudio.play();
+      play.style.display = 'none';
+      pause.style.display = '';
+      return;
+    }
+  }
+
+  // Останавливаем предыдущее
+  if (_voiceAudio) {
+    _voiceAudio.pause();
+    if (_voiceActiveDot) {
+      const pp = _voiceActiveDot.querySelector('.voice-msg__icon-play');
+      const pu = _voiceActiveDot.querySelector('.voice-msg__icon-pause');
+      if (pp) { pp.style.display = ''; }
+      if (pu) { pu.style.display = 'none'; }
+    }
+  }
+
+  _voiceAudio = new Audio(src);
+  _voiceActiveDot = wrap;
+
+  _voiceAudio.addEventListener('timeupdate', () => {
+    if (!_voiceAudio.duration) return;
+    bar.style.width = (_voiceAudio.currentTime / _voiceAudio.duration * 100) + '%';
+    dur.textContent = _fmtTime(_voiceAudio.currentTime);
+  });
+  _voiceAudio.addEventListener('loadedmetadata', () => {
+    dur.textContent = _fmtTime(_voiceAudio.duration);
+  });
+  _voiceAudio.addEventListener('ended', () => {
+    play.style.display = '';
+    pause.style.display = 'none';
+    bar.style.width = '0';
+    dur.textContent = _fmtTime(_voiceAudio.duration || 0);
+    _voiceAudio = null;
+    _voiceActiveDot = null;
+  });
+
+  play.style.display = 'none';
+  pause.style.display = '';
+  _voiceAudio.play().catch(() => {
+    play.style.display = '';
+    pause.style.display = 'none';
+  });
+}
+
+// Перемотка по клику на прогресс-бар
+document.addEventListener('click', (e) => {
+  const bar = e.target.closest('.voice-msg__bar');
+  if (!bar || !_voiceAudio) return;
+  const wrap = bar.closest('.voice-msg');
+  if (wrap !== _voiceActiveDot) return;
+  const rect = bar.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  _voiceAudio.currentTime = ratio * _voiceAudio.duration;
+});
+
+// ── РЕКОРДЕР ─────────────────────────────────────────────────────────────────
+
+let _mediaRec = null;
+let _recChunks = [];
+let _recTimer  = null;
+let _recSecs   = 0;
+const _ROOM_ID = {{ room.pk }};
+const _CSRF    = '{{ csrf_token }}';
+
+function _setVoiceStatus(msg, isErr) {
+  const el = document.getElementById('voice-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? '' : 'none';
+  el.style.color = isErr ? 'var(--err)' : 'var(--muted)';
+}
+
+async function voiceStart(e) {
+  e.preventDefault();
+  if (_mediaRec) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+    _mediaRec = new MediaRecorder(stream, { mimeType });
+    _recChunks = [];
+    _recSecs = 0;
+    _mediaRec.ondataavailable = (ev) => { if (ev.data.size > 0) _recChunks.push(ev.data); };
+    _mediaRec.start(100);
+
+    const btn = document.getElementById('voice-btn');
+    if (btn) btn.classList.add('voice-rec-btn--active');
+
+    _recTimer = setInterval(() => {
+      _recSecs++;
+      _setVoiceStatus(`Запись ${_fmtTime(_recSecs)}`);
+      if (_recSecs >= 120) voiceStop(null); // макс 2 мин
+    }, 1000);
+    _setVoiceStatus('Запись 0:00');
+  } catch(err) {
+    _setVoiceStatus('Нет доступа к микрофону', true);
+    setTimeout(() => _setVoiceStatus(''), 3000);
+  }
+}
+
+async function voiceStop(e) {
+  if (e) e.preventDefault();
+  if (!_mediaRec || _mediaRec.state === 'inactive') return;
+
+  clearInterval(_recTimer);
+  _recTimer = null;
+
+  const btn = document.getElementById('voice-btn');
+  if (btn) btn.classList.remove('voice-rec-btn--active');
+
+  await new Promise(res => {
+    _mediaRec.onstop = res;
+    _mediaRec.stop();
+    _mediaRec.stream.getTracks().forEach(t => t.stop());
+  });
+
+  if (_recSecs < 1) {
+    _mediaRec = null;
+    _recChunks = [];
+    _setVoiceStatus('');
+    return;
+  }
+
+  const mimeType = _recChunks[0] ? _recChunks[0].type || 'audio/webm' : 'audio/webm';
+  const blob = new Blob(_recChunks, { type: mimeType });
+  _mediaRec = null;
+  _recChunks = [];
+
+  _setVoiceStatus('Отправка…');
+  const fd = new FormData();
+  fd.append('audio', blob, 'voice.webm');
+  fd.append('csrfmiddlewaretoken', _CSRF);
+
+  try {
+    const r = await fetch(`/chat/${_ROOM_ID}/voice/`, { method: 'POST', body: fd });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) {
+      _setVoiceStatus('Ошибка отправки', true);
+      setTimeout(() => _setVoiceStatus(''), 3000);
+    } else {
+      _setVoiceStatus('');
+    }
+  } catch(err) {
+    _setVoiceStatus('Ошибка сети', true);
+    setTimeout(() => _setVoiceStatus(''), 3000);
+  }
 }
 </script>
 {% endblock %}

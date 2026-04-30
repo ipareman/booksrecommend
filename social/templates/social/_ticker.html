@@ -64,11 +64,15 @@ requestAnimationFrame(function() {
       animations.push(anim);
     });
 
+    var hovered = false;
+
     ticker.addEventListener('mouseenter', function() {
+      hovered = true;
       animations.forEach(function(anim) {
         var start = anim.playbackRate;
         var t0 = performance.now();
         (function step(now) {
+          if (!hovered) return;
           var p = Math.min((now - t0) / DECEL_MS, 1);
           anim.playbackRate = start * (1 - p * p);
           if (p < 1) requestAnimationFrame(step);
@@ -78,10 +82,13 @@ requestAnimationFrame(function() {
     });
 
     ticker.addEventListener('mouseleave', function() {
+      hovered = false;
       animations.forEach(function(anim) {
+        anim.playbackRate = 0;
         anim.play();
         var t0 = performance.now();
         (function step(now) {
+          if (hovered) return;
           var p = Math.min((now - t0) / DECEL_MS, 1);
           anim.playbackRate = p * p;
           if (p < 1) requestAnimationFrame(step);

@@ -256,6 +256,42 @@ def community(request):
     return render(request, "core/community.html", {"community_stats": stats})
 
 
+def lucky(request):
+    return render(request, "core/lucky.html")
+
+
+def lucky_spin(request):
+    from django.http import JsonResponse
+    from books.models import Genre
+
+    genre_name = (request.GET.get("genre") or "").strip()
+
+    qs = Book.objects.prefetch_related("authors", "genres")
+    if genre_name:
+        qs = qs.filter(genres__name__iexact=genre_name)
+
+    book = (
+        qs.filter(cover_image__isnull=False)
+        .exclude(cover_image="")
+        .order_by("?")
+        .first()
+    ) or qs.order_by("?").first()
+
+    if not book:
+        return JsonResponse({"ok": False})
+
+    return JsonResponse({
+        "ok": True,
+        "id": book.pk,
+        "title": book.title,
+        "authors": ", ".join(a.name for a in book.authors.all()),
+        "cover_url": book.cover_image.url if book.cover_image else "",
+        "url": f"/books/{book.pk}/",
+        "avg_rating": float(book.avg_rating) if book.avg_rating else None,
+        "genre": book.genres.values_list("name", flat=True).first() or "",
+    })
+
+
 def design_demos(request):
     return render(request, "core/design_demos.html")
 

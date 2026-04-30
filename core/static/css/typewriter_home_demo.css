@@ -357,6 +357,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 .community-card:nth-child(6) { animation-delay: .48s; }
 .community-card:nth-child(7) { animation-delay: .54s; }
 .community-card:nth-child(8) { animation-delay: .60s; }
+.community-card:nth-child(9) { animation-delay: .66s; }
 
 .community-card:nth-child(1)::before,
 .community-card:nth-child(1)::after { animation-delay: .16s; }
@@ -374,6 +375,8 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 .community-card:nth-child(7)::after { animation-delay: .52s; }
 .community-card:nth-child(8)::before,
 .community-card:nth-child(8)::after { animation-delay: .58s; }
+.community-card:nth-child(9)::before,
+.community-card:nth-child(9)::after { animation-delay: .64s; }
 
 .community-card span,
 .admin-ledger span {

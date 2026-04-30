@@ -1,0 +1,604 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Книжный бандит — Слот-машина — Строка{% endblock %}
+
+{% block content %}
+<div class="lucky-page">
+
+  <div class="lucky-hero">
+    <h1 class="lucky-title">Книжный бандит</h1>
+    <p class="lucky-sub">Крути барабаны — собери комбинацию — получи книгу по жанру</p>
+  </div>
+
+  {# ── СЛОТ-МАШИНА ── #}
+  <div class="slot-machine" id="slot-machine">
+
+    {# Корпус #}
+    <div class="slot-body">
+
+      {# Линии выигрыша — декоративные полосы #}
+      <div class="slot-lines">
+        <div class="slot-line slot-line--top"></div>
+        <div class="slot-line slot-line--mid"></div>
+        <div class="slot-line slot-line--bot"></div>
+      </div>
+
+      {# Три барабана #}
+      <div class="slot-reels" id="slot-reels">
+        <div class="slot-reel-wrap">
+          <div class="slot-reel" id="reel-0"></div>
+        </div>
+        <div class="slot-reel-wrap">
+          <div class="slot-reel" id="reel-1"></div>
+        </div>
+        <div class="slot-reel-wrap">
+          <div class="slot-reel" id="reel-2"></div>
+        </div>
+      </div>
+
+      {# Подсветка победной линии #}
+      <div class="slot-win-flash" id="slot-win-flash"></div>
+    </div>
+
+    {# Рычаг #}
+    <div class="slot-lever" id="slot-lever">
+      <div class="slot-lever__arm" id="slot-lever-arm">
+        <div class="slot-lever__rod"></div>
+        <div class="slot-lever__ball"></div>
+      </div>
+    </div>
+
+  </div>
+
+  {# Таблица выплат #}
+  <div class="slot-paytable">
+    <div class="slot-paytable__row"><span class="slot-sym">🔥🔥🔥</span><span>Джекпот — 100 очков</span></div>
+    <div class="slot-paytable__row"><span class="slot-sym">⭐⭐⭐</span><span>Классика — 50 очков</span></div>
+    <div class="slot-paytable__row"><span class="slot-sym">любые 3 одинаковых</span><span>30 очков</span></div>
+    <div class="slot-paytable__row"><span class="slot-sym">2 одинаковых</span><span>10 очков</span></div>
+    <div class="slot-paytable__row"><span class="slot-sym">все разные</span><span>1 очко — книга наугад</span></div>
+  </div>
+
+  {# Счёт #}
+  <div class="slot-score-row">
+    <div class="slot-score">
+      <span class="slot-score__label">Очки</span>
+      <span class="slot-score__val" id="slot-score">0</span>
+    </div>
+    <div class="slot-score">
+      <span class="slot-score__label">Лучший результат</span>
+      <span class="slot-score__val" id="slot-best">0</span>
+    </div>
+    <div class="slot-score">
+      <span class="slot-score__label">Спинов</span>
+      <span class="slot-score__val" id="slot-spins">0</span>
+    </div>
+  </div>
+
+  {# Кнопка спина #}
+  <button class="btn btn-primary slot-spin-btn" id="slot-spin-btn">Крутить</button>
+
+  {# Результат — выигранная книга #}
+  <div class="slot-result" id="slot-result" style="display:none">
+    <div class="slot-result__label" id="slot-result-label"></div>
+    <a class="lucky-result__card" id="lucky-card" href="#">
+      <img class="lucky-result__cover" id="lucky-cover" src="" alt="">
+      <div class="lucky-result__info">
+        <span class="lucky-result__title"  id="lucky-rtitle"></span>
+        <span class="lucky-result__author" id="lucky-rauthor"></span>
+        <span class="lucky-result__genre"  id="lucky-rgenre"></span>
+        <span class="lucky-result__rating" id="lucky-rrating" style="display:none"></span>
+      </div>
+    </a>
+    {% if user.is_authenticated %}
+    <button class="btn btn-primary lucky-result__add" id="lucky-add-btn">+ Хочу прочитать</button>
+    <span class="lucky-result__added" id="lucky-added" style="display:none">✓ Добавлено</span>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+/* ── СТРАНИЦА ── */
+.lucky-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 36px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+.lucky-hero { text-align: center; }
+.lucky-title { font-size: clamp(22px,5vw,30px); font-weight:700; margin:0 0 6px; letter-spacing:-.02em; }
+.lucky-sub   { font-size:13px; color:var(--muted); margin:0; }
+
+/* ── КОРПУС МАШИНЫ ── */
+.slot-machine {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  filter: drop-shadow(0 6px 24px rgba(0,0,0,.12));
+}
+.slot-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #f7f6f2);
+  border: 2px solid var(--ink);
+  border-radius: 16px 0 0 16px;
+  padding: 14px 10px;
+  overflow: hidden;
+}
+/* линии */
+.slot-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.slot-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: var(--ink);
+  opacity: .10;
+}
+.slot-line--top { top: calc(33.33% - 1px); }
+.slot-line--mid { top: calc(50%    - 1px); opacity: .22; }
+.slot-line--bot { top: calc(66.66% - 1px); }
+
+/* три барабана рядом */
+.slot-reels {
+  display: flex;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+.slot-reel-wrap {
+  width: 88px;
+  height: 264px;         /* 3 × 88px */
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg,#fff);
+  position: relative;
+}
+/* тени вверх/вниз внутри барабана */
+.slot-reel-wrap::before,
+.slot-reel-wrap::after {
+  content: '';
+  position: absolute;
+  left:0; right:0;
+  height: 36px;
+  z-index: 2;
+  pointer-events: none;
+}
+.slot-reel-wrap::before { top:0;    background:linear-gradient(to bottom,var(--bg,#fff),transparent); }
+.slot-reel-wrap::after  { bottom:0; background:linear-gradient(to top,   var(--bg,#fff),transparent); }
+
+.slot-reel {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+/* одна ячейка барабана */
+.slot-cell {
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 32px;
+  line-height: 1;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.slot-cell__label {
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: .03em;
+  line-height: 1.2;
+  text-align: center;
+  max-width: 78px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* подсветка при выигрыше */
+.slot-win-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px 0 0 14px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  background: rgba(255,220,0,.18);
+}
+.slot-win-flash--on { opacity: 1; animation: flash-blink .4s 3; }
+@keyframes flash-blink {
+  0%,100% { opacity:0; } 50% { opacity:1; }
+}
+
+/* ── РЫЧАГ ── */
+.slot-lever {
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 18px;
+  background: var(--surface,#f7f6f2);
+  border: 2px solid var(--ink);
+  border-left: none;
+  border-radius: 0 16px 16px 0;
+  cursor: grab;
+  user-select: none;
+}
+.slot-lever:active { cursor: grabbing; }
+.slot-lever__arm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: top center;
+  transition: transform .18s cubic-bezier(.3,1.6,.5,1);
+}
+.slot-lever__rod {
+  width: 7px;
+  height: 140px;
+  background: var(--ink);
+  border-radius: 4px;
+}
+.slot-lever__ball {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ink);
+  margin-top: -2px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.28);
+  transition: background .1s;
+}
+.slot-lever--active .slot-lever__arm { transform: rotate(28deg); }
+.slot-lever--active .slot-lever__ball { background: var(--err,#c0392b); }
+
+/* ── ТАБЛИЦА ВЫПЛАТ ── */
+.slot-paytable {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.slot-paytable__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.slot-paytable__row:last-child { border-bottom: 0; }
+.slot-sym { font-size: 13px; letter-spacing: .04em; }
+
+/* ── СЧЁТ ── */
+.slot-score-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  justify-content: center;
+}
+.slot-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 80px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.slot-score__label { font-size: 10px; color: var(--muted); }
+.slot-score__val   { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+
+/* ── КНОПКА СПИНА ── */
+.slot-spin-btn { width: 100%; max-width: 320px; }
+
+/* ── РЕЗУЛЬТАТ ── */
+.slot-result {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: lucky-fadein .3s ease;
+}
+.slot-result__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: center;
+}
+@keyframes lucky-fadein { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+.lucky-result__card {
+  display: flex; gap:16px; align-items:flex-start;
+  padding:16px; border:1px solid var(--border); border-radius:12px;
+  text-decoration:none; color:inherit;
+  background:var(--surface,transparent); width:100%;
+  transition: border-color .15s;
+}
+.lucky-result__card:hover { border-color: var(--ink); }
+.lucky-result__cover { width:72px; height:100px; object-fit:cover; border-radius:4px; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+.lucky-result__info  { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; padding-top:4px; }
+.lucky-result__title  { font-size:15px; font-weight:600; line-height:1.3; }
+.lucky-result__author { font-size:12px; color:var(--muted); }
+.lucky-result__genre  { font-size:11px; color:var(--muted); }
+.lucky-result__rating { font-size:12px; color:var(--ink); }
+.lucky-result__add    { width:100%; }
+.lucky-result__added  { font-size:13px; color:var(--muted); }
+
+@media(max-width:480px) {
+  .slot-reel-wrap { width:74px; height:222px; }
+  .slot-cell { width:74px; height:74px; font-size:26px; }
+  .slot-cell__label { max-width:64px; }
+}
+</style>
+
+<script>
+(function(){
+'use strict';
+
+// ── Символы барабанов — жанры с эмодзи ──────────────────────────────────────
+const SYMBOLS = [
+  { emoji:'🔥', label:'Триллер',    genre:'Триллер',      score: 100, jackpot: true  },
+  { emoji:'⭐', label:'Классика',   genre:'Классика',     score: 50                  },
+  { emoji:'🗡️', label:'Фэнтези',   genre:'Фэнтези',      score: 30                  },
+  { emoji:'🔍', label:'Детектив',   genre:'Детектив',     score: 30                  },
+  { emoji:'💘', label:'Романтика',  genre:'Романтика',    score: 30                  },
+  { emoji:'🚀', label:'Фантастика', genre:'Фантастика',   score: 30                  },
+  { emoji:'📜', label:'История',    genre:'История',      score: 30                  },
+  { emoji:'🌿', label:'Природа',    genre:'Природа',      score: 20                  },
+  { emoji:'🏛️', label:'Философия', genre:'Философия',    score: 20                  },
+  { emoji:'😂', label:'Юмор',       genre:'Юмор',         score: 20                  },
+];
+
+const CELL_H    = 88;  // px — должен совпадать с CSS
+const SPIN_ROWS = 20;  // ячеек прокрутки до остановки
+const DELAYS    = [0, 220, 440]; // задержка старта каждого барабана (мс)
+const SPIN_MS   = [1400, 1620, 1840]; // длительность прокрутки каждого барабана
+
+const reelEls   = [0,1,2].map(i => document.getElementById(`reel-${i}`));
+const leverEl   = document.getElementById('slot-lever');
+const leverArm  = document.getElementById('slot-lever-arm');
+const winFlash  = document.getElementById('slot-win-flash');
+const spinBtn   = document.getElementById('slot-spin-btn');
+const scoreEl   = document.getElementById('slot-score');
+const bestEl    = document.getElementById('slot-best');
+const spinsEl   = document.getElementById('slot-spins');
+const resultDiv = document.getElementById('slot-result');
+const resLabel  = document.getElementById('slot-result-label');
+const bookCard  = document.getElementById('lucky-card');
+const bookCover = document.getElementById('lucky-cover');
+const bookTitle = document.getElementById('lucky-rtitle');
+const bookAuth  = document.getElementById('lucky-rauthor');
+const bookGenre = document.getElementById('lucky-rgenre');
+const bookRating= document.getElementById('lucky-rrating');
+const addBtn    = document.getElementById('lucky-add-btn');
+const addedLbl  = document.getElementById('lucky-added');
+
+const SPIN_URL = "{% url 'lucky_spin' %}";
+const ADD_URL  = "{% url 'toggle_list' %}";
+const CSRF     = "{{ csrf_token }}";
+const IS_AUTH  = {{ user.is_authenticated|yesno:"true,false" }};
+
+let score = 0, bestScore = parseInt(localStorage.getItem('lucky_best')||'0',10), spinCount = 0;
+let spinning = false;
+let currentBookId = null;
+
+bestEl.textContent = bestScore;
+
+// ── Строим ячейку ──────────────────────────────────────────────────────────
+function makeCell(sym) {
+  const d = document.createElement('div');
+  d.className = 'slot-cell';
+  d.innerHTML = `<span>${sym.emoji}</span><span class="slot-cell__label">${sym.label}</span>`;
+  return d;
+}
+
+// ── Инициализируем барабан начальными ячейками ─────────────────────────────
+function initReel(el) {
+  el.innerHTML = '';
+  el.style.transition = 'none';
+  el.style.transform  = 'translateY(0)';
+  // 3 видимых ячейки
+  for (let i = 0; i < 3; i++) {
+    el.appendChild(makeCell(SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]));
+  }
+}
+reelEls.forEach(initReel);
+
+// ── Основной спин ──────────────────────────────────────────────────────────
+async function doSpin() {
+  if (spinning) return;
+  spinning = true;
+  spinBtn.disabled = true;
+  resultDiv.style.display = 'none';
+  winFlash.classList.remove('slot-win-flash--on');
+
+  leverEl.classList.add('slot-lever--active');
+  await sleep(200);
+  leverEl.classList.remove('slot-lever--active');
+
+  // Выбираем финальные символы для каждого барабана
+  const finals = [0,1,2].map(() => SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]);
+
+  // Запускаем барабаны с задержкой
+  const promises = reelEls.map((el, i) => spinReel(el, i, finals[i]));
+  await Promise.all(promises);
+
+  // Подсчёт очков
+  const pts = calcScore(finals);
+  score += pts;
+  spinCount++;
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem('lucky_best', bestScore);
+  }
+
+  scoreEl.textContent = score;
+  bestEl.textContent  = bestScore;
+  spinsEl.textContent = spinCount;
+
+  if (pts > 0) {
+    winFlash.classList.add('slot-win-flash--on');
+    setTimeout(() => winFlash.classList.remove('slot-win-flash--on'), 1300);
+  }
+
+  // Определяем жанр для книги
+  const genre = pickGenre(finals, pts);
+  await fetchBook(genre, finals, pts);
+
+  spinning = false;
+  spinBtn.disabled = false;
+}
+
+// ── Анимация одного барабана ───────────────────────────────────────────────
+function spinReel(el, idx, finalSym) {
+  return new Promise(resolve => {
+    setTimeout(async () => {
+      // Сбрасываем без анимации
+      el.style.transition = 'none';
+      el.style.transform  = 'translateY(0)';
+      el.innerHTML = '';
+
+      // Заполняем SPIN_ROWS случайными + 3 финальных
+      const total = SPIN_ROWS + 3;
+      for (let i = 0; i < SPIN_ROWS; i++) {
+        el.appendChild(makeCell(SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]));
+      }
+      // финальные три (центральная — это результат)
+      el.appendChild(makeCell(SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]));
+      el.appendChild(makeCell(finalSym));
+      el.appendChild(makeCell(SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]));
+
+      // Нужно прокрутить до позиции где finalSym в центре (ячейка SPIN_ROWS)
+      // центр = SPIN_ROWS * CELL_H - CELL_H (чтобы средняя из трёх была по центру окна 3*CELL_H)
+      const targetY = -( SPIN_ROWS * CELL_H - CELL_H );
+
+      void el.offsetHeight; // reflow
+
+      el.style.transition = `transform ${SPIN_MS[idx]}ms cubic-bezier(0.12,0.8,0.3,1.0)`;
+      el.style.transform  = `translateY(${targetY}px)`;
+
+      await sleep(SPIN_MS[idx] + 60);
+      resolve();
+    }, DELAYS[idx]);
+  });
+}
+
+// ── Подсчёт очков ──────────────────────────────────────────────────────────
+function calcScore(finals) {
+  const emojis = finals.map(s => s.emoji);
+  // Три одинаковых
+  if (emojis[0] === emojis[1] && emojis[1] === emojis[2]) {
+    if (finals[0].jackpot) return 100; // 🔥🔥🔥
+    if (finals[0].label === 'Классика') return 50;
+    return 30;
+  }
+  // Два одинаковых
+  if (emojis[0]===emojis[1] || emojis[1]===emojis[2] || emojis[0]===emojis[2]) return 10;
+  // Все разные
+  return 1;
+}
+
+// ── Выбор жанра для книги ──────────────────────────────────────────────────
+function pickGenre(finals, pts) {
+  if (pts >= 30) {
+    // три одинаковых — берём их жанр
+    return finals[1].genre;
+  }
+  if (pts === 10) {
+    // два одинаковых — находим совпадение
+    if (finals[0].emoji === finals[1].emoji) return finals[0].genre;
+    if (finals[1].emoji === finals[2].emoji) return finals[1].genre;
+    return finals[0].genre;
+  }
+  // 1 очко — случайный жанр из выпавших
+  return finals[Math.floor(Math.random()*3)].genre;
+}
+
+// ── Получить книгу с сервера ───────────────────────────────────────────────
+async function fetchBook(genre, finals, pts) {
+  try {
+    const url = SPIN_URL + '?genre=' + encodeURIComponent(genre);
+    const r   = await fetch(url);
+    const bk  = await r.json();
+    if (!bk.ok) return;
+    currentBookId = bk.id;
+    showResult(bk, finals, pts);
+  } catch(e) { /* тихо */ }
+}
+
+// ── Показ результата ───────────────────────────────────────────────────────
+function showResult(bk, finals, pts) {
+  let label = '';
+  if (pts >= 100) label = '🎰 ДЖЕКПОТ! +100 очков';
+  else if (pts >= 50) label = '⭐ Классика! +50 очков';
+  else if (pts >= 30) label = '🎲 Три одинаковых! +30 очков';
+  else if (pts === 10) label = '✌️ Два одинаковых! +10 очков';
+  else label = '📖 +1 очко — книга на удачу';
+
+  resLabel.textContent = label;
+  bookCard.href = bk.url;
+  if (bk.cover_url) { bookCover.src = bk.cover_url; bookCover.style.display=''; }
+  else { bookCover.style.display = 'none'; }
+  bookTitle.textContent  = bk.title;
+  bookAuth.textContent   = bk.authors;
+  bookGenre.textContent  = bk.genre || '';
+  if (bk.avg_rating) { bookRating.textContent='★ '+Number(bk.avg_rating).toFixed(1); bookRating.style.display=''; }
+  else { bookRating.style.display='none'; }
+
+  if (IS_AUTH && addBtn) { addBtn.style.display=''; addBtn.disabled=false; }
+  if (addedLbl) addedLbl.style.display = 'none';
+
+  resultDiv.style.display = 'flex';
+}
+
+// ── Рычаг и кнопка ────────────────────────────────────────────────────────
+spinBtn.addEventListener('click', doSpin);
+
+let levDown = false;
+leverEl.addEventListener('mousedown',  () => { levDown=true; leverEl.classList.add('slot-lever--active'); });
+leverEl.addEventListener('touchstart', (e) => { levDown=true; leverEl.classList.add('slot-lever--active'); e.preventDefault(); }, {passive:false});
+document.addEventListener('mouseup',  () => { if(levDown){ levDown=false; leverEl.classList.remove('slot-lever--active'); doSpin(); } });
+document.addEventListener('touchend', () => { if(levDown){ levDown=false; leverEl.classList.remove('slot-lever--active'); doSpin(); } });
+
+// ── Добавить в список ──────────────────────────────────────────────────────
+if (addBtn) {
+  addBtn.addEventListener('click', async () => {
+    if (!currentBookId) return;
+    addBtn.disabled = true;
+    try {
+      const fd = new FormData();
+      fd.append('book_id', currentBookId);
+      fd.append('list_name', 'want_to_read');
+      fd.append('csrfmiddlewaretoken', CSRF);
+      const r = await fetch(ADD_URL, {method:'POST',body:fd});
+      if (r.ok) { addBtn.style.display='none'; if(addedLbl) addedLbl.style.display=''; }
+      else { addBtn.disabled=false; }
+    } catch(e) { addBtn.disabled=false; }
+  });
+}
+
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+})();
+</script>
+{% endblock %}

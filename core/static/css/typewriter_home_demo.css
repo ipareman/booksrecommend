@@ -27,12 +27,14 @@
 
 html {
   min-height: 100%;
+  overflow-x: hidden;
   scroll-behavior: smooth;
 }
 
 body {
   position: relative;
   min-height: 100vh;
+  overflow-x: hidden;
   margin: 0;
   font-family: "Mltsvfont", monospace;
   color: var(--ink);
@@ -507,26 +509,40 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 
 .first-screen {
   min-height: 100svh;
-  display: grid;
-  place-items: center;
-  padding: 40px 24px;
+  display: block;
+  padding: 0 24px;
 }
 
 .first-screen__center {
   position: relative;
   width: min(980px, 100%);
+  margin: 0 auto;
+  min-height: 100svh;
   display: grid;
+  grid-template-rows: 1fr auto 1fr;
   justify-items: center;
-  transform: translateY(-4vh);
+  transform: none;
 }
 
 .hero-mark {
+  grid-row: 1;
+  align-self: center;
   width: auto;
   height: clamp(40px, 5vw, 5rem);
   object-fit: contain;
-  margin-bottom: 18px;
-  transform: translateY(-280px);
+  margin-bottom: 0;
+  transform: none;
   transition: transform .58s cubic-bezier(.4, 0, .16, 1);
+}
+
+.search-shell {
+  grid-row: 2;
+  align-self: center;
+}
+
+.search-actions {
+  grid-row: 3;
+  align-self: start;
 }
 
 .first-screen h1 {
@@ -1516,8 +1532,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   }
 
   .first-screen {
-    align-items: center;
-    padding: 28px 18px;
+    padding: 0 18px;
   }
 
   body.dialog-open {
@@ -1551,8 +1566,15 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
     visibility: hidden;
   }
 
+  .hero-mark {
+    transform: none;
+    height: clamp(36px, 12vw, 52px);
+  }
+
   .first-screen h1 {
-    font-size: 2.2vw;
+    transform: translateY(0);
+    font-size: clamp(1.2rem, 5vw, 1.6rem);
+    margin: 0 0 32px;
   }
 
   .search-shell.is-dialog {
@@ -1826,11 +1848,11 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   @keyframes logoExitLeft {
     from {
       opacity: 1;
-      transform: translateY(-280px);
+      transform: translateY(0);
     }
     to {
       opacity: 0;
-      transform: translate(-120vw, -280px);
+      transform: translate(-120vw, 0);
     }
   }
 
@@ -1947,11 +1969,11 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   @keyframes logoReturnFromLeft {
     from {
       opacity: 0;
-      transform: translate(-120vw, -280px);
+      transform: translate(-120vw, 0);
     }
     to {
       opacity: 1;
-      transform: translateY(-280px);
+      transform: translateY(0);
     }
   }
 

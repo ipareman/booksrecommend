@@ -56,6 +56,12 @@ html.theme-fade-from-dark:has(body.typewriter-reader-page)::before {
   filter: brightness(0) invert(1);
 }
 
+:root[data-theme="dark"] .typewriter-mobile-nav__sheet {
+  background:
+    linear-gradient(rgba(32, 32, 29, .96), rgba(32, 32, 29, .98)),
+    url("../img/design/paper-soft.jpg") center / cover;
+}
+
 .typewriter-nav__auth-link,
 .typewriter-nav__logout button,
 .typewriter-nav__theme {

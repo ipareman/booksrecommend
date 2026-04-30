@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="wrap page" style="padding-top:32px"
-     x-data="{ editing: false, filtersOpen: false }">
+     x-data="{ editing: false, filtersOpen: false, viewMode: 'catalog' }">
 
   <a href="{% url 'catalog' %}" class="lnk-muted" style="font-size:12px;display:inline-block;margin-bottom:20px">← Каталог</a>
 
@@ -87,105 +87,251 @@
 
   <hr class="divider" style="margin-bottom:20px">
 
-  {# ── ФИЛЬТРЫ + КНИГИ ────────────────────────────────────────────────────── #}
-  <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
-    <div style="flex:1;min-width:200px">
-      <input class="form-input" type="text" name="search" form="filter-form"
-             placeholder="Поиск по книгам автора..."
-             value="{{ f.search|default:'' }}"
-             hx-get="{% url 'author_detail' author.id %}"
-             hx-trigger="input changed delay:400ms"
-             hx-target="#book-list"
-             hx-include="#filter-form"
-             hx-swap="innerHTML">
-    </div>
-    <span style="font-size:13px;color:var(--ghost)">{{ total }} книг</span>
-    <select class="form-input form-select" style="width:auto" name="ordering" form="filter-form"
-            hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
-            hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
-      <option value="-avg_rating"       {% if f.ordering == '-avg_rating'       %}selected{% endif %}>По рейтингу</option>
-      <option value="-rating_count"     {% if f.ordering == '-rating_count'     %}selected{% endif %}>По популярности</option>
-      <option value="-publication_year" {% if f.ordering == '-publication_year' %}selected{% endif %}>Новее</option>
-      <option value="publication_year"  {% if f.ordering == 'publication_year'  %}selected{% endif %}>Старше</option>
-    </select>
+  {# ── ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ ───────────────────────────────────────────────── #}
+  <div class="author-view-tabs" style="margin-bottom:20px">
+    <button class="author-view-tab" :class="{ 'author-view-tab--active': viewMode === 'catalog' }"
+            @click="viewMode = 'catalog'" type="button">Каталог</button>
+    <button class="author-view-tab" :class="{ 'author-view-tab--active': viewMode === 'biblio' }"
+            @click="viewMode = 'biblio'" type="button">По годам</button>
+    {% if has_series %}
+    <button class="author-view-tab" :class="{ 'author-view-tab--active': viewMode === 'series' }"
+            @click="viewMode = 'series'" type="button">По сериям</button>
+    {% endif %}
   </div>
 
-  <button class="filter-toggle-btn" @click="filtersOpen = !filtersOpen">
-    Фильтры <span x-text="filtersOpen ? '&#9650;' : '&#9660;'"></span>
-  </button>
+  {# ── КАТАЛОГ ─────────────────────────────────────────────────────────────── #}
+  <div x-show="viewMode === 'catalog'" x-cloak>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <input class="form-input" type="text" name="search" form="filter-form"
+               placeholder="Поиск по книгам автора..."
+               value="{{ f.search|default:'' }}"
+               hx-get="{% url 'author_detail' author.id %}"
+               hx-trigger="input changed delay:400ms"
+               hx-target="#book-list"
+               hx-include="#filter-form"
+               hx-swap="innerHTML">
+      </div>
+      <span style="font-size:13px;color:var(--muted)">{{ total }} книг</span>
+      <select class="form-input form-select" style="width:auto" name="ordering" form="filter-form"
+              hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+              hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+        <option value="-avg_rating"       {% if f.ordering == '-avg_rating'       %}selected{% endif %}>По рейтингу</option>
+        <option value="-rating_count"     {% if f.ordering == '-rating_count'     %}selected{% endif %}>По популярности</option>
+        <option value="-publication_year" {% if f.ordering == '-publication_year' %}selected{% endif %}>Новее</option>
+        <option value="publication_year"  {% if f.ordering == 'publication_year'  %}selected{% endif %}>Старше</option>
+      </select>
+    </div>
 
-  <div class="catalog-layout">
-    <aside class="catalog-sidebar" :class="{ 'catalog-sidebar--open': filtersOpen }">
-      <form id="filter-form" method="get" action="{% url 'author_detail' author.id %}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-          <span class="filter-label">Фильтры</span>
-          {% if has_filters %}<a href="{% url 'author_detail' author.id %}" class="lnk-muted" style="font-size:11px">Сбросить</a>{% endif %}
-        </div>
+    <button class="filter-toggle-btn" @click="filtersOpen = !filtersOpen">
+      Фильтры <span x-text="filtersOpen ? '&#9650;' : '&#9660;'"></span>
+    </button>
 
-        {% if all_genres %}
-        <div style="margin-bottom:18px">
-          <p class="filter-label">Жанр</p>
-          <div style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:5px">
-            {% for genre in all_genres %}
-            <label class="form-check">
-              <input type="checkbox" name="genre" value="{{ genre.id }}"
-                     {% if genre.id|stringformat:"s" in selected_genres %}checked{% endif %}
+    <div class="catalog-layout">
+      <aside class="catalog-sidebar" :class="{ 'catalog-sidebar--open': filtersOpen }">
+        <form id="filter-form" method="get" action="{% url 'author_detail' author.id %}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <span class="filter-label">Фильтры</span>
+            {% if has_filters %}<a href="{% url 'author_detail' author.id %}" class="lnk-muted" style="font-size:11px">Сбросить</a>{% endif %}
+          </div>
+
+          {% if all_genres %}
+          <div style="margin-bottom:18px">
+            <p class="filter-label">Жанр</p>
+            <div style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:5px">
+              {% for genre in all_genres %}
+              <label class="form-check">
+                <input type="checkbox" name="genre" value="{{ genre.id }}"
+                       {% if genre.id|stringformat:"s" in selected_genres %}checked{% endif %}
+                       hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                       hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+                {{ genre.name }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div style="margin-bottom:18px">
+            <p class="filter-label">Год</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <input class="form-input" type="number" name="year_from"
+                     style="font-size:12px;padding:5px 8px"
+                     placeholder="{{ agg.min_year|default:'от' }}" value="{{ f.year_from|default:'' }}"
                      hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
                      hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
-              {{ genre.name }}
-            </label>
+              <input class="form-input" type="number" name="year_to"
+                     style="font-size:12px;padding:5px 8px"
+                     placeholder="{{ agg.max_year|default:'до' }}" value="{{ f.year_to|default:'' }}"
+                     hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+            </div>
+          </div>
+
+          <div style="margin-bottom:18px">
+            <p class="filter-label">Страниц</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <input class="form-input" type="number" name="pages_from"
+                     style="font-size:12px;padding:5px 8px"
+                     placeholder="{{ agg.min_pages|default:'от' }}" value="{{ f.pages_from|default:'' }}"
+                     hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+              <input class="form-input" type="number" name="pages_to"
+                     style="font-size:12px;padding:5px 8px"
+                     placeholder="{{ agg.max_pages|default:'до' }}" value="{{ f.pages_to|default:'' }}"
+                     hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                     hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+            </div>
+          </div>
+
+          <div>
+            <p class="filter-label">Рейтинг ≥ <span id="rl-val-a">{{ f.rating_min|default:"—" }}</span></p>
+            <input type="range" name="rating_min" min="0" max="5" step="0.5"
+                   value="{{ f.rating_min|default:'0' }}"
+                   style="width:100%;accent-color:var(--ink)"
+                   oninput="document.getElementById('rl-val-a').textContent=+this.value||'—'"
+                   hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
+                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
+          </div>
+        </form>
+      </aside>
+
+      <div id="book-list">
+        {% include "books/_book_list.html" %}
+      </div>
+    </div>
+  </div>
+
+  {# ── БИБЛИОГРАФИЯ (ПО ГОДАМ) ─────────────────────────────────────────────── #}
+  <div x-show="viewMode === 'biblio'" x-cloak>
+    {% if bibliography %}
+      <div class="biblio-timeline">
+        {% for group in bibliography %}
+        <div class="biblio-year-block">
+          <div class="biblio-year-marker">
+            <span class="biblio-year-label">{{ group.year|default:"б/г" }}</span>
+          </div>
+          <div class="biblio-year-books">
+            {% for book in group.books %}
+            <a href="{% url 'book_detail' book.pk %}" class="series-node__card biblio-book-card">
+              <div class="series-node__cover-wrap">
+                {% if book.cover_image %}
+                  <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" class="series-node__cover">
+                {% else %}
+                  <div class="series-node__cover series-node__cover--empty">
+                    <span>{{ book.title|truncatechars:30 }}</span>
+                  </div>
+                {% endif %}
+              </div>
+              <div class="series-node__info">
+                <div class="series-node__title">{{ book.title }}</div>
+                <div class="series-node__details">
+                  {% for g in book.genres.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                  {% if book.series %}<span class="series-node__year">&middot; {{ book.series.name }}</span>{% endif %}
+                  {% if book.pages %}<span class="series-node__year">&middot; {{ book.pages }} стр.</span>{% endif %}
+                </div>
+                {% if book.avg_rating %}
+                  <div class="series-node__rating">★ {{ book.avg_rating|floatformat:1 }}
+                    {% if book.rating_count %}<span class="series-node__rating-count">({{ book.rating_count }})</span>{% endif %}
+                  </div>
+                {% endif %}
+              </div>
+            </a>
             {% endfor %}
           </div>
         </div>
-        {% endif %}
-
-        <div style="margin-bottom:18px">
-          <p class="filter-label">Год</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <input class="form-input" type="number" name="year_from"
-                   style="font-size:12px;padding:5px 8px"
-                   placeholder="{{ agg.min_year|default:'от' }}" value="{{ f.year_from|default:'' }}"
-                   hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
-                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
-            <input class="form-input" type="number" name="year_to"
-                   style="font-size:12px;padding:5px 8px"
-                   placeholder="{{ agg.max_year|default:'до' }}" value="{{ f.year_to|default:'' }}"
-                   hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
-                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
-          </div>
-        </div>
-
-        <div style="margin-bottom:18px">
-          <p class="filter-label">Страниц</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <input class="form-input" type="number" name="pages_from"
-                   style="font-size:12px;padding:5px 8px"
-                   placeholder="{{ agg.min_pages|default:'от' }}" value="{{ f.pages_from|default:'' }}"
-                   hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
-                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
-            <input class="form-input" type="number" name="pages_to"
-                   style="font-size:12px;padding:5px 8px"
-                   placeholder="{{ agg.max_pages|default:'до' }}" value="{{ f.pages_to|default:'' }}"
-                   hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
-                   hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
-          </div>
-        </div>
-
-        <div>
-          <p class="filter-label">Рейтинг ≥ <span id="rl-val-a">{{ f.rating_min|default:"—" }}</span></p>
-          <input type="range" name="rating_min" min="0" max="5" step="0.5"
-                 value="{{ f.rating_min|default:'0' }}"
-                 style="width:100%;accent-color:var(--ink)"
-                 oninput="document.getElementById('rl-val-a').textContent=+this.value||'—'"
-                 hx-get="{% url 'author_detail' author.id %}" hx-trigger="change"
-                 hx-target="#book-list" hx-include="#filter-form" hx-swap="innerHTML">
-        </div>
-      </form>
-    </aside>
-
-    <div id="book-list">
-      {% include "books/_book_list.html" %}
-    </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty">Нет данных о книгах</p>
+    {% endif %}
   </div>
+
+  {# ── ПО СЕРИЯМ ───────────────────────────────────────────────────────────── #}
+  <div x-show="viewMode === 'series'" x-cloak>
+    {% if series_groups %}
+      {% for group in series_groups %}
+      <div class="biblio-series-block">
+        <div class="biblio-series-header">
+          <a href="{% url 'series_detail' group.series.pk %}" class="lnk-muted biblio-series-name">{{ group.series.name }}</a>
+          <span class="biblio-series-count">{{ group.books|length }} {% if group.books|length == 1 %}книга{% elif group.books|length < 5 %}книги{% else %}книг{% endif %}</span>
+        </div>
+        <div class="series-timeline biblio-series-timeline">
+          {% for book in group.books %}
+          <div class="series-node">
+            <div class="series-node__marker">
+              <div class="series-node__circle series-node__circle--pending">
+                <span>{{ forloop.counter }}</span>
+              </div>
+            </div>
+            <a href="{% url 'book_detail' book.pk %}" class="series-node__card">
+              <div class="series-node__cover-wrap">
+                {% if book.cover_image %}
+                  <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" class="series-node__cover">
+                {% else %}
+                  <div class="series-node__cover series-node__cover--empty">
+                    <span>{{ book.title|truncatechars:30 }}</span>
+                  </div>
+                {% endif %}
+              </div>
+              <div class="series-node__info">
+                <div class="series-node__title">{{ book.title }}</div>
+                <div class="series-node__details">
+                  {% if book.publication_year %}<span class="series-node__year">{{ book.publication_year }}</span>{% endif %}
+                  {% if book.pages %}<span class="series-node__year">&middot; {{ book.pages }} стр.</span>{% endif %}
+                </div>
+                {% if book.avg_rating %}
+                  <div class="series-node__rating">★ {{ book.avg_rating|floatformat:1 }}
+                    {% if book.rating_count %}<span class="series-node__rating-count">({{ book.rating_count }})</span>{% endif %}
+                  </div>
+                {% endif %}
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      {% if no_series_books %}
+      <div class="biblio-series-block">
+        <div class="biblio-series-header">
+          <span class="biblio-series-name" style="color:var(--muted)">Вне серий</span>
+          <span class="biblio-series-count">{{ no_series_books|length }} {% if no_series_books|length == 1 %}книга{% elif no_series_books|length < 5 %}книги{% else %}книг{% endif %}</span>
+        </div>
+        <div class="biblio-noseries-list">
+          {% for book in no_series_books %}
+          <a href="{% url 'book_detail' book.pk %}" class="series-node__card biblio-book-card">
+            <div class="series-node__cover-wrap">
+              {% if book.cover_image %}
+                <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" class="series-node__cover">
+              {% else %}
+                <div class="series-node__cover series-node__cover--empty">
+                  <span>{{ book.title|truncatechars:30 }}</span>
+                </div>
+              {% endif %}
+            </div>
+            <div class="series-node__info">
+              <div class="series-node__title">{{ book.title }}</div>
+              <div class="series-node__details">
+                {% if book.publication_year %}<span class="series-node__year">{{ book.publication_year }}</span>{% endif %}
+                {% if book.pages %}<span class="series-node__year">&middot; {{ book.pages }} стр.</span>{% endif %}
+              </div>
+              {% if book.avg_rating %}
+                <div class="series-node__rating">★ {{ book.avg_rating|floatformat:1 }}
+                  {% if book.rating_count %}<span class="series-node__rating-count">({{ book.rating_count }})</span>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    {% else %}
+      <p class="empty">У этого автора нет книжных серий</p>
+    {% endif %}
+  </div>
+
 </div>{# /x-data editing #}
 {% endblock %}

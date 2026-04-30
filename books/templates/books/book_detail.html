@@ -312,7 +312,7 @@
       <button class="tab" :class="{'tab--active': tab==='about'}"   @click="tab='about'">Описание</button>
       <button class="tab" :class="{'tab--active': tab==='reviews'}" @click="tab='reviews'">Отзывы ({{ review_count }})</button>
       <button class="tab" :class="{'tab--active': tab==='critiques'}" @click="tab='critiques'">Рецензии ({{ critique_count }})</button>
-      <button class="tab" :class="{'tab--active': tab==='editions'}" @click="tab='editions'">От других издателей{% if editions_in_group %} ({{ editions_in_group|length }}){% endif %}</button>
+      <button class="tab" :class="{'tab--active': tab==='editions'}" @click="tab='editions'">Издательства{% if editions_in_group|length > 1 %} ({{ editions_in_group|length }}){% endif %}</button>
       {% if user.is_staff or store_links  %}
       <button class="tab" :class="{'tab--active': tab==='stores'}"  @click="tab='stores'">Магазины</button>
       {% endif %}
@@ -470,7 +470,7 @@
     </div>
 
     <div x-show="tab==='reviews'" x-cloak>
-      {% if editions_in_group %}
+      {% if editions_in_group|length > 1 %}
       <div class="scope-toggle">
         <a href="?scope=edition&tab=reviews" class="scope-toggle__btn {% if scope == 'edition' %}scope-toggle__btn--on{% endif %}">Этого издания</a>
         <a href="?scope=all&tab=reviews" class="scope-toggle__btn {% if scope == 'all' %}scope-toggle__btn--on{% endif %}">Всех изданий</a>
@@ -485,7 +485,7 @@
     </div>
 
     <div x-show="tab==='critiques'" x-cloak>
-      {% if editions_in_group %}
+      {% if editions_in_group|length > 1 %}
       <div class="scope-toggle">
         <a href="?scope=edition&tab=critiques" class="scope-toggle__btn {% if scope == 'edition' %}scope-toggle__btn--on{% endif %}">Этого издания</a>
         <a href="?scope=all&tab=critiques" class="scope-toggle__btn {% if scope == 'all' %}scope-toggle__btn--on{% endif %}">Всех изданий</a>
@@ -499,13 +499,17 @@
       <div id="critiques-list">{% include "reviews/_critique_list.html" with critiques=critiques %}</div>
     </div>
 
-    {# От других издателей #}
+    {# Издательства #}
     <div x-show="tab==='editions'" x-cloak>
-      {% if editions_in_group %}
-      <p class="form-hint" style="margin-bottom:16px">Это произведение издавалось в разных издательствах. Нажмите на карточку, чтобы переключить издание.</p>
+      {% if editions_in_group|length > 1 %}
+      <p class="form-hint" style="margin-bottom:16px">Это произведение выходило в разных издательствах. Нажмите на карточку, чтобы переключить издание.</p>
+      {% endif %}
       <div class="editions-grid">
         {% for b in editions_in_group %}
-        <button type="button" class="edition-card" data-book-id="{{ b.pk }}" onclick="swapEdition({{ b.pk }}, this)">
+        <button type="button"
+                class="edition-card{% if b.pk == current_edition_id %} edition-card--active{% endif %}"
+                data-book-id="{{ b.pk }}"
+                onclick="swapEdition({{ b.pk }}, this)">
           {% if b.cover_image %}
             <img src="{{ b.cover_image.url }}" alt="" class="edition-card__cover">
           {% else %}
@@ -518,12 +522,12 @@
             </div>
             {% if b.isbn %}<div class="edition-card__isbn">ISBN {{ b.isbn }}</div>{% endif %}
           </div>
+          {% if b.pk == current_edition_id %}
+          <div class="edition-card__badge">Текущее</div>
+          {% endif %}
         </button>
         {% endfor %}
       </div>
-      {% else %}
-      <p class="empty">Других изданий этой книги пока нет.</p>
-      {% endif %}
     </div>
 
     {% if user.is_staff or store_links or unlinked_stores %}
@@ -663,11 +667,11 @@ function renderChart(data,days){const canvas=document.getElementById("price-char
 function renderStores(data){const el=document.getElementById("price-stores-list");const stores=data.datasets.filter(d=>d.label!=="Средняя");if(!stores.length){el.innerHTML="";return;}const rows=stores.map(ds=>{const vals=ds.points.filter(v=>v!=null);const last=vals.length?vals[vals.length-1].toFixed(0)+" ₽":"—";const min=vals.length?Math.min(...vals).toFixed(0)+" ₽":"—";const max=vals.length?Math.max(...vals).toFixed(0)+" ₽":"—";return`<div style="display:grid;grid-template-columns:14px 1fr auto auto auto;gap:0 14px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="width:10px;height:10px;border-radius:50%;background:${ds.color};display:block"></span><span style="font-weight:500">${ds.label}</span><span style="color:var(--ghost);font-size:12px">мин: ${min}</span><span style="color:var(--ghost);font-size:12px">макс: ${max}</span><span style="font-weight:600;color:#16a34a">${last}</span></div>`;}).join("");el.innerHTML=`<p style="font-size:11px;color:var(--ghost);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-weight:600">Актуальные цены</p>${rows}`;}
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closePriceChart();});
 
-// ─── Typewriter swap для других изданий ───────────────────────────────────
+// ─── Typewriter swap для изданий ─────────────────────────────────────────
 // ⚙️ НАСТРОЙКИ СКОРОСТИ ПЕЧАТАНИЯ (все значения в миллисекундах)
 const TYPE_SPEED = {
   SHORT: 12,               // задержка на символ для коротких полей (название, авторы, год, издатель, страницы, ISBN)
-  COVER_FADE_MS: 300,      // длительность fade-эффекта обложки
+  COVER_FADE_MS: 220,      // длительность fade-эффекта обложки
   DESC_MIN_DELAY: 1,       // минимальная задержка на символ в описании (нижняя граница ускорения)
   DESC_MAX_DELAY: 8,       // максимальная задержка на символ в описании (верхняя граница)
   DESC_ERASE_NUMERATOR: 250, // числитель для расчёта скорости стирания описания (больше = медленнее)
@@ -726,14 +730,20 @@ async function swapEdition(bookId, cardEl) {
     history.pushState({bookId: data.id}, "", data.url);
     document.title = data.title + " — Строка";
 
-    // Обложка: fade-out → swap src → fade-in
+    // Обложка: fade-out → swap src → fade-in (с CSS transition)
     const cover = document.getElementById("ed-cover");
     if (cover) {
+      cover.style.transition = `opacity ${TYPE_SPEED.COVER_FADE_MS}ms ease`;
       cover.style.opacity = "0";
-      await new Promise(r => setTimeout(r, TYPE_SPEED.COVER_FADE_MS));
+      await new Promise(r => setTimeout(r, TYPE_SPEED.COVER_FADE_MS + 20));
       if (data.cover_url) {
         cover.src = data.cover_url;
         cover.style.display = "block";
+        // Ждём загрузки перед fade-in
+        await Promise.race([
+          new Promise(r => { if (cover.complete) r(); else cover.addEventListener("load", r, { once: true }); }),
+          new Promise(r => setTimeout(r, 800)),
+        ]);
       } else {
         cover.style.display = "none";
       }
@@ -798,8 +808,16 @@ async function swapEdition(bookId, cardEl) {
   }
 }
 
-// Обратная кнопка браузера: перезагрузить нужную страницу (проще, чем восстанавливать состояние)
-window.addEventListener("popstate", () => { window.location.reload(); });
+// Обратная кнопка браузера: перезагружаем только если нет активного свапа
+window.addEventListener("popstate", (e) => {
+  if (e.state && e.state.bookId) {
+    // Переключаем издание без перезагрузки страницы
+    const card = document.querySelector(`.edition-card[data-book-id="${e.state.bookId}"]`);
+    swapEdition(e.state.bookId, card);
+  } else {
+    window.location.reload();
+  }
+});
 </script>
 <style>
 .period-btn{padding:4px 14px;font-size:12px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s;}

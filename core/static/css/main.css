@@ -4534,3 +4534,114 @@ main { flex: 1 0 auto; }
     align-items: center;
   }
 }
+
+/* ── AUTHOR VIEW TABS ───────────────────────────────────────────────────────── */
+.author-view-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+}
+.author-view-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: "Mltsvfont", monospace;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 8px 18px 7px;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+}
+.author-view-tab:hover {
+  color: var(--ink);
+}
+.author-view-tab--active {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+/* ── BIBLIOGRAPHY TIMELINE (по годам) ──────────────────────────────────────── */
+.biblio-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.biblio-year-block {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 0 20px;
+  border-top: 1px solid var(--line);
+  padding: 20px 0;
+}
+.biblio-year-block:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.biblio-year-marker {
+  padding-top: 3px;
+  text-align: right;
+}
+.biblio-year-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.biblio-year-books {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.biblio-book-card {
+  margin-bottom: 0;
+}
+
+/* ── BIBLIOGRAPHY BY SERIES ─────────────────────────────────────────────────── */
+.biblio-series-block {
+  margin-bottom: 36px;
+}
+.biblio-series-block:last-child {
+  margin-bottom: 0;
+}
+.biblio-series-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line-strong);
+}
+.biblio-series-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color .15s;
+}
+a.biblio-series-name:hover {
+  border-bottom-color: currentColor;
+}
+.biblio-series-count {
+  font-size: 12px;
+  color: var(--muted);
+}
+.biblio-series-timeline {
+  margin-left: 0;
+}
+.biblio-noseries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .biblio-year-block {
+    grid-template-columns: 48px 1fr;
+    gap: 0 12px;
+    padding: 14px 0;
+  }
+  .biblio-year-label { font-size: 11px; }
+  .author-view-tab { font-size: 12px; padding: 7px 12px 6px; }
+}

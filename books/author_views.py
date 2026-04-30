@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
@@ -6,9 +8,57 @@ from django.db.models import Q, Min, Max
 from django.core.paginator import Paginator
 from django.conf import settings
 
-from .models import Book, Author, Genre, Publisher
+from .models import Book, Author, Genre, Publisher, Series
 from users.models import AuthorSubscription
-from users.models import AuthorSubscription
+
+
+def _build_bibliography(author: Author) -> list:
+    """Возвращает список {'year': int|None, 'books': [...]} отсортированный по году убыв."""
+    all_books = (
+        Book.objects
+        .filter(authors=author)
+        .prefetch_related("authors", "genres")
+        .select_related("publisher", "series")
+        .order_by("-publication_year", "title")
+    )
+    groups: dict = defaultdict(list)
+    for book in all_books:
+        groups[book.publication_year].append(book)
+
+    result = []
+    for year in sorted(groups.keys(), key=lambda y: (y is None, -(y or 0))):
+        result.append({"year": year, "books": groups[year]})
+    return result
+
+
+def _build_by_series(author: Author) -> tuple:
+    """Возвращает (series_groups, no_series_books).
+    series_groups = list of {'series': Series, 'books': [...]}
+    no_series_books = list of Book без серии
+    """
+    all_books = (
+        Book.objects
+        .filter(authors=author)
+        .prefetch_related("authors", "genres")
+        .select_related("series")
+        .order_by("series__name", "series_order", "publication_year", "title")
+    )
+    series_map: dict = defaultdict(list)
+    no_series: list = []
+    series_objs: dict = {}
+    for book in all_books:
+        if book.series_id:
+            series_map[book.series_id].append(book)
+            series_objs[book.series_id] = book.series
+        else:
+            no_series.append(book)
+
+    series_groups = [
+        {"series": series_objs[sid], "books": books}
+        for sid, books in series_map.items()
+    ]
+    series_groups.sort(key=lambda g: g["series"].name)
+    return series_groups, no_series
 
 
 def author_detail(request, pk):
@@ -74,6 +124,9 @@ def author_detail(request, pk):
             user=request.user, author=author
         ).exists()
 
+    bibliography = _build_bibliography(author)
+    series_groups, no_series_books = _build_by_series(author)
+
     ctx = {
         "author": author,
         "books": page,
@@ -86,6 +139,10 @@ def author_detail(request, pk):
         "agg": agg,
         "f": g,
         "is_subscribed": is_subscribed,
+        "bibliography": bibliography,
+        "series_groups": series_groups,
+        "no_series_books": no_series_books,
+        "has_series": bool(series_groups),
     }
     if request.htmx:
         return render(request, "books/_book_list.html", ctx)

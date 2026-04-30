@@ -297,11 +297,12 @@ def _get_book_detail_context(book, request):
             list(
                 Book.objects
                 .filter(edition_group=book.edition_group)
-                .exclude(pk=book.pk)
                 .select_related("publisher")
                 .prefetch_related("authors")
-            ) if book.edition_group_id else []
+                .order_by("publication_year", "pk")
+            ) if book.edition_group_id else [book]
         ),
+        "current_edition_id": book.pk,
     }
 
 def _get_author_detail_context(author, request):

@@ -1249,6 +1249,23 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   color: var(--muted);
 }
 
+:root[data-theme="dark"] .message-avatar,
+:root[data-theme="dark"] .dialog-panel__ai-avatar {
+  background: rgba(32, 32, 29, .72);
+}
+
+:root[data-theme="dark"] .message {
+  color: var(--muted);
+}
+
+@media (max-width: 680px) {
+  :root[data-theme="dark"] .search-shell.is-dialog {
+    background:
+      linear-gradient(rgba(32, 32, 29, .94), rgba(32, 32, 29, .98)),
+      url("../img/design/paper-soft.jpg") center / cover;
+  }
+}
+
 .modal__head {
   display: flex;
   align-items: center;

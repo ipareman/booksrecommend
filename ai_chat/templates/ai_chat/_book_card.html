@@ -43,33 +43,28 @@
   </a>
 
   {% if message_id and message_id > 0 %}
-  <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
+  <div style="display:flex;gap:16px;margin-top:10px;align-items:baseline">
     {# «Подробнее» — разворачивает reason в абзац #}
-    <button type="button" class="btn btn-ghost btn-sm"
-            style="font-size:11px;padding:2px 8px"
+    <button type="button"
+            style="padding:0 0 3px;border:0;border-bottom:1px solid currentColor;background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;line-height:1"
             hx-post="{% url 'discovery_elaborate' %}"
             hx-vals='{"book_id": "{{ book.pk }}", "short_reason": "{{ reason|escapejs }}"}'
             hx-target="#elaborate-{{ book.pk }}-{{ message_id }}"
             hx-swap="innerHTML"
             hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
-            hx-indicator="#elab-spin-{{ book.pk }}-{{ message_id }}">
-      💭 Подробнее
-    </button>
+            hx-indicator="#elab-spin-{{ book.pk }}-{{ message_id }}">Подробнее</button>
 
     {# «Не то» — открывает select с причиной #}
-    <details style="display:inline-block">
-      <summary class="btn btn-ghost btn-sm"
-               style="font-size:11px;padding:2px 8px;cursor:pointer;list-style:none">
-        👎 Не то
-      </summary>
-      <form style="display:flex;gap:4px;margin-top:6px;align-items:center"
+    <details style="display:contents">
+      <summary style="padding:0 0 3px;border-bottom:1px solid currentColor;color:var(--muted);font-size:13px;cursor:pointer;list-style:none;line-height:1">Не то</summary>
+      <form style="display:flex;gap:8px;margin-top:8px;align-items:baseline"
             hx-post="{% url 'discovery_dislike' %}"
             hx-target="#disc-card-{{ book.pk }}-{{ message_id }}"
             hx-swap="outerHTML"
             hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
         <input type="hidden" name="message_id" value="{{ message_id }}">
         <input type="hidden" name="book_id"    value="{{ book.pk }}">
-        <select name="reason" class="form-input" style="font-size:11px;padding:2px 6px">
+        <select name="reason" style="border:0;border-bottom:1px solid var(--line-strong);background:transparent;color:var(--muted);font:inherit;font-size:13px;outline:none;padding:0 0 2px">
           <option value="">Почему?</option>
           <option value="жанр">Не тот жанр</option>
           <option value="тон">Не тот тон/настроение</option>
@@ -78,13 +73,13 @@
           <option value="уже читал">Уже читал</option>
           <option value="другое">Другое</option>
         </select>
-        <button type="submit" class="btn btn-ghost btn-sm"
-                style="font-size:11px;padding:2px 8px">Ок</button>
+        <button type="submit"
+                style="padding:0 0 3px;border:0;border-bottom:1px solid currentColor;background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;line-height:1">Ок</button>
       </form>
     </details>
 
     <span id="elab-spin-{{ book.pk }}-{{ message_id }}" class="htmx-indicator"
-          style="font-size:11px;color:var(--muted)">…</span>
+          style="font-size:13px;color:var(--muted)">…</span>
   </div>
   <div id="elaborate-{{ book.pk }}-{{ message_id }}"></div>
   {% endif %}

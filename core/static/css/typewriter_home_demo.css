@@ -519,7 +519,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   margin: 0 auto;
   min-height: 100svh;
   display: grid;
-  grid-template-rows: 1fr auto 1fr;
+  grid-template-rows: 1fr auto auto 1fr;
   justify-items: center;
   transform: none;
 }
@@ -541,6 +541,11 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 }
 
 .search-actions {
+  grid-row: 4;
+  align-self: start;
+}
+
+.tw-autocomplete {
   grid-row: 3;
   align-self: start;
 }
@@ -565,9 +570,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 
 .search-shell {
   width: 100%;
-  max-height: 64px;
-  overflow: hidden;
-  transition: max-height .42s ease, border-color .24s ease, padding .24s ease;
+  transition: border-color .24s ease, padding .24s ease;
 }
 
 .search-shell.is-dialog {
@@ -634,6 +637,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 }
 
 .search-actions {
+  position: relative;
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -683,6 +687,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 .dialog-panel {
   max-height: 0;
   opacity: 0;
+  overflow: hidden;
   transform: translateY(-10px);
   pointer-events: none;
   transition: opacity .3s ease, transform .35s ease, max-height .42s ease;
@@ -1331,6 +1336,10 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   color: var(--ink);
 }
 
+:root[data-theme="dark"] .settings-option.is-active {
+  color: var(--ink);
+}
+
 .modal__body input {
   margin-right: 10px;
 }
@@ -1388,7 +1397,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   .desktop-text-panel {
     display: grid;
     align-content: start;
-    gap: 5px;
+    gap: 2px;
     max-height: 0;
     overflow: hidden;
     opacity: 0;
@@ -1413,7 +1422,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   .desktop-text-panel--history {
     justify-self: end;
     width: min(430px, 100%);
-    gap: 2px;
+    gap: 1px;
     text-align: right;
   }
 
@@ -1421,6 +1430,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
     min-height: 22px;
     padding: 0;
     border: 0;
+    margin-bottom: 0;
     background: transparent;
     color: var(--muted);
     text-align: inherit;
@@ -1432,11 +1442,15 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
     color: var(--ink);
   }
 
-  .desktop-mode.is-active {
+  .desktop-text-panel .desktop-mode.is-active {
     color: var(--ink);
   }
 
-  .desktop-mode:not(.is-active) {
+  .desktop-text-panel .desktop-mode.is-active span {
+    color: var(--ink);
+  }
+
+  .desktop-text-panel .desktop-mode:not(.is-active) {
     color: #a5a49d;
   }
 

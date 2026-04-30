@@ -1964,11 +1964,9 @@ main { flex: 1 0 auto; }
 }
 .achievement-card:hover { border-color: var(--ink); transform: translateY(-1px); }
 .achievement-card--locked { background: #fafafa; }
-.achievement-card--locked .achievement-card__icon,
 .achievement-card--locked .achievement-card__name {
   filter: grayscale(1); opacity: .55;
 }
-.achievement-card__icon { font-size: 32px; margin-bottom: 2px; }
 .achievement-card__name { font-size: 13px; font-weight: 600; line-height: 1.3; }
 .achievement-progress {
   margin-top: 6px; height: 6px; width: 100%;
@@ -3861,13 +3859,6 @@ main { flex: 1 0 auto; }
   padding: 10px 12px;
   border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--bg);
-}
-.pp-ach-badge__icon {
-  font-size: 24px;
-  width: 36px; height: 36px; border-radius: 50%;
-  background: var(--surface);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
 }
 .pp-ach-badge__name {
   font-size: 12px; font-weight: 500; color: var(--ink);

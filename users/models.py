@@ -150,12 +150,7 @@ class Achievement(models.Model):
         ("subscriptions_5","Фанат: 5 подписок на авторов"),
     ]
 
-    ICONS = {
-        "books_10": "📚", "books_50": "📖",
-        "reviews_5": "✍️", "reviews_20": "🎓",
-        "pages_1000": "🏃", "pages_5000": "🏆",
-        "lists_3": "📂", "subscriptions_5": "⭐",
-    }
+    ICONS = {}
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="achievements")
     achievement_type = models.CharField(max_length=30, choices=TYPES)
@@ -172,7 +167,7 @@ class Achievement(models.Model):
 
     @property
     def icon(self):
-        return self.ICONS.get(self.achievement_type, "🏅")
+        return self.ICONS.get(self.achievement_type, "")
 
 
 def check_achievements(user):
@@ -271,7 +266,7 @@ def get_achievements_progress(user):
         result.append({
             "type":           atype,
             "name":           label,
-            "icon":           Achievement.ICONS.get(atype, "🏅"),
+            "icon":           Achievement.ICONS.get(atype, ""),
             "earned":         earned,
             "earned_at":      user_earned.get(atype),
             "current":        min(current, target),

@@ -447,7 +447,6 @@
       <div class="achievements-grid">
         {% for a in achievements %}
         <div class="achievement-card {% if not a.earned %}achievement-card--locked{% endif %}">
-          <div class="achievement-card__icon">{{ a.icon }}</div>
           <div class="achievement-card__name">{{ a.name }}</div>
 
           <div class="achievement-progress">

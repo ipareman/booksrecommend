@@ -33,7 +33,6 @@
     <div class="pp-achievements__grid">
       {% for a in target_achievements_earned %}
       <div class="pp-ach-badge" title="{{ a.name }} · получено {{ a.earned_at|date:'d.m.Y' }}">
-        <div class="pp-ach-badge__icon">{{ a.icon }}</div>
         <div class="pp-ach-badge__name">{{ a.name|truncatechars:24 }}</div>
       </div>
       {% endfor %}

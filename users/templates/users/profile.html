@@ -137,7 +137,8 @@
       <button class="tab" :class="{'tab--active': tab==='history'}"  @click="tab='history'">История</button>
       <button class="tab" :class="{'tab--active': tab==='stats'}"   @click="tab='stats'">Статистика</button>
       <button class="tab" :class="{'tab--active': tab==='achieve'}" @click="tab='achieve'">Достижения</button>
-      <button class="tab" :class="{'tab--active': tab==='notes'}"   @click="tab='notes'">Заметки</button>
+      <button class="tab" :class="{'tab--active': tab==='notes'}"     @click="tab='notes'">Заметки</button>
+      <button class="tab" :class="{'tab--active': tab==='sessions'}" @click="tab='sessions'">Сессии{% if active_sessions|length > 1 %} ({{ active_sessions|length }}){% endif %}</button>
     </div>
 
     {# ── ОБЫЧНЫЕ РЕКОМЕНДАЦИИ ─────────────────────────────────────────────── #}
@@ -471,6 +472,43 @@
       </div>
     </div>
 
+    {# ── СЕССИИ ───────────────────────────────────────────────────── #}
+    <div x-show="tab==='sessions'" x-cloak id="sessions-list">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
+        Активные сессии вашего аккаунта. Вы можете завершить любой сеанс кроме текущего.
+      </p>
+      {% if active_sessions %}
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+        {% for s in active_sessions %}
+        <div class="session-card{% if s.is_current %} session-card--current{% endif %}" data-key="{{ s.session_key }}">
+          <div class="session-card__left">
+            <div class="session-card__ua">{{ s.ua|default:"Устройство не известно" }}</div>
+            <div class="session-card__meta">
+              {% if s.ip %}<span>{{ s.ip }}</span> &middot; {% endif %}
+              <span>истекает {{ s.expire_date|date:"d.m.Y" }}</span>
+              {% if s.is_current %}<span class="session-card__badge">Текущая</span>{% endif %}
+            </div>
+          </div>
+          {% if not s.is_current %}
+          <button class="btn btn-secondary btn-sm session-terminate-btn"
+                  data-key="{{ s.session_key }}"
+                  onclick="terminateSession('{{ s.session_key }}', this)">
+            Завершить
+          </button>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% if active_sessions|length > 1 %}
+      <button class="btn btn-secondary btn-sm" onclick="terminateAllSessions(this)">
+        Завершить все остальные
+      </button>
+      {% endif %}
+      {% else %}
+      <p class="empty">Активных сессий не найдено.</p>
+      {% endif %}
+    </div>
+
   </div>
 </div>
 
@@ -544,10 +582,85 @@
     padding: 0;
   }
   .profile-note__del:hover { text-decoration: underline; }
+
+  .session-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface, transparent);
+  }
+  .session-card--current {
+    border-color: var(--ink);
+  }
+  .session-card__left { flex: 1; min-width: 0; }
+  .session-card__ua {
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .session-card__meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .session-card__badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--bg);
+    font-weight: 600;
+    letter-spacing: .03em;
+  }
 </style>
 
 {# ── Удаление заметки (вызывается из inline onclick) ────────────────────────── #}
 <script>
+async function terminateSession(key, btn) {
+  if (!confirm("Завершить этот сеанс?")) return;
+  btn.disabled = true;
+  try {
+    const r = await fetch("{% url 'session_terminate' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
+      body: "session_key=" + encodeURIComponent(key),
+    });
+    if ((await r.json()).ok) {
+      const card = btn.closest(".session-card");
+      if (card) { card.style.transition = "opacity .2s"; card.style.opacity = "0"; setTimeout(() => card.remove(), 200); }
+    }
+  } catch(e) { btn.disabled = false; alert("Ошибка сети"); }
+}
+
+async function terminateAllSessions(btn) {
+  if (!confirm("Завершить все сеансы кроме текущего?")) return;
+  btn.disabled = true;
+  try {
+    const r = await fetch("{% url 'sessions_terminate_all' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    if ((await r.json()).ok) {
+      document.querySelectorAll(".session-card:not(.session-card--current)").forEach(c => {
+        c.style.transition = "opacity .2s"; c.style.opacity = "0"; setTimeout(() => c.remove(), 200);
+      });
+      btn.remove();
+    }
+  } catch(e) { btn.disabled = false; alert("Ошибка сети"); }
+}
+
 function ppDeleteNote(btn) {
   if (!confirm("Удалить заметку?")) return;
   const url = btn.dataset.url;

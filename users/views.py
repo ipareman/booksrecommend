@@ -364,6 +364,24 @@ def profile(request):
     except Exception:
         notes_by_book = []
 
+    # Активные сессии пользователя
+    from django.contrib.sessions.models import Session
+    current_session_key = request.session.session_key
+    now = timezone.now()
+    active_sessions = []
+    for s in Session.objects.filter(expire_date__gt=now).order_by("-expire_date"):
+        data = s.get_decoded()
+        if data.get("_auth_user_id") == str(user.pk):
+            ua_str = data.get("_session_ua", "")
+            ip = data.get("_session_ip", "")
+            active_sessions.append({
+                "session_key": s.session_key,
+                "expire_date": s.expire_date,
+                "is_current": s.session_key == current_session_key,
+                "ua": ua_str,
+                "ip": ip,
+            })
+
     ctx = {
         "lists": lists,
         "my_reviews": my_reviews,
@@ -380,8 +398,43 @@ def profile(request):
         "achievements": achievements,
         "liked_collections": liked_collections,
         "notes_by_book": notes_by_book,
+        "active_sessions": active_sessions,
     }
     return render(request, "users/profile.html", ctx)
+
+@login_required
+@require_POST
+def session_terminate(request):
+    """Завершить конкретную сессию пользователя (не текущую)."""
+    from django.contrib.sessions.models import Session
+    session_key = request.POST.get("session_key", "").strip()
+    if not session_key or session_key == request.session.session_key:
+        return HttpResponseBadRequest("invalid")
+    try:
+        s = Session.objects.get(session_key=session_key)
+        data = s.get_decoded()
+        if data.get("_auth_user_id") == str(request.user.pk):
+            s.delete()
+    except Session.DoesNotExist:
+        pass
+    return JsonResponse({"ok": True})
+
+
+@login_required
+@require_POST
+def sessions_terminate_all(request):
+    """Завершить все сессии кроме текущей."""
+    from django.contrib.sessions.models import Session
+    current_key = request.session.session_key
+    now = timezone.now()
+    for s in Session.objects.filter(expire_date__gt=now):
+        if s.session_key == current_key:
+            continue
+        data = s.get_decoded()
+        if data.get("_auth_user_id") == str(request.user.pk):
+            s.delete()
+    return JsonResponse({"ok": True})
+
 
 @login_required
 @require_POST

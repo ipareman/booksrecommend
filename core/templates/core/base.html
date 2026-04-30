@@ -200,6 +200,14 @@
 {% if recaptcha_public_key %}<script src="https://www.google.com/recaptcha/api.js" async defer></script>{% endif %}
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+  document.querySelectorAll(".tabs").forEach(function(el) {
+    el.addEventListener("wheel", function(e) {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    }, { passive: false });
+  });
+
   var obs = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) {
       if (e.isIntersecting) {

@@ -1194,6 +1194,27 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 
 .modal.is-open {
   display: flex;
+  animation: modalBackdropIn .22s ease both;
+}
+
+.modal.is-open .modal__panel {
+  animation: modalPanelIn .28s cubic-bezier(.2, .72, .18, 1) both;
+}
+
+@keyframes modalBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modalPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modal__backdrop {
@@ -1210,6 +1231,22 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   background:
     linear-gradient(rgba(250, 250, 247, .94), rgba(250, 250, 247, .96)),
     url("../img/design/paper-soft.jpg") center / cover;
+}
+
+:root[data-theme="dark"] .modal__panel {
+  background:
+    linear-gradient(rgba(32, 32, 29, .96), rgba(32, 32, 29, .98)),
+    url("../img/design/paper-soft.jpg") center / cover;
+}
+
+:root[data-theme="dark"] .modal__backdrop {
+  background: rgba(0, 0, 0, .52);
+}
+
+:root[data-theme="dark"] .modal__body label,
+:root[data-theme="dark"] .history-list button,
+:root[data-theme="dark"] .settings-option {
+  color: var(--muted);
 }
 
 .modal__head {

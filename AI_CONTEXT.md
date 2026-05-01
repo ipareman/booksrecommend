@@ -162,10 +162,18 @@
 - **Telegram-уведомления** — отправка алертов и других событий через бота
 
 ### 2.17 Публичный API (/api/v1/)
-- **REST API** — книги, авторы, статистика
+- **REST API** — книги, авторы (реализовано на Django REST Framework)
 - **API Keys** — управление ключами, лимиты запросов
 - **Пагинация** — page, page_size (max 100)
 - **Аутентификация** — Bearer token / X-API-Key header
+- **Swagger UI** — интерактивная документация на `/api/v1/swagger/`
+- **ReDoc** — альтернативная документация на `/api/v1/redoc/`
+- **OpenAPI Schema** — JSON схема на `/api/v1/schema/`
+- **Endpoints**:
+  - `GET /api/v1/books/` — список и поиск книг (параметры: q, ordering, page, page_size)
+  - `GET /api/v1/books/{id}/` — детальная информация о книге
+  - `GET /api/v1/authors/` — список и поиск авторов (параметры: q, page, page_size)
+  - `GET /api/v1/authors/{id}/` — автор с его книгами (до 50)
 
 ### 2.18 Админ-панель пользователей (/users/admin-panel/)
 - **Управление пользователями** — список, блокировка/разблокировка
@@ -174,6 +182,7 @@
 - **Управление магазинами** — добавление, удаление
 - **Управление уведомлениями** — массовые включение/выключение
 - **Графики и аналитика** — демо графиков
+- **Тесты** — страница запуска тестов (`/users/admin-panel/tests/`), возможность запускать отдельные тесты
 
 ### 2.19 AI Admin (/ai-admin/)
 - **Настройки AI** — модель (OpenRouter), температура, max tokens
@@ -193,6 +202,7 @@
 - **Кеширование** — Redis, кеш AI-рекомендаций
 - **Rate limiting** — на критичных endpoint (AI-рекомендации, 3 запроса/5 мин)
 - **Блокировка пользователей** — soft block с возможностью разблокировки
+- **Тестирование** — pytest с pytest-django, покрытие кода через pytest-cov, запуск тестов через админ-панель
 
 ---
 
@@ -201,12 +211,14 @@
 | Слой | Технология |
 |------|------------|
 | Backend | Django 5.0.x, Python 3.12+ |
+| REST API | Django REST Framework 3.15.1, drf-spectacular 0.27.2 |
 | БД | PostgreSQL 14+ |
 | Кеш / брокер | Redis 7 |
 | Очереди | Celery 5.3.6 + django-celery-beat |
 | Realtime | Django Channels + Daphne + channels-redis |
 | Фронтенд | HTMX 1.17+, Alpine.js (inline), vanilla JS |
 | Стили | Кастомный CSS, **без Bootstrap/Tailwind** |
+| Тестирование | pytest 8.1.1, pytest-django 4.8.0, pytest-cov 5.0.0 |
 | AI / LLM | OpenRouter API (OpenAI-совместимый endpoint) |
 | Парсинг | BeautifulSoup4 + requests |
 | Уведомления | Telegram Bot API, Resend (email) |

@@ -10,7 +10,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a href="{% url 'ai_admin_dashboard' %}" class="btn btn-ghost btn-sm">AI-админка →</a>
         <a href="{% url 'graph_admin' %}" class="btn btn-ghost btn-sm">Граф связей →</a>
-        <a href="{% url 'admin_charts_demo' %}" class="btn btn-ghost btn-sm">📊 Демо графиков</a>
+        <a href="{% url 'admin_charts_demo' %}" class="btn btn-ghost btn-sm">Демо графиков</a>
       </div>
     </div>
     <div class="admin-stats-row">
@@ -32,7 +32,7 @@
     <div class="tabs">
       <button class="tab" :class="{'tab--active': tab==='overview'}" @click="tab='overview'">Обзор</button>
       <button class="tab" :class="{'tab--active': tab==='analytics'}"
-              @click="tab='analytics'; loadAnalytics()">📊 Аналитика</button>
+              @click="tab='analytics'; loadAnalytics()">Аналитика</button>
       <button class="tab" :class="{'tab--active': tab==='users'}"    @click="tab='users'">Пользователи</button>
       <button class="tab" :class="{'tab--active': tab==='books'}"    @click="tab='books'">Книги</button>
       <button class="tab" :class="{'tab--active': tab==='reviews'}"  @click="tab='reviews'">Отзывы</button>
@@ -40,6 +40,7 @@
       <button class="tab" :class="{'tab--active': tab==='editions'}" @click="tab='editions'">Издания</button>
       <button class="tab" :class="{'tab--active': tab==='stores'}"   @click="tab='stores'">Магазины</button>
       <button class="tab" :class="{'tab--active': tab==='notifs'}"   @click="tab='notifs'">Уведомления</button>
+      <button class="tab" :class="{'tab--active': tab==='tests'}"    @click="window.location.href='{% url 'admin_tests' %}'">Тесты</button>
     </div>
 
     {# АНАЛИТИКА — lazy-load через прямой htmx.ajax() при первом клике #}

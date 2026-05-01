@@ -1,8 +1,11 @@
 import time
 from functools import wraps
 
+import rest_framework
 from django.http import JsonResponse
 from django.utils import timezone
+from rest_framework import authentication
+from rest_framework.exceptions import AuthenticationFailed
 
 from .models import ApiKey, ApiRequestLog
 
@@ -21,7 +24,30 @@ def _remote_addr(request):
     return request.META.get("REMOTE_ADDR") or None
 
 
+class ApiKeyAuthentication(authentication.BaseAuthentication):
+    """DRF authentication class for API keys."""
+
+    def authenticate(self, request):
+        raw_key = _extract_key(request)
+        if not raw_key:
+            return None
+
+        api_key = ApiKey.objects.filter(
+            key_hash=ApiKey.hash_key(raw_key),
+            is_active=True,
+        ).select_related("owner").first()
+
+        if api_key is None:
+            raise AuthenticationFailed("Invalid API key")
+
+        api_key.last_used_at = timezone.now()
+        api_key.save(update_fields=["last_used_at"])
+
+        return (api_key.owner, api_key)
+
+
 def api_key_required(view_func):
+    """Legacy decorator for backward compatibility with non-DRF views."""
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         started = time.monotonic()

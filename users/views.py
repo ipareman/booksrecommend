@@ -13,6 +13,8 @@ from django.utils import timezone
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 from django.core.exceptions import PermissionDenied
 from django.core.cache import cache
 from django.conf import settings as conf
@@ -21,6 +23,9 @@ from functools import wraps
 
 import csv
 import json
+import os
+import re
+import subprocess
 from celery.result import AsyncResult
 
 from .models import (
@@ -1336,3 +1341,166 @@ def admin_store_delete(request, store_id):
 
     stores = Store.objects.annotate(link_count=Count("book_links"))
     return render(request, "users/_admin_stores.html", {"stores": stores})
+
+
+@staff_required
+@never_cache
+def admin_tests(request):
+    """Страница запуска тестов в админ-панели."""
+    # Получаем список всех тестов
+    try:
+        result = subprocess.run(
+            ["python", "-m", "pytest", "--collect-only", "-qq", "--no-cov", "tests/"],
+            capture_output=True,
+            text=True,
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            timeout=30
+        )
+        test_output = result.stdout
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        test_output = "Не удалось получить список тестов"
+    
+    # Парсим список тестов
+    tests = []
+    categories = {}
+    tabs = {}
+    for line in test_output.split('\n'):
+        line = line.strip()
+        if line.startswith("tests/") and "::" in line and "test_" in line:
+            parts = line.split("::")
+            module_path = parts[0]
+            class_name = parts[1] if len(parts) > 2 else ""
+            test_name = parts[-1]
+            category_path = f"{module_path}::{class_name}" if class_name else module_path
+            category_name = {
+                "test_api.py": "API",
+                "test_models.py": "Модели",
+                "test_views.py": "Страницы",
+            }.get(os.path.basename(module_path), os.path.basename(module_path))
+            group_name = {
+                "TestAuthor": "Автор",
+                "TestBook": "Книга",
+                "TestGenre": "Жанр",
+                "TestUserList": "Список пользователя",
+                "TestBookAPI": "API книг",
+                "TestAuthorAPI": "API авторов",
+                "TestAPIKeyAuthentication": "API-ключи",
+                "TestHomeView": "Главная страница",
+                "TestCommunityView": "Сообщество",
+                "TestLuckyView": "Мне повезёт",
+                "TestDesignDemos": "Дизайн-демо",
+                "TestErrorPages": "Страницы ошибок",
+            }.get(class_name, class_name or category_name)
+            test_data = {
+                'name': test_name,
+                'path': line,
+                'class_name': class_name,
+            }
+            tests.append(test_data)
+            categories.setdefault(category_path, {
+                "name": group_name,
+                "class_name": class_name,
+                "path": category_path,
+                "tab_key": os.path.basename(module_path).replace(".", "-"),
+                "tests": [],
+            })["tests"].append(test_data)
+            tabs.setdefault(os.path.basename(module_path).replace(".", "-"), {
+                "key": os.path.basename(module_path).replace(".", "-"),
+                "name": category_name,
+                "path": module_path,
+                "count": 0,
+            })["count"] += 1
+    
+    return render(request, "users/admin_tests.html", {
+        "tests": tests,
+        "categories": categories.values(),
+        "tabs": tabs.values(),
+        "total_tests": len(tests),
+    })
+
+
+@staff_required
+@csrf_exempt
+def admin_run_tests(request):
+    """Запуск конкретного теста или всех тестов."""
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False,
+            "error": "Only POST method is allowed"
+        }, status=405)
+    
+    if request.content_type == "application/json":
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return JsonResponse({
+                "success": False,
+                "error": "Некорректный JSON",
+            })
+        test_path = payload.get("test_path", "")
+    else:
+        test_path = request.POST.get("test_path", "")
+    if test_path and not re.fullmatch(r"tests/[A-Za-z0-9_./-]+(?:::[A-Za-z0-9_]+){0,2}", test_path):
+        return JsonResponse({
+            "success": False,
+            "error": "Некорректный путь теста",
+        })
+    
+    try:
+        # Определяем корневую директорию проекта
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        if test_path:
+            # Запуск конкретного теста
+            cmd = ["python", "-m", "pytest", test_path, "-v", "--no-cov"]
+        else:
+            # Запуск всех тестов
+            cmd = ["python", "-m", "pytest", "tests/", "-v", "--no-cov"]
+        
+        logger.info(f"Running tests: {' '.join(cmd)}")
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=project_root,
+            timeout=120
+        )
+        
+        output = result.stdout + result.stderr
+        
+        if not output:
+            output = "Тесты не вернули вывода. Возможно, pytest не установлен или не найден."
+        
+        # Парсим результаты
+        passed = output.count("PASSED")
+        failed = output.count("FAILED")
+        errors = output.count("ERROR")
+        
+        response_data = {
+            "success": True,
+            "output": output,
+            "passed": passed,
+            "failed": failed,
+            "errors": errors,
+            "total": passed + failed + errors,
+        }
+        logger.info(f"Tests completed: passed={passed}, failed={failed}, errors={errors}")
+        return JsonResponse(response_data)
+    except subprocess.TimeoutExpired:
+        logger.error("Tests timeout")
+        return JsonResponse({
+            "success": False,
+            "error": "Тайм-аут при выполнении тестов",
+        })
+    except Exception as e:
+        logger.error(f"Tests error: {e}", exc_info=True)
+        return JsonResponse({
+            "success": False,
+            "error": str(e),
+        })
+

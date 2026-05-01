@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     "django_htmx",
     "widget_tweaks",
     "django_celery_beat",
+    "rest_framework",
+    "drf_spectacular",
 
     "core",
     "books.apps.BooksConfig",
@@ -280,3 +282,26 @@ CELERY_BEAT_SCHEDULE = {
 
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+
+# Django REST Framework
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "public_api.auth.ApiKeyAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+}
+
+# drf-spectacular (OpenAPI 3 / Swagger)
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Stroka API",
+    "DESCRIPTION": "API для каталога книг «Строка» (Bookopolis)",
+    "VERSION": "v1",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": "/api/v1",
+}

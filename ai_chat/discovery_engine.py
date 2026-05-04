@@ -20,6 +20,7 @@ import logging
 from typing import Optional
 
 from django.contrib.postgres.search import SearchVector, SearchRank, SearchQuery
+from django.db.models import Q
 
 from core.llm import chat_completion
 
@@ -39,25 +40,231 @@ from .discovery_helpers import (
 logger = logging.getLogger(__name__)
 
 
+DISCOVERY_QUERY_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "understand_book_request",
+        "description": "Понять книжный запрос пользователя и расширить его для поиска по каталогу.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "interpreted_request": {
+                    "type": "string",
+                    "description": "Краткая интерпретация запроса с учётом истории диалога.",
+                },
+                "search_queries": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "3-8 поисковых формулировок для FTS: темы, сюжет, настроение, жанры.",
+                },
+                "candidate_titles": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Возможные конкретные названия книг, если пользователь описал известный сюжет.",
+                },
+                "candidate_authors": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Возможные авторы.",
+                },
+                "themes": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Ключевые темы, мотивы, конфликты, атмосфера.",
+                },
+                "needs_followup": {
+                    "type": "boolean",
+                    "description": "true, если запрос слишком общий и лучше сначала уточнить вкус.",
+                },
+            },
+            "required": ["interpreted_request", "search_queries", "candidate_titles", "candidate_authors", "themes", "needs_followup"],
+        },
+    },
+}
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # ПОИСК КАНДИДАТОВ
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _search_catalog(query: str, exclude_ids: set[int] | None = None,
+def _dedupe_books(books: list[Book], limit: int) -> list[Book]:
+    seen = set()
+    result = []
+    for book in books:
+        if book.pk in seen:
+            continue
+        seen.add(book.pk)
+        result.append(book)
+        if len(result) >= limit:
+            break
+    return result
+
+
+def _safe_text_list(value, max_items: int = 8, max_len: int = 120) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    result = []
+    for item in value[:max_items]:
+        if not isinstance(item, str):
+            continue
+        text = item.strip()
+        if text:
+            result.append(text[:max_len])
+    return result
+
+
+def _history_for_understanding(history: list[DiscoveryChatMessage]) -> str:
+    lines = []
+    for msg in history[-8:]:
+        content = (msg.content or "").strip()
+        if content:
+            lines.append(f"{msg.role}: {content[:500]}")
+    return "\n".join(lines) or "Истории пока нет."
+
+
+def _contextual_cache_query(message: str, history: list[DiscoveryChatMessage]) -> str:
+    context = _history_for_understanding(history[-6:])
+    return f"{context}\n\nuser: {message}"
+
+
+def _understand_query(user, message: str, history: list[DiscoveryChatMessage]) -> dict:
+    fallback = {
+        "interpreted_request": message,
+        "search_queries": [message],
+        "candidate_titles": [],
+        "candidate_authors": [],
+        "themes": [],
+        "needs_followup": False,
+    }
+    try:
+        response = chat_completion(
+            tier="main",
+            feature="discovery",
+            user=user,
+            messages=[{
+                "role": "system",
+                "content": (
+                    "Ты помогаешь книжному поиску понять реплику пользователя. "
+                    "Учитывай историю диалога: короткие ответы вроде «больше сюжета», "
+                    "«без насилия», «а что-то старое?» дополняют предыдущий запрос. "
+                    "Если пользователь описывает известный сюжет и не называет книгу, "
+                    "предположи возможные названия и авторов. Например описание про "
+                    "бедного студента, убийство старухи-процентщицы/бабушки и раскаяние "
+                    "должно дать кандидат «Преступление и наказание», автор Достоевский. "
+                    "Не выдумывай окончательную рекомендацию: верни только поисковое понимание."
+                ),
+            }, {
+                "role": "user",
+                "content": (
+                    f"История диалога:\n{_history_for_understanding(history)}\n\n"
+                    f"Новая реплика пользователя:\n{message}"
+                ),
+            }],
+            tools=[DISCOVERY_QUERY_TOOL],
+            tool_choice={"type": "function", "function": {"name": "understand_book_request"}},
+            max_tokens=700,
+        )
+        choice = response.choices[0]
+        if not choice.message.tool_calls:
+            return fallback
+        data = json.loads(choice.message.tool_calls[0].function.arguments)
+    except Exception as exc:
+        logger.warning("Discovery query understanding failed: %s", exc)
+        return fallback
+
+    search_queries = _safe_text_list(data.get("search_queries"))
+    candidate_titles = _safe_text_list(data.get("candidate_titles"))
+    candidate_authors = _safe_text_list(data.get("candidate_authors"))
+    themes = _safe_text_list(data.get("themes"))
+
+    if not search_queries:
+        search_queries = [message]
+
+    return {
+        "interpreted_request": (data.get("interpreted_request") or message).strip()[:600],
+        "search_queries": search_queries,
+        "candidate_titles": candidate_titles,
+        "candidate_authors": candidate_authors,
+        "themes": themes,
+        "needs_followup": bool(data.get("needs_followup")),
+    }
+
+
+def _search_catalog(query: str, query_plan: dict | None = None, exclude_ids: set[int] | None = None,
                     limit: int = 30) -> list[Book]:
     """FTS + fallback на топ по рейтингу. Исключает книги из exclude_ids."""
     exclude_ids = exclude_ids or set()
+    query_plan = query_plan or {}
+    found: list[Book] = []
+    search_queries = [query]
+    search_queries.extend(query_plan.get("search_queries") or [])
+    search_queries.extend(query_plan.get("themes") or [])
+    seen_queries = []
+    for item in search_queries:
+        text = (item or "").strip()
+        if text and text.lower() not in {q.lower() for q in seen_queries}:
+            seen_queries.append(text)
 
-    search_query = SearchQuery(query, config="russian")
-    search_vector = (SearchVector("title", weight="A", config="russian") +
-                     SearchVector("description", weight="C", config="russian"))
+    title_q = Q()
+    for title in query_plan.get("candidate_titles") or []:
+        title_q |= Q(title__iexact=title) | Q(title__icontains=title)
+    if title_q:
+        found.extend(
+            Book.objects
+            .filter(title_q)
+            .exclude(pk__in=exclude_ids)
+            .prefetch_related("authors", "genres")
+            .order_by("-avg_rating", "-rating_count")[:limit]
+        )
 
-    fts_results = (Book.objects
-                       .annotate(rank=SearchRank(search_vector, search_query))
-                       .filter(rank__gte=0.05)
-                       .exclude(pk__in=exclude_ids)
-                       .order_by("-rank")[:limit])
-    results = list(fts_results.prefetch_related("authors", "genres"))
+    author_q = Q()
+    for author in query_plan.get("candidate_authors") or []:
+        author_q |= Q(authors__name__icontains=author)
+    if author_q and len(found) < limit:
+        found.extend(
+            Book.objects
+            .filter(author_q)
+            .exclude(pk__in={b.pk for b in found} | exclude_ids)
+            .prefetch_related("authors", "genres")
+            .distinct()
+            .order_by("-avg_rating", "-rating_count")[:limit - len(found)]
+        )
+
+    for search_text in seen_queries:
+        if len(found) >= limit:
+            break
+        try:
+            search_query = SearchQuery(search_text, config="russian", search_type="websearch")
+            search_vector = (
+                SearchVector("title", weight="A", config="russian")
+                + SearchVector("description", weight="C", config="russian")
+            )
+
+            fts_results = (
+                Book.objects
+                .annotate(rank=SearchRank(search_vector, search_query))
+                .filter(rank__gte=0.03)
+                .exclude(pk__in={b.pk for b in found} | exclude_ids)
+                .order_by("-rank")[:limit - len(found)]
+            )
+            found.extend(list(fts_results.prefetch_related("authors", "genres")))
+        except Exception:
+            fallback_q = (
+                Q(title__icontains=search_text)
+                | Q(description__icontains=search_text)
+                | Q(authors__name__icontains=search_text)
+                | Q(genres__name__icontains=search_text)
+            )
+            found.extend(
+                Book.objects
+                .filter(fallback_q)
+                .exclude(pk__in={b.pk for b in found} | exclude_ids)
+                .prefetch_related("authors", "genres")
+                .distinct()
+                .order_by("-avg_rating", "-rating_count")[:limit - len(found)]
+            )
+
+    results = _dedupe_books(found, limit)
 
     if len(results) < limit:
         remaining = limit - len(results)
@@ -87,8 +294,11 @@ def _build_candidates_text(books: list[Book]) -> str:
             line += f" [{genres}]"
         if moods:
             line += f" ({moods})"
+        if book.ai_themes:
+            themes = ", ".join(str(t) for t in book.ai_themes[:6])
+            line += f" <темы: {themes}>"
         if book.description:
-            line += f": {book.description[:150]}"
+            line += f": {book.description[:260]}"
         lines.append(line)
     return "\n".join(lines)
 
@@ -165,8 +375,13 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
     recommended_ids = previously_recommended_ids(chat)
     exclude_set = set(disliked_ids) | set(extra_exclude_ids)
 
+    # История чата
+    history = list(chat.messages.order_by("-created_at")[:10])
+    history.reverse()
+    cache_query = _contextual_cache_query(message, history)
+
     # ── КЕШ ───────────────────────────────────────────────────────────────
-    cached = cache_get(user.pk, message, exclude_set)
+    cached = cache_get(user.pk, cache_query, exclude_set)
     if cached:
         books_qs = Book.objects.filter(pk__in=cached["book_ids"]).prefetch_related("authors")
         books_map = {b.pk: b for b in books_qs}
@@ -201,14 +416,11 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
             "message_id":        ai_msg.pk,
         }
 
-    # ── ПОИСК КАНДИДАТОВ ──────────────────────────────────────────────────
-    candidates = _search_catalog(message, exclude_ids=exclude_set, limit=30)
+    # ── ПОНИМАНИЕ ЗАПРОСА + ПОИСК КАНДИДАТОВ ──────────────────────────────
+    query_plan = _understand_query(user, message, history)
+    candidates = _search_catalog(message, query_plan=query_plan, exclude_ids=exclude_set, limit=30)
     candidates_text = _build_candidates_text(candidates)
     user_profile = build_user_profile_text(user)
-
-    # История чата
-    history = list(chat.messages.order_by("-created_at")[:10])
-    history.reverse()
 
     # Anti-repeat
     already_hint = ""
@@ -240,10 +452,15 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
             "• Если запрос РАЗМЫТЫЙ («что-то интересное», «посоветуй книгу», «не знаю что хочу») — "
             "вернуть ПУСТОЙ books и заполнить followup_options 3-4 вариантами "
             "(чипы-уточнения: label + prompt). В этом случае explanation — короткое «Что тебе ближе?».\n"
+            "• Если этап понимания запроса пометил needs_followup=true, обычно сначала задай уточняющий вопрос, "
+            "если только в каталоге нет очевидного точного совпадения.\n"
             "• В reason у каждой книги — 1 предложение, почему она подходит этому юзеру.\n"
+            "• Если пользователь описал сюжет известной книги, можно выбрать точное совпадение из каталога, "
+            "даже если пользователь не назвал книгу напрямую.\n"
             "• Используй номера (поле index) из каталога, не придумывай книги.\n\n"
             f"Профиль пользователя:\n{user_profile}"
             f"{already_hint}{dislike_hint}\n\n"
+            f"Понимание запроса:\n{json.dumps(query_plan, ensure_ascii=False)}\n\n"
             f"Каталог (1-{len(candidates)}):\n{candidates_text}"
         ),
     }]
@@ -329,7 +546,7 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
 
     # ── КЕШ ───────────────────────────────────────────────────────────────
     book_ids = [rb["book"].pk for rb in recommended_books]
-    cache_set(user.pk, message, {
+    cache_set(user.pk, cache_query, {
         "text":             explanation,
         "book_ids":         book_ids,
         "reasons":          {str(rb["book"].pk): rb.get("reason", "") for rb in recommended_books},

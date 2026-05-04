@@ -19,7 +19,7 @@ from django.utils import timezone
 from books.models import Book, BookStore, UserList
 
 
-CACHE_PREFIX = "discovery:v1"
+CACHE_PREFIX = "discovery:v2"
 CACHE_TTL = 60 * 60  # 1 час
 
 

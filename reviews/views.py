@@ -179,6 +179,10 @@ def _notify_review_status(review, approved: bool) -> None:
             from notifications.max import send_message as max_send_message
             max_send_message(profile.max_user_id, text)
             delivered = True
+        if ch["vk"] and profile.vk_user_id:
+            from notifications.vk import send_message as vk_send_message
+            vk_send_message(profile.vk_user_id, text)
+            delivered = True
 
     if delivered:
         return
@@ -542,6 +546,10 @@ def _notify_critique_status(critique, approved: bool):
         if ch["max"] and profile.max_user_id:
             from notifications.max import send_message as max_send_message
             max_send_message(profile.max_user_id, text)
+            delivered = True
+        if ch["vk"] and profile.vk_user_id:
+            from notifications.vk import send_message as vk_send_message
+            vk_send_message(profile.vk_user_id, text)
             delivered = True
 
     if delivered:

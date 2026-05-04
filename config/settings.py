@@ -216,6 +216,12 @@ TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "")  # без @
 MAX_BOT_TOKEN    = os.getenv("MAX_BOT_TOKEN", "")
 MAX_BOT_USERNAME = os.getenv("MAX_BOT_USERNAME", "")  # без @
 
+# VK Bot (community messages)
+VK_BOT_TOKEN    = os.getenv("VK_BOT_TOKEN", "")
+VK_GROUP_ID     = os.getenv("VK_GROUP_ID", "")
+VK_BOT_USERNAME = os.getenv("VK_BOT_USERNAME", "")  # короткое имя сообщества без @
+VK_API_VERSION  = os.getenv("VK_API_VERSION", "5.199")
+
 # Google reCAPTCHA v2.
 # Поддерживаем оба набора имён (SITE/SECRET — стандарт Google, PUBLIC/PRIVATE — историческое).
 # Любое из имён в .env заполнит обе переменные, чтобы старый и новый код работали одинаково.

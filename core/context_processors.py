@@ -11,4 +11,5 @@ def globals(request):
         "recaptcha_site_key": site_key,
         "telegram_bot_username": getattr(settings, "TELEGRAM_BOT_USERNAME", ""),
         "max_bot_username":      getattr(settings, "MAX_BOT_USERNAME", ""),
+        "vk_bot_username":       getattr(settings, "VK_BOT_USERNAME", ""),
     }

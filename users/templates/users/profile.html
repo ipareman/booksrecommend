@@ -105,13 +105,34 @@
                 <code style="background:var(--surface);padding:1px 5px;border-radius:3px">/start</code>
               </p>
             {% endif %}
+
+            <label style="display:block;font-size:13px;color:var(--muted);margin-bottom:4px">VK username</label>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+              <span style="font-size:13px;color:var(--muted)">@</span>
+              <input id="contacts-vk" class="form-input" type="text"
+                     style="flex:1"
+                     placeholder="id123 или username"
+                     value="{{ profile.vk_username|default:'' }}">
+            </div>
+
+            {% if profile.vk_user_id %}
+              <p style="font-size:12px;color:#16a34a;margin-bottom:16px">✓ VK-бот подключён</p>
+            {% elif profile.vk_username and vk_bot_username %}
+              <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
+                Напишите
+                <a href="https://vk.com/{{ vk_bot_username }}" target="_blank" class="lnk">@{{ vk_bot_username }}</a>
+                команду
+                <code style="background:var(--surface);padding:1px 5px;border-radius:3px">/start</code>
+              </p>
+            {% endif %}
           {% endwith %}
 
           <button class="btn btn-primary btn-sm"
                   hx-post="{% url 'save_contacts' %}"
                   hx-vals="js:{email:document.getElementById('contacts-email').value,
                                telegram_username:document.getElementById('contacts-tg').value,
-                               max_username:document.getElementById('contacts-max').value}"
+                               max_username:document.getElementById('contacts-max').value,
+                               vk_username:document.getElementById('contacts-vk').value}"
                   hx-target="#contacts-form"
                   hx-swap="outerHTML"
                   hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>

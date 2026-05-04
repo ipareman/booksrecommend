@@ -155,7 +155,7 @@ class NotificationSetting(models.Model):
     Админская матрица «какие события идут в какие каналы».
 
     Строка = событие (например «новая книга у подписного автора»).
-    Столбцы = каналы: telegram / max / email.
+    Столбцы = каналы: telegram / max / vk / email.
 
     Inbox (/notifications/) не управляется отсюда — он всегда включён,
     это базовый «входящий» пользователя. Матрица регулирует только внешние
@@ -181,16 +181,18 @@ class NotificationSetting(models.Model):
         (EVENT_WEEKLY_DIGEST,     "Еженедельный дайджест"),
     ]
 
-    CHANNELS = ("telegram", "max", "email")
+    CHANNELS = ("telegram", "max", "vk", "email")
     CHANNEL_LABELS = {
         "telegram": "Telegram",
         "max":      "MAX",
+        "vk":       "VK",
         "email":    "Email",
     }
 
     event = models.CharField(max_length=32, unique=True, choices=EVENT_CHOICES)
     channel_telegram = models.BooleanField(default=True)
     channel_max      = models.BooleanField(default=True)
+    channel_vk       = models.BooleanField(default=True)
     channel_email    = models.BooleanField(default=True)
     updated_at       = models.DateTimeField(auto_now=True)
 
@@ -203,6 +205,7 @@ class NotificationSetting(models.Model):
         ch = []
         if self.channel_telegram: ch.append("TG")
         if self.channel_max:      ch.append("MAX")
+        if self.channel_vk:       ch.append("VK")
         if self.channel_email:    ch.append("email")
         return f"{self.get_event_display()} → {','.join(ch) or '—'}"
 
@@ -247,6 +250,7 @@ class NotificationSetting(models.Model):
             result = {
                 "telegram": bool(setting.channel_telegram),
                 "max":      bool(setting.channel_max),
+                "vk":       bool(setting.channel_vk),
                 "email":    bool(setting.channel_email),
             }
         cache.set(key, result, 60)

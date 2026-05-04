@@ -14,6 +14,7 @@ def notify_book_added(book_id: int):
     from users.models import AuthorSubscription
     from notifications.telegram import send_message
     from notifications.max import send_message as max_send_message
+    from notifications.vk import send_message as vk_send_message
     from notifications.models import NotificationSetting
     from django.conf import settings
 
@@ -43,6 +44,7 @@ def notify_book_added(book_id: int):
     sent_users = set()  # чтобы не слать дважды если подписан на нескольких авторов книги
     inbox_users = set()  # чтобы не создавать дубли Notification на одну книгу
     sent_max_users = set()  # параллельный трекер для MAX-канала
+    sent_vk_users = set()
 
     # Хелпер для DB-уведомления (импорт локальный — чтобы Celery-worker не падал,
     # если notifications-таблица ещё не мигрирована).
@@ -104,5 +106,13 @@ def notify_book_added(book_id: int):
             else:
                 logger.warning("Failed to notify user %s via MAX", sub.user.username)
 
-    logger.info("Book #%d: telegram=%d, max=%d, inbox=%d",
-                book_id, len(sent_users), len(sent_max_users), len(inbox_users))
+        if ch["vk"] and profile.vk_user_id and sub.user_id not in sent_vk_users:
+            ok = vk_send_message(profile.vk_user_id, text)
+            if ok:
+                sent_vk_users.add(sub.user_id)
+                logger.info("Notified user %s via VK about book #%d", sub.user.username, book_id)
+            else:
+                logger.warning("Failed to notify user %s via VK", sub.user.username)
+
+    logger.info("Book #%d: telegram=%d, max=%d, vk=%d, inbox=%d",
+                book_id, len(sent_users), len(sent_max_users), len(sent_vk_users), len(inbox_users))

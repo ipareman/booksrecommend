@@ -7,7 +7,7 @@
 
 ## 1. Обзор проекта
 
-**«Строка»** — каталог книг с рекомендательной системой, отслеживанием цен, Telegram-уведомлениями, встроенной читалкой (EPUB/FB2), AI-чатом с книгой и социальными фичами (клубы, рецензии, лента активности).
+**«Строка»** — каталог книг с рекомендательной системой, отслеживанием цен, Telegram/MAX/VK-уведомлениями, встроенной читалкой (EPUB/FB2), AI-чатом с книгой и социальными фичами (клубы, рецензии, лента активности).
 
 - **Язык интерфейса:** русский
 - **Код:** Python + Django шаблоны (русский / английский docstrings)
@@ -101,7 +101,7 @@
 - **Email-верификация** — через Resend (можно отключить в AI Admin)
 - **Вход/Выход** — с блокировкой заблокированных пользователей
 - **Сброс пароля** — стандартный Django flow
-- **Настройки профиля** — аватар (8 градиентов), био, Telegram, MAX (партнёрский сервис), контакты
+- **Настройки профиля** — аватар (8 градиентов), био, Telegram, MAX (партнёрский сервис), VK, контакты
 - **Онбординг** — 3 шага: жанры → авторы → книги-эталоны (cold-start для рекомендаций)
 
 ### 2.9 Социальные функции (/social/)
@@ -159,7 +159,7 @@
 - **История цен** — график динамики цены
 - **Ссылки на магазины** — BookStore с product URL
 - **Алерты на цену** — уведомление пользователя при снижении цены
-- **Telegram-уведомления** — отправка алертов и других событий через бота
+- **Telegram/MAX/VK-уведомления** — отправка алертов и других событий через ботов
 
 ### 2.17 Публичный API (/api/v1/)
 - **REST API** — книги, авторы (реализовано на Django REST Framework)
@@ -221,7 +221,7 @@
 | Тестирование | pytest 8.1.1, pytest-django 4.8.0, pytest-cov 5.0.0 |
 | AI / LLM | OpenRouter API (OpenAI-совместимый endpoint) |
 | Парсинг | BeautifulSoup4 + requests |
-| Уведомления | Telegram Bot API, Resend (email) |
+| Уведомления | Telegram Bot API, MAX Bot API, VK Bot API, Resend (email) |
 | Изображения | Pillow |
 | reCAPTCHA | Google reCAPTCHA v2 |
 
@@ -320,6 +320,7 @@
 /users/settings/                           account_settings
 /users/telegram/save/                    save_telegram
 /users/max/save/                          save_max
+/users/vk/save/                           save_vk
 /users/contacts/save/                    save_contacts
 /users/lists/create/                       create_list
 /users/lists/<list_id>/delete/           delete_list
@@ -421,7 +422,7 @@
 
 - **UserProfile** — профиль пользователя:
   - `user` (OneToOne), `avatar`, `avatar_gradient` (8 вариантов), `bio`
-  - `telegram_username`, `telegram_chat_id`, `max_username`, `max_user_id`
+  - `telegram_username`, `telegram_chat_id`, `max_username`, `max_user_id`, `vk_username`, `vk_user_id`
   - `email_verified`, `is_blocked`, `blocked_until`, `onboarding_done`
   - M2M: `favorite_genres`, `favorite_authors`
 - **UserBlockHistory** — история блокировок:

@@ -29,4 +29,17 @@
       Напишите MAX-боту команду <code style="background:var(--surface);padding:1px 5px;border-radius:3px">/start</code>
     </p>
   {% endif %}
+
+  <div style="font-size:13px;color:var(--muted);margin-top:12px;margin-bottom:4px">VK</div>
+  <div style="font-size:14px">
+    {% if profile.vk_username %}@{{ profile.vk_username }}{% else %}—{% endif %}
+  </div>
+
+  {% if profile.vk_user_id %}
+    <p style="font-size:12px;color:#16a34a;margin-top:8px">✓ VK-бот подключён</p>
+  {% elif profile.vk_username %}
+    <p style="font-size:12px;color:var(--muted);margin-top:8px">
+      Напишите VK-боту команду <code style="background:var(--surface);padding:1px 5px;border-radius:3px">/start</code>
+    </p>
+  {% endif %}
 </div>

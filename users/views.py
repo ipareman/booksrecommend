@@ -546,12 +546,26 @@ def save_max(request):
 
 @login_required
 @require_POST
+def save_vk(request):
+    """HTMX — сохранение VK username."""
+    username = request.POST.get("vk_username", "").strip().lstrip("@")
+    profile = _get_user_profile(request.user)
+    profile.vk_username = username
+    profile.save(update_fields=["vk_username"])
+    return render(request, "users/_vk_block.html", {
+        "profile": profile, "saved": True
+    })
+
+
+@login_required
+@require_POST
 def save_contacts(request):
-    """HTMX — сохранение email + Telegram/MAX username из модалки."""
+    """HTMX — сохранение email + Telegram/MAX/VK username из модалки."""
     user = request.user
     email = request.POST.get("email", "").strip()
     tg_username  = request.POST.get("telegram_username", "").strip().lstrip("@")
     max_username = request.POST.get("max_username", "").strip().lstrip("@")
+    vk_username  = request.POST.get("vk_username", "").strip().lstrip("@")
 
     user.email = email
     user.save(update_fields=["email"])
@@ -559,7 +573,8 @@ def save_contacts(request):
     profile = _get_user_profile(user)
     profile.telegram_username = tg_username
     profile.max_username      = max_username
-    profile.save(update_fields=["telegram_username", "max_username"])
+    profile.vk_username       = vk_username
+    profile.save(update_fields=["telegram_username", "max_username", "vk_username"])
 
     return render(request, "users/_contacts_saved.html", {
         "profile": profile,

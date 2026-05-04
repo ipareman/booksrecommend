@@ -47,6 +47,14 @@ class UserProfile(models.Model):
         max_length=50, blank=True,
         help_text="Заполняется автоматически после /start MAX-боту"
     )
+    vk_username       = models.CharField(
+        max_length=100, blank=True,
+        help_text="Короткое имя VK без @, например: id123 или ivan_petrov"
+    )
+    vk_user_id        = models.CharField(
+        max_length=50, blank=True,
+        help_text="Заполняется автоматически после /start VK-боту"
+    )
     email_verified  = models.BooleanField(default=False)
     is_blocked      = models.BooleanField(default=False)
     blocked_until   = models.DateTimeField(null=True, blank=True)

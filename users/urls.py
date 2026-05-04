@@ -31,6 +31,7 @@ urlpatterns = [
     path("settings/",                               views.account_settings,      name="account_settings"),
     path("telegram/save/",                          views.save_telegram,         name="save_telegram"),
     path("max/save/",                               views.save_max,              name="save_max"),
+    path("vk/save/",                                views.save_vk,               name="save_vk"),
     path("contacts/save/",                          views.save_contacts,         name="save_contacts"),
     path("lists/create/",                           views.create_list,           name="create_list"),
     path("lists/<int:list_id>/delete/",             views.delete_list,           name="delete_list"),

@@ -14,6 +14,7 @@ def send_weekly_digest():
     from books.ai_recommendations import load_from_cache
     from notifications.telegram import send_message
     from notifications.max import send_message as max_send_message
+    from notifications.vk import send_message as vk_send_message
     from notifications.email import send_weekly_digest_email
     from notifications.models import NotificationSetting
     from django.conf import settings as conf
@@ -23,7 +24,7 @@ def send_weekly_digest():
 
     ch = NotificationSetting.channels_for(NotificationSetting.EVENT_WEEKLY_DIGEST)
 
-    sent_tg, sent_max, sent_email = 0, 0, 0
+    sent_tg, sent_max, sent_vk, sent_email = 0, 0, 0, 0
     for user in users:
         recs = load_from_cache(user.pk)
         if not recs:
@@ -62,12 +63,20 @@ def send_weekly_digest():
             except Exception as exc:
                 logger.error("weekly_digest max: failed for %s: %s", user.username, exc)
 
+        if ch["vk"] and profile.vk_user_id:
+            try:
+                if vk_send_message(profile.vk_user_id, text):
+                    sent_vk += 1
+                    delivered = True
+            except Exception as exc:
+                logger.error("weekly_digest vk: failed for %s: %s", user.username, exc)
+
         # Email fallback, если ни один мессенджер не сработал
         if ch["email"] and not delivered and user.email:
             if send_weekly_digest_email(user, recs):
                 sent_email += 1
 
-    logger.info("weekly_digest: tg=%d max=%d email=%d", sent_tg, sent_max, sent_email)
+    logger.info("weekly_digest: tg=%d max=%d vk=%d email=%d", sent_tg, sent_max, sent_vk, sent_email)
 
 
 @shared_task(bind=True, max_retries=1, default_retry_delay=10)

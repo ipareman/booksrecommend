@@ -363,6 +363,7 @@ def check_price_alerts():
     from books.models import PriceAlert
     from notifications.telegram import send_message
     from notifications.max import send_message as max_send_message
+    from notifications.vk import send_message as vk_send_message
     from notifications.models import NotificationSetting
     from django.conf import settings as conf
 
@@ -403,12 +404,15 @@ def check_price_alerts():
                     send_message(profile.telegram_chat_id, text)
                     notified = True
 
-                # MAX
                 if ch["max"] and profile.max_user_id:
                     max_send_message(profile.max_user_id, text)
                     notified = True
 
-            # Email (fallback если нет Telegram)
+                if ch["vk"] and profile.vk_user_id:
+                    vk_send_message(profile.vk_user_id, text)
+                    notified = True
+
+            # Email (fallback если нет мессенджеров)
             if ch["email"] and not notified and alert.user.email:
                 send_price_alert_email(
                     alert.user, book, book.avg_price, alert.threshold

@@ -1,5 +1,12 @@
 <div class="book-row fade-up" onclick="window.location='{% url 'book_detail' book.id %}'">
   <span class="book-row__num">{{ index }}.</span>
+  <div class="book-row__cover" aria-hidden="true">
+    {% if book.cover_image %}
+      <img src="{{ book.cover_image.url }}" alt="" loading="lazy">
+    {% else %}
+      <span>{{ book.title|slice:":1" }}</span>
+    {% endif %}
+  </div>
   <div class="book-row__body">
     <div class="book-row__title">{{ book.title }}</div>
     <div class="book-row__meta">

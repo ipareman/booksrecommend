@@ -155,7 +155,14 @@ def _connect_long_poll() -> tuple[str, str, str] | None:
     data = groups_get_long_poll_server()
     if not data:
         return None
-    return data.get("server"), data.get("key"), data.get("ts")
+
+    server = data.get("server")
+    key = data.get("key")
+    ts = data.get("ts")
+    if not server or not key or not ts:
+        logger.error("VK Long Poll server response is incomplete: %s", data)
+        return None
+    return server, key, ts
 
 
 def main() -> None:

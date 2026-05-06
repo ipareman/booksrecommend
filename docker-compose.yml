@@ -55,6 +55,13 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     depends_on: [web, redis]
 
+  vk-bot:
+    build: .
+    restart: unless-stopped
+    command: python vk_bot.py
+    env_file: .env
+    depends_on: [web]
+
   nginx:
     image: nginx:alpine
     restart: unless-stopped

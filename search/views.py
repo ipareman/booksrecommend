@@ -252,7 +252,13 @@ def ai_search(request):
             params.append(f"author={author.pk}")
 
     # Жанры
-    for name in filters.get("genres", []):
+    explicit_genres = [
+        genre.name
+        for genre in Genre.objects.only("name")
+        if genre.name.lower() in query.lower()
+    ]
+    genre_names = list(dict.fromkeys(filters.get("genres", []) + explicit_genres))
+    for name in genre_names:
         genre = (
             Genre.objects.filter(name__iexact=name).first()
             or Genre.objects.filter(name__icontains=name).first()

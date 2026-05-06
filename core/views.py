@@ -304,6 +304,10 @@ def typewriter_community_demo(request):
     return render(request, "core/typewriter_community_demo.html")
 
 
+def ai_generated_demo(request):
+    return render(request, "core/ai_generated_demo.html")
+
+
 def week_books_demo(request):
     return render(request, "core/week_books_demo.html")
 

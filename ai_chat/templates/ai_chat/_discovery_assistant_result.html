@@ -10,7 +10,7 @@
   </div>
 
   {% if books %}
-  <div style="display:grid;gap:10px">
+  <div class="attached-books" style="display:grid;gap:10px">
     {% for item in books %}
       {% include "ai_chat/_book_card.html" with book=item.book reason=item.reason price=item.price message_id=message_id %}
     {% endfor %}

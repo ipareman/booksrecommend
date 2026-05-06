@@ -538,10 +538,12 @@ resend==2.4.0
 - **Сетки:** CSS Grid (`repeat()`, `minmax()`), не Bootstrap
 - **Обложки книг:** `aspect-ratio: 2 / 3`, `object-fit: cover`, бордер `1px solid var(--line)`
 - **Модальные окна:** `border: 1px solid var(--line-strong)`, фон с paper-texture
+- **AI-generated marker:** для явно сгенерированного AI-контента допустима тонкая градиентная рамка с умеренным `border-radius` как осознанное исключение; пример — `/ai-generated-demo/`.
 
 ### Ключевые CSS-файлы
 - `core/static/css/typewriter_home_demo.css` — базовый стиль (шрифт, цвета, layout)
 - `core/static/css/typewriter_integrated.css` — интеграция с остальными страницами (навигация, читалка, поиск, футер)
+- `core/static/css/ai_generated_demo.css` — демо маркировки AI-сгенерированного контента
 - `core/static/css/main.css` — общие утилиты
 
 ### Анимации

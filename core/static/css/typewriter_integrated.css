@@ -136,15 +136,173 @@ html.theme-fade-from-dark:has(body.typewriter-reader-page)::before {
 }
 
 .main-search--ai {
-  display: none;
+  display: grid;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(7px);
+  pointer-events: none;
+  transition:
+    max-height .42s cubic-bezier(.2, .72, .18, 1),
+    opacity .26s ease,
+    transform .42s cubic-bezier(.2, .72, .18, 1),
+    padding .42s cubic-bezier(.2, .72, .18, 1);
+}
+
+.search-shell .main-search--standard {
+  max-height: 68px;
+  overflow: hidden;
+  opacity: 1;
+  transform: none;
+  transition:
+    max-height .42s cubic-bezier(.2, .72, .18, 1),
+    opacity .24s ease,
+    transform .42s cubic-bezier(.2, .72, .18, 1);
 }
 
 .search-shell.is-ai .main-search--standard {
-  display: none;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-7px);
+  pointer-events: none;
 }
 
 .search-shell.is-ai .main-search--ai {
-  display: grid;
+  max-height: 76px;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+@property --typewriter-ai-border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.search-shell.is-ai .main-search--ai,
+.book-ai-chat-link,
+.ai-chat-page #ai-send-btn,
+.ai-chat-page .ai-chat-msg--assistant,
+.dialog-panel .message-row--assistant .message,
+.dialog-panel .message-row--assistant .attached-books,
+.dialog-panel .ai-chat-row--assistant .attached-books,
+.dialog-panel .ai-chat-row--assistant > div > div[style]:first-child {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+}
+
+.search-shell.is-ai .main-search--ai {
+  align-items: center;
+  padding: 4px 8px 4px 18px;
+}
+
+.search-shell.is-ai .main-search--ai input,
+.search-shell.is-ai .main-search--ai .main-search__submit {
+  position: relative;
+  z-index: 1;
+  border-bottom-color: transparent;
+}
+
+.search-shell.is-ai .main-search--ai input {
+  text-align: left;
+}
+
+.dialog-panel .message-row--assistant .message {
+  padding: 12px 16px;
+  border-bottom: 0;
+}
+
+.book-ai-chat-link {
+  color: var(--ink);
+}
+
+.book-ai-chat-link:hover,
+.ai-chat-page #ai-send-btn:hover {
+  border-color: transparent;
+}
+
+.ai-chat-page #ai-send-btn {
+  color: var(--ink);
+  background: transparent;
+}
+
+.ai-chat-page .ai-chat-msg--assistant {
+  background: transparent;
+  color: var(--ink);
+  border-bottom-left-radius: 10px;
+}
+
+.dialog-panel .message-row--assistant .attached-books,
+.dialog-panel .ai-chat-row--assistant .attached-books {
+  padding: 10px;
+  border-bottom: 0;
+}
+
+.typewriter-ai-orbit {
+  --ai-a: #8a6f3d;
+  --ai-b: #7b6f91;
+  --ai-c: #b5a16b;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+}
+
+.typewriter-ai-orbit::before,
+.search-shell.is-ai .main-search--ai::before,
+.book-ai-chat-link::before,
+.ai-chat-page #ai-send-btn::before,
+.ai-chat-page .ai-chat-msg--assistant::before,
+.dialog-panel .message-row--assistant .message::before,
+.dialog-panel .message-row--assistant .attached-books::before,
+.dialog-panel .ai-chat-row--assistant .attached-books::before,
+.dialog-panel .ai-chat-row--assistant > div > div[style]:first-child::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  padding: 1px;
+  border-radius: inherit;
+  background:
+    conic-gradient(
+      from var(--typewriter-ai-border-angle),
+      var(--ai-a, #8a6f3d),
+      var(--ai-c, #b5a16b) 28%,
+      var(--ai-b, #7b6f91) 48%,
+      var(--ai-a, #8a6f3d) 72%,
+      var(--ai-c, #b5a16b)
+    );
+  animation: typewriterAiBorderOrbit 28s linear infinite;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.typewriter-ai-orbit > *,
+.ai-chat-page .ai-chat-msg--assistant > *,
+.dialog-panel .message-row--assistant .attached-books > *,
+.dialog-panel .ai-chat-row--assistant .attached-books > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes typewriterAiBorderOrbit {
+  to {
+    --typewriter-ai-border-angle: 1turn;
+  }
 }
 
 .main-search__spinner,
@@ -435,12 +593,21 @@ html.theme-fade-from-dark:has(body.typewriter-reader-page)::before {
   flex-direction: row-reverse !important;
 }
 
-.dialog-panel .ai-chat-row--user > div[style],
-.dialog-panel .ai-chat-row--assistant > div > div[style]:first-child {
+.dialog-panel .ai-chat-row--user > div[style] {
   padding: 12px 0 !important;
   border: 0 !important;
   border-bottom: 1px solid var(--line) !important;
   border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--ink) !important;
+  font-size: 17px !important;
+  line-height: 1.45 !important;
+}
+
+.dialog-panel .ai-chat-row--assistant > div > div[style]:first-child {
+  padding: 12px 16px !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
   background: transparent !important;
   color: var(--ink) !important;
   font-size: 17px !important;
@@ -810,6 +977,20 @@ body.typewriter-reader-page {
 
 :root[data-theme="dark"] .typewriter-reader-page .typewriter-nav {
   background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typewriter-ai-orbit::before,
+  .search-shell.is-ai .main-search--ai::before,
+  .book-ai-chat-link::before,
+  .ai-chat-page #ai-send-btn::before,
+  .ai-chat-page .ai-chat-msg--assistant::before,
+  .dialog-panel .message-row--assistant .message::before,
+  .dialog-panel .message-row--assistant .attached-books::before,
+  .dialog-panel .ai-chat-row--assistant .attached-books::before,
+  .dialog-panel .ai-chat-row--assistant > div > div[style]:first-child::before {
+    animation: none;
+  }
 }
 
 @media (max-width: 920px) {

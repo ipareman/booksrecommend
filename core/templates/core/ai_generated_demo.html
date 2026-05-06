@@ -1,0 +1,63 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI-рамка — Строка</title>
+  <link rel="stylesheet" href="{% static 'css/ai_generated_demo.css' %}?v={% now 'U' %}">
+</head>
+<body>
+  <nav class="demo-nav" aria-label="Навигация">
+    <a href="{% url 'typewriter_home_demo' %}" class="demo-logo" aria-label="На демо главной">
+      <img src="{% static 'img/design/icon.svg' %}" alt="Строка">
+    </a>
+    <a href="{% url 'design_demos' %}">Демо</a>
+    <a href="{% url 'home' %}">Сайт</a>
+  </nav>
+
+  <main class="ai-demo">
+    <section class="demo-head" aria-labelledby="demo-title">
+      <h1 id="demo-title">Маркировка AI-контента</h1>
+      <p>Градиентная рамка используется только там, где текст или подборка сгенерированы моделью. Остальные элементы остаются в обычной линейной системе.</p>
+    </section>
+
+    <section class="demo-grid" aria-label="Примеры маркировки">
+      <article class="demo-block ai-generated">
+        <div class="ai-generated__label">AI</div>
+        <h2>Рекомендация</h2>
+        <p>Если вам важны Москва, мистическая сатира и разговор о свободе, начните с Булгакова. После него можно перейти к Гоголю — там меньше метафизики, но больше резкого социального света.</p>
+      </article>
+
+      <article class="demo-block">
+        <h2>Обычный блок</h2>
+        <p>Это редакционный текст без машинной генерации. Он не получает цветную рамку, чтобы не размывать смысл маркировки.</p>
+      </article>
+
+      <article class="book-row">
+        <div class="book-cover">Мастер<br>и<br>Маргарита</div>
+        <div>
+          <h2>Описание книги</h2>
+          <p class="ai-generated ai-generated--inline">Роман соединяет московскую сатиру, историю Понтия Пилата и линию любви, в которой личная верность оказывается сильнее страха. Такой текст стоит помечать, если описание создано или существенно расширено AI.</p>
+        </div>
+      </article>
+
+      <article class="chat-sample" aria-label="Фрагмент диалога">
+        <div class="message message--user">Хочу классика Булгакова, но не слишком тяжёлого.</div>
+        <div class="message message--ai ai-generated">
+          <div class="ai-generated__label">AI</div>
+          <p>Попробуйте «Собачье сердце»: короткая форма, ясный конфликт и узнаваемая булгаковская сатира. Если захочется большего масштаба — переходите к «Мастеру и Маргарите».</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="rules" aria-labelledby="rules-title">
+      <h2 id="rules-title">Как применять</h2>
+      <div class="rule-list">
+        <p><strong>Да:</strong> AI-ответы, AI-рекомендации, автоматически расширенные описания, сгенерированные подборки.</p>
+        <p><strong>Нет:</strong> обычные карточки книг, навигация, пользовательские отзывы, редакционные заголовки.</p>
+        <p><strong>Размер:</strong> рамка тонкая; радиус умеренный и только у AI-метки, чтобы не ломать общий стиль без скруглений.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

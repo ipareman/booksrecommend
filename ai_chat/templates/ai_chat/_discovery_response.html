@@ -25,7 +25,7 @@
   {# ── КАРТОЧКИ КНИГ ─────────────────────────────────────────────────── #}
   {% if books %}
   {% with last_msg_id=chat.messages.last.pk %}
-  <div style="display:grid;gap:10px">
+  <div class="attached-books" style="display:grid;gap:10px">
     {% for item in books %}
       {% include "ai_chat/_book_card.html" with book=item.book reason=item.reason price=item.price message_id=last_msg_id %}
     {% endfor %}

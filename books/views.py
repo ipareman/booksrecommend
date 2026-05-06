@@ -809,6 +809,36 @@ def admin_books_partial(request):
 # ─── ISBN LOOKUP (STAFF) ─────────────────────────────────────────────────────
 
 @staff_required
+@require_POST
+def admin_import_catalog_seed(request):
+    seed_file = request.FILES.get("seed_file")
+    if not seed_file:
+        return render(request, "books/_catalog_seed_import_result.html", {
+            "error": "Файл не выбран",
+        })
+    try:
+        content = seed_file.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return render(request, "books/_catalog_seed_import_result.html", {
+            "error": "Файл должен быть в UTF-8",
+        })
+
+    dry_run = request.POST.get("dry_run") == "on"
+    try:
+        from .catalog_seed import import_catalog_seed_jsonl
+        stats = import_catalog_seed_jsonl(content, dry_run=dry_run)
+    except ValueError as exc:
+        return render(request, "books/_catalog_seed_import_result.html", {
+            "error": str(exc),
+        })
+
+    return render(request, "books/_catalog_seed_import_result.html", {
+        "stats": stats,
+        "dry_run": dry_run,
+    })
+
+
+@staff_required
 @require_GET
 def isbn_lookup(request):
     """HTMX endpoint: ищет книгу по ISBN через Google Books / Open Library."""

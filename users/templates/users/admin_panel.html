@@ -35,6 +35,7 @@
               @click="tab='analytics'; loadAnalytics()">Аналитика</button>
       <button class="tab" :class="{'tab--active': tab==='users'}"    @click="tab='users'">Пользователи</button>
       <button class="tab" :class="{'tab--active': tab==='books'}"    @click="tab='books'">Книги</button>
+      <button class="tab" :class="{'tab--active': tab==='catalogSeed'}" @click="tab='catalogSeed'">Импорт каталога</button>
       <button class="tab" :class="{'tab--active': tab==='reviews'}"  @click="tab='reviews'">Отзывы</button>
       <button class="tab" :class="{'tab--active': tab==='critiques'}" @click="tab='critiques'">Рецензии</button>
       <button class="tab" :class="{'tab--active': tab==='editions'}" @click="tab='editions'">Издания</button>
@@ -103,6 +104,116 @@
         <a href="{% url 'book_add' %}" class="btn btn-primary btn-sm">+ Добавить книгу</a>
       </div>
       <div id="books-table">{% include "books/_admin_books.html" %}</div>
+    </div>
+
+    {# ИМПОРТ КАТАЛОГА #}
+    <div x-show="tab==='catalogSeed'" x-cloak>
+      <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.6fr);gap:24px;align-items:start">
+        <section>
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap">
+            <div>
+              <h2 style="font-size:17px;margin-bottom:6px">Seed-каталог JSONL</h2>
+              <p style="font-size:13px;color:var(--muted);line-height:1.5;max-width:680px">
+                Вкладка для подготовки файла, которым позже можно заполнить книги, авторов, жанры, языки,
+                издателей, серии и связи. Формат — одна книга на строку, без выдуманных ISBN и издательств.
+              </p>
+            </div>
+          </div>
+
+          <form style="border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:18px"
+                hx-post="{% url 'admin_import_catalog_seed' %}"
+                hx-target="#catalog-seed-result"
+                hx-swap="innerHTML"
+                hx-encoding="multipart/form-data"
+                enctype="multipart/form-data">
+            {% csrf_token %}
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">JSONL-файл</label>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <input class="form-input" type="file" name="seed_file" accept=".jsonl,application/json" style="max-width:380px">
+              <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)">
+                <input type="checkbox" name="dry_run" checked>
+                Проверить без записи
+              </label>
+              <button type="submit" class="btn btn-primary btn-sm">Импортировать</button>
+            </div>
+            <div id="catalog-seed-result"></div>
+          </form>
+
+          <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:18px">
+            <table class="table" style="margin:0">
+              <thead>
+                <tr>
+                  <th>Поле</th>
+                  <th>Тип</th>
+                  <th>Правило</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>title</td><td>string</td><td>обязательное название</td></tr>
+                <tr><td>authors</td><td>array</td><td>минимум один автор</td></tr>
+                <tr><td>genres</td><td>array</td><td>2-5 спокойных жанров без дублей</td></tr>
+                <tr><td>language</td><td>string</td><td>ru, en или null</td></tr>
+                <tr><td>series / series_order</td><td>string / number</td><td>только если источник подтверждает серию</td></tr>
+                <tr><td>publisher, isbn_13, pages, cover_url</td><td>mixed</td><td>null, если нет проверенного источника</td></tr>
+                <tr><td>source_urls</td><td>array</td><td>обязательные ссылки на источники</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">Промпт для агента</label>
+          <textarea class="form-input form-textarea" readonly
+                    style="min-height:250px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.45;margin-bottom:16px">{{ catalog_seed_prompt }}</textarea>
+
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">Пример одной строки JSONL</label>
+          <textarea class="form-input form-textarea" readonly
+                    style="min-height:120px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.45">{{ catalog_seed_example }}</textarea>
+
+          <hr class="divider" style="margin:24px 0 18px">
+
+          <h2 style="font-size:17px;margin-bottom:6px">Обогащение авторов</h2>
+          <p style="font-size:13px;color:var(--muted);line-height:1.5;max-width:680px;margin-bottom:16px">
+            Этот промпт берёт авторов из уже готового списка книг и готовит отдельный JSONL
+            только под текущую модель автора: имя, краткая биография и год рождения.
+          </p>
+
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">Промпт для authors_seed.jsonl</label>
+          <textarea class="form-input form-textarea" readonly
+                    style="min-height:230px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.45;margin-bottom:16px">{{ author_seed_prompt }}</textarea>
+
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">Пример строки автора</label>
+          <textarea class="form-input form-textarea" readonly
+                    style="min-height:110px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.45">{{ author_seed_example }}</textarea>
+        </section>
+
+        <aside style="border-left:1px solid var(--border);padding-left:20px">
+          <h3 style="font-size:14px;margin-bottom:12px">Текущая база</h3>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px 16px;font-size:13px;margin-bottom:22px">
+            <span style="color:var(--muted)">Книги</span><b>{{ catalog_seed_stats.books }}</b>
+            <span style="color:var(--muted)">Авторы</span><b>{{ catalog_seed_stats.authors }}</b>
+            <span style="color:var(--muted)">Издатели</span><b>{{ catalog_seed_stats.publishers }}</b>
+            <span style="color:var(--muted)">Серии</span><b>{{ catalog_seed_stats.series }}</b>
+            <span style="color:var(--muted)">Языки</span><b>{{ catalog_seed_stats.languages }}</b>
+            <span style="color:var(--muted)">Жанры</span><b>{{ catalog_seed_stats.genres }}</b>
+            <span style="color:var(--muted)">Связи графа</span><b>{{ catalog_seed_stats.relations }}</b>
+          </div>
+
+          <h3 style="font-size:14px;margin-bottom:12px">Порядок работы</h3>
+          <ol style="font-size:13px;color:var(--muted);line-height:1.6;padding-left:18px;margin:0 0 22px">
+            <li>Агент готовит JSONL маленькими файлами по 300-500 строк.</li>
+            <li>Валидатор проверяет обязательные поля, дубли и источники.</li>
+            <li>Импортёр создаёт справочники и книги идемпотентно.</li>
+            <li>Отдельная задача строит связи графа по авторам, жанрам и сериям.</li>
+          </ol>
+
+          <h3 style="font-size:14px;margin-bottom:12px">Источники</h3>
+          <ul style="font-size:13px;color:var(--muted);line-height:1.6;padding-left:18px;margin:0">
+            <li>Hardcover — популярность, серии, рейтинги.</li>
+            <li>Google Books — ISBN, издатель, страницы, описание.</li>
+            <li>Open Library — fallback и обложки.</li>
+            <li>Wikidata — авторы, оригинальные названия, годы.</li>
+          </ul>
+        </aside>
+      </div>
     </div>
 
     {# ОТЗЫВЫ #}
@@ -185,5 +296,16 @@
     background:#0a7a42;border-color:#0a7a42;color:#fff;
   }
   .notif-toggle--on:hover{background:#0e945a;border-color:#0e945a;color:#fff}
+  @media (max-width: 820px) {
+    [x-show="tab==='catalogSeed'"] > div {
+      grid-template-columns: 1fr !important;
+    }
+    [x-show="tab==='catalogSeed'"] aside {
+      border-left: 0 !important;
+      border-top: 1px solid var(--border);
+      padding-left: 0 !important;
+      padding-top: 18px;
+    }
+  }
 </style>
 {% endblock %}

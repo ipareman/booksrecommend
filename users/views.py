@@ -32,7 +32,10 @@ from .models import (
     UserProfile, AuthorSubscription, Achievement, AVATAR_GRADIENTS,
     check_achievements, get_achievements_progress,
 )
-from books.models import Book, UserList, Store, BookStore, Genre, Author, ReadingProgress, BookEdition, BookNote
+from books.models import (
+    Book, UserList, Store, BookStore, Genre, Author, ReadingProgress,
+    BookEdition, BookNote, Publisher, Series, Language,
+)
 from reviews.models import Review, Critique
 from search.models import SearchHistory
 from books.ai_recommendations import load_from_cache, invalidate as invalidate_ai_cache
@@ -690,6 +693,30 @@ def delete_list(request, list_id):
     _invalidate_ai_cache(request.user.pk)
     return _render_lists_panel(request, request.user)
 
+@login_required
+@require_POST
+def rename_list(request, list_id):
+    user_list = get_object_or_404(UserList, pk=list_id, user=request.user)
+    name = request.POST.get("name", "").strip()
+    if not name:
+        return HttpResponseBadRequest("Название списка не может быть пустым")
+    if UserList.objects.filter(user=request.user, name=name).exclude(pk=user_list.pk).exists():
+        return HttpResponseBadRequest(f"Список «{name}» уже существует")
+
+    user_list.name = name
+    user_list.save(update_fields=["name"])
+    _invalidate_ai_cache(request.user.pk)
+    return _render_lists_panel(request, request.user)
+
+@login_required
+@require_POST
+def remove_book_from_list(request, list_id, book_id):
+    user_list = get_object_or_404(UserList, pk=list_id, user=request.user)
+    book = get_object_or_404(Book, pk=book_id)
+    user_list.books.remove(book)
+    _invalidate_ai_cache(request.user.pk)
+    return _render_lists_panel(request, request.user)
+
 # ─── ЭКСПОРТ СПИСКОВ ──────────────────────────────────────────────────────────
 
 @login_required
@@ -1002,6 +1029,7 @@ def admin_panel(request):
 
     from notifications.models import NotificationSetting
     notif_settings = _build_notif_settings_matrix()
+    from graph.models import BookRelation
 
     ctx = {
         "stat_books": Book.objects.count(),
@@ -1019,6 +1047,65 @@ def admin_panel(request):
         "pending_critiques": Critique.objects.filter(status=Critique.PENDING).select_related("user", "book").prefetch_related("criteria"),
         "editions": BookEdition.objects.prefetch_related("books__publisher").order_by("name")[:100],
         "notif_settings": notif_settings,
+        "catalog_seed_stats": {
+            "books": Book.objects.count(),
+            "authors": Author.objects.count(),
+            "publishers": Publisher.objects.count(),
+            "series": Series.objects.count(),
+            "languages": Language.objects.count(),
+            "genres": Genre.objects.count(),
+            "relations": BookRelation.objects.count(),
+        },
+        "catalog_seed_prompt": (
+            "Собери JSONL seed-файл для русскоязычного книжного каталога.\n\n"
+            "Нужно 1500 популярных книг: русская классика, зарубежная классика, "
+            "современная проза, фэнтези, фантастика, детективы, young adult, "
+            "non-fiction и детские книги.\n\n"
+            "Формат: одна книга на строку, каждая строка валидный JSON object.\n"
+            "Поля: title, original_title, authors, genres, language, publication_year, "
+            "description, series, series_order, publisher, isbn_13, pages, cover_url, "
+            "source_urls, popularity_bucket.\n\n"
+            "Правила:\n"
+            "- Не выдумывай ISBN, publisher, pages и cover_url.\n"
+            "- Если поле не найдено в источниках, ставь null.\n"
+            "- source_urls обязателен для каждой записи.\n"
+            "- Дедуплицируй по title + first author + isbn_13.\n"
+            "- Описания делай короткими и нейтральными, не копируй длинные тексты с сайтов.\n"
+            "- Для серий указывай series и series_order только если уверен."
+        ),
+        "catalog_seed_example": (
+            '{"title":"Мастер и Маргарита","original_title":"Мастер и Маргарита",'
+            '"authors":["Михаил Булгаков"],"genres":["классика","магический реализм"],'
+            '"language":"ru","publication_year":1967,"description":"Роман о Москве, '
+            'свободе, страхе и цене выбора.","series":null,"series_order":null,'
+            '"publisher":null,"isbn_13":null,"pages":null,"cover_url":null,'
+            '"source_urls":["https://www.wikidata.org/wiki/Q..."],'
+            '"popularity_bucket":"core"}'
+        ),
+        "author_seed_prompt": (
+            "На основе уже готового seed_books.jsonl составь JSONL-файл authors_seed.jsonl "
+            "для обогащения авторов в Django-проекте.\n\n"
+            "Вход: список книг, где поле authors содержит имена авторов. Сначала извлеки "
+            "уникальных авторов, нормализуй написание и убери дубли.\n\n"
+            "Формат: одна строка = один валидный JSON object.\n"
+            "Поля строго под текущую модель Author: name, bio, birth_year, source_urls.\n\n"
+            "Правила:\n"
+            "- name обязателен и должен совпадать с написанием автора в seed_books.jsonl.\n"
+            "- bio: 1-3 коротких предложения на русском, нейтрально и без рекламного тона.\n"
+            "- birth_year: число или null. Не указывай год, если источник не подтверждает его.\n"
+            "- source_urls: массив ссылок на источники, минимум одна ссылка для заполненных bio/birth_year.\n"
+            "- Не добавляй death_year, country, awards, photo_url и другие поля: их пока нет в модели.\n"
+            "- Не копируй большие фрагменты биографий; формулируй кратко своими словами.\n"
+            "- Если автор спорный, псевдоним или коллективный автор, оставь birth_year null.\n"
+            "- Разбей результат на файлы по 300-500 авторов, если список большой."
+        ),
+        "author_seed_example": (
+            '{"name":"Михаил Булгаков","bio":"Русский писатель и драматург, '
+            'автор романов, повестей и пьес, в которых сатира соединяется с фантастикой '
+            'и философской прозой. Наиболее известен романом «Мастер и Маргарита».",'
+            '"birth_year":1891,'
+            '"source_urls":["https://www.wikidata.org/wiki/Q2543"]}'
+        ),
     }
     return render(request, "users/admin_panel.html", ctx)
 
@@ -1518,4 +1605,3 @@ def admin_run_tests(request):
             "success": False,
             "error": str(e),
         })
-

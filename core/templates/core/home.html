@@ -226,7 +226,7 @@
   </section>
 </div>
 
-{% if user.is_authenticated and not user.profile.onboarding_done %}
+{% if user.is_authenticated and not user.profile.onboarding_done and show_home_onboarding_modal %}
 {% include "core/_onboarding_modal.html" %}
 {% endif %}
 {% endblock %}

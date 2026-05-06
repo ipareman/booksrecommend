@@ -16,8 +16,24 @@
   {# ── Содержимое активного списка ── #}
   {% for ul in lists %}
   <div x-show="active === {{ ul.id }}" x-cloak>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <h3 style="font-size:16px">{{ ul.name }}</h3>
+    <div x-data="{ editingName: false }" style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <h3 x-show="!editingName" style="font-size:16px">{{ ul.name }}</h3>
+      <form x-show="editingName"
+            x-cloak
+            hx-post="{% url 'rename_list' ul.id %}"
+            hx-target="#lists-panel"
+            hx-swap="innerHTML"
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+            style="display:flex;align-items:center;gap:8px">
+        <input type="text"
+               name="name"
+               value="{{ ul.name }}"
+               required
+               maxlength="100"
+               style="font:inherit;background:transparent;color:var(--ink);border:0;border-bottom:1px solid var(--line-strong);padding:3px 0;outline:0">
+        <button type="submit" class="btn btn-ghost btn-sm">Сохранить</button>
+        <button type="button" class="btn btn-ghost btn-sm" @click="editingName = false">Отмена</button>
+      </form>
       {% if ul.is_default %}<span class="badge badge-default">По умолчанию</span>{% endif %}
       {% if ul.sentiment_tag == "positive" %}
         <span style="font-size:11px;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px">👍</span>
@@ -27,6 +43,14 @@
         <span style="font-size:11px;background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:999px">📖</span>
       {% endif %}
       <span style="font-size:12px;color:var(--ghost)">{{ ul.books.count }} книг</span>
+      <button type="button"
+              class="btn btn-ghost btn-sm"
+              style="padding:2px 4px"
+              title="Редактировать название"
+              aria-label="Редактировать название списка «{{ ul.name }}»"
+              @click="editingName = true">
+        ✎
+      </button>
       <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         {% if ul.books.count > 0 %}
         <a href="{% url 'collection_create' %}?from_list={{ ul.id }}" class="btn btn-sm btn-primary">
@@ -52,6 +76,18 @@
         <span style="font-size:12px;color:var(--muted)">
           {% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
         </span>
+        <button type="button"
+                class="btn btn-ghost btn-sm"
+                style="color:var(--err);padding:2px 4px"
+                title="Удалить книгу из списка"
+                aria-label="Удалить «{{ book.title }}» из списка «{{ ul.name }}»"
+                hx-post="{% url 'remove_book_from_list' ul.id book.id %}"
+                hx-target="#lists-panel"
+                hx-swap="innerHTML"
+                hx-confirm="Удалить «{{ book.title }}» из списка «{{ ul.name }}»?"
+                hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+          x
+        </button>
       </div>
       {% endfor %}
     {% else %}

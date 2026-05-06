@@ -28,6 +28,7 @@ urlpatterns = [
     path("notes/<int:note_id>/delete/",             views.note_delete,                name="note_delete"),
     path("admin/delete/<int:pk>/",                  views.admin_delete_book,          name="admin_delete_book"),
     path("admin/partial/",                          views.admin_books_partial,        name="admin_books_partial"),
+    path("admin/import-catalog-seed/",              views.admin_import_catalog_seed,  name="admin_import_catalog_seed"),
     # AI-фичи полного текста (staff only, требуют загруженного BookText)
     path("<int:pk>/ai/summaries/",                  views.book_ai_summaries,          name="book_ai_summaries"),
     path("<int:pk>/ai/quotes-extract/",             views.book_ai_quotes_extract,     name="book_ai_quotes_extract"),

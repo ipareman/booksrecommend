@@ -1,0 +1,486 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Демо: Золотая книга — Строка</title>
+  <link rel="stylesheet" href="{% static 'css/week_books_demo.css' %}?v={% now 'U' %}">
+</head>
+<body class="book-gold">
+  <nav class="typewriter-nav typewriter-nav--solid" aria-label="Основная навигация">
+    <div class="typewriter-nav__inner">
+      <div class="typewriter-nav__center">
+        <a class="typewriter-nav__link" href="{% url 'typewriter_community_demo' %}">Сообщество</a>
+        <a class="typewriter-nav__logo is-visible" href="{% url 'typewriter_home_demo' %}" aria-label="На главную">
+          <img src="{% static 'img/design/icon.svg' %}" alt="Строка">
+        </a>
+        <a class="typewriter-nav__link" href="/books/">Каталог</a>
+      </div>
+      <div class="typewriter-nav__auth" aria-label="Аккаунт">
+        <a href="#">Войти</a>
+        <a href="#">Регистрация</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="demo-main book-page">
+    <a class="book-page-back" href="{% url 'week_books_demo' %}">← Книги недели</a>
+
+    {# ── Staff edit bar (demo) ── #}
+    <div class="book-edit-bar">
+      <span>✏ Режим редактирования (демо)</span>
+      <div class="book-edit-bar__actions">
+        <button type="button" class="btn btn-sm">Сохранить</button>
+        <button type="button" class="btn btn-sm">Отмена</button>
+      </div>
+    </div>
+
+    {# ── Hero: cover + meta ── #}
+    <div class="book-hero">
+      <div class="book-cover-large"><span>Обложка</span></div>
+      <div class="book-meta">
+        <div class="book-detail-tags">
+          <span class="tag">роман</span>
+          <span class="tag">элегия</span>
+          <span class="tag">женская проза</span>
+        </div>
+        <div class="mood-strip">
+          <span>тихое</span>
+          <span>воздушное</span>
+          <span>короткие сцены</span>
+        </div>
+        <span class="medal-badge">Книга недели — золото</span>
+        <div class="book-title-row">
+          <h2>Летняя книга</h2>
+          <div class="book-staff-actions">
+            <button type="button" class="btn btn-sm" title="Редактировать">✏</button>
+            <button type="button" class="btn btn-sm" title="Копировать">⧉</button>
+          </div>
+        </div>
+        <p class="author"><a href="#" class="lnk-muted">Туве Янссон</a> · 1972</p>
+        <p class="book-lead">
+          Много воздуха, короткие сцены и спокойная точность. Книга не давит сюжетом,
+          но оставляет чувство живого разговора. Читают после тяжёлой недели, в поездках,
+          перед сном.
+        </p>
+        <div class="book-ledger">
+          <div><span>Жанр</span><strong>роман, элегия</strong></div>
+          <div><span>Год</span><strong>1972</strong></div>
+          <div><span>Страниц</span><strong>192</strong></div>
+          <div><span>Настроение</span><strong>тихое восстановление</strong></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Hero actions ── #}
+    <div class="book-hero-actions">
+      <a href="#" class="btn btn-primary">Читать</a>
+      <a href="#" class="btn">Граф связей</a>
+      <a href="#" class="btn">AI-собеседник</a>
+      <div class="book-recommend">
+        <button type="button" class="btn">Рекомендовать</button>
+      </div>
+      <a href="#" class="btn">Жалоба</a>
+    </div>
+
+    {# ── Rating ── #}
+    <div class="rating-block">
+      <span class="rating-block__num">4.8</span>
+      <div>
+        <div class="rating-block__stars">★★★★★</div>
+        <div class="rating-block__count">127 оценок</div>
+      </div>
+    </div>
+
+    {# ── Commerce row ── #}
+    <div class="book-commerce-row">
+      <div class="book-commerce-row__panel">
+        <div class="book-inline-panel">
+          <label>Алерт на цену</label>
+          <div class="inline-row">
+            <input type="text" placeholder="100" value="200">
+            <button type="button" class="btn btn-sm">Сохранить</button>
+          </div>
+        </div>
+      </div>
+      <div class="book-action-group">
+        <div class="book-inline-panel" style="border:0;padding:0;">
+          <button type="button" class="btn">Добавить в список ▾</button>
+        </div>
+        <div class="book-recommend">
+          <button type="button" class="btn">Рекомендовать другу</button>
+        </div>
+        <div class="book-inline-panel" style="border:0;padding:0;">
+          <span class="btn" style="cursor:default">≈ 340 ₽</span>
+          <button type="button" class="btn btn-sm">Запросить цену</button>
+        </div>
+      </div>
+    </div>
+
+    {# ── Reading progress ── #}
+    <div class="book-inline-panel">
+      <label>Прогресс чтения</label>
+      <div class="inline-row">
+        <span style="font-size:14px;color:var(--muted);">Стр. 47 / 192</span>
+        <input type="number" value="47" style="width:70px">
+        <button type="button" class="btn btn-sm">Сохранить</button>
+      </div>
+    </div>
+
+    {# ── Reader panel ── #}
+    <div class="book-reader-panel">
+      <span class="book-reader-panel__icon">📖</span>
+      <div>
+        <div style="font-size:14px;font-weight:400">Полный текст доступен</div>
+        <div style="font-size:12px;color:var(--muted)">12 глав · 45 000 слов · ⏱ 4 ч</div>
+      </div>
+      <span style="font-size:12px;color:var(--muted)">Добавьте книгу в список, чтобы читать</span>
+      <div>
+        <button type="button" class="btn btn-sm" title="Действия staff">⋯</button>
+      </div>
+    </div>
+
+    {# ── Text upload (staff) ── #}
+    <details class="book-upload-panel">
+      <summary>📤 Загрузить полный текст книги (EPUB / FB2, только админ)</summary>
+      <form style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="file" style="font-size:13px">
+        <button type="button" class="btn btn-sm">Загрузить</button>
+        <span style="font-size:11px;color:var(--muted)">до 30 МБ; .epub, .fb2, .fb2.zip</span>
+      </form>
+    </details>
+
+    {# ── Reading forecast ── #}
+    <div class="book-reading-forecast">
+      ⏱ Вы прочтёте за ~<b style="color:var(--ink)">2</b> дн.
+    </div>
+
+    <hr class="divider book-tabs-divider">
+
+    {# ── Tabs (stacked for demo) ── #}
+    <div style="display:flex;flex-wrap:wrap;gap:4px 24px;padding:14px 0 0;border-bottom:1px solid var(--line);margin-bottom:24px;">
+      <span style="padding:6px 0;border-bottom:1px solid var(--line-strong);font-size:15px;color:var(--ink);">Описание</span>
+      <span style="padding:6px 0;border-bottom:1px solid transparent;font-size:15px;color:var(--muted);">Отзывы (12)</span>
+      <span style="padding:6px 0;border-bottom:1px solid transparent;font-size:15px;color:var(--muted);">Рецензии (3)</span>
+      <span style="padding:6px 0;border-bottom:1px solid transparent;font-size:15px;color:var(--muted);">Издательства (2)</span>
+      <span style="padding:6px 0;border-bottom:1px solid transparent;font-size:15px;color:var(--muted);">Магазины</span>
+      <span style="padding:6px 0;border-bottom:1px solid transparent;font-size:15px;color:var(--muted);">Теги читателей</span>
+      <span style="padding:6px 0;border-bottom:1px solid transparent;font-size:15px;color:var(--muted);">Цитаты (7)</span>
+    </div>
+
+    {# ── Описание tab content ── #}
+    <div class="book-detail-content">
+      <p class="book-description">
+        Семья художниц проводит лето на маленьком острове в Финском заливе.
+        Вокруг — море, скалы, погода, которая меняется каждый час.
+        Между миром и книгой нет барьера: всё, что описано, кажется родным и важным.
+      </p>
+
+      {# AI themes #}
+      <div class="ai-themes">
+        <div class="ai-themes__label">Темы и мотивы — из анализа текста</div>
+        <div class="book-detail-tags">
+          <span class="tag" style="border-style:dashed">◐ остров</span>
+          <span class="tag">● одиночество</span>
+          <span class="tag" style="border-style:dashed">◐ море</span>
+          <span class="tag">● творчество</span>
+          <span class="tag">● семья</span>
+        </div>
+      </div>
+
+      <div class="book-meta-row" style="margin-top:18px;">
+        <div><p>Издательство</p><p>АСТ</p></div>
+        <div><p>Серия</p><p>Янссон: собрание</p></div>
+        <div><p>Страниц</p><p>192</p></div>
+        <div><p>ISBN</p><p>978-5-17-098123-4</p></div>
+        <div><p>Язык</p><p>русский</p></div>
+      </div>
+    </div>
+
+    {# ── Отзывы tab content ── #}
+    <hr class="divider" style="margin-top:42px;">
+    <div style="padding-top:24px;">
+      <div class="section-head">
+        <span class="section-title">Отзывы</span>
+        <span class="section-meta">12 отзывов</span>
+      </div>
+
+      <div class="review-form">
+        <label style="display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Написать отзыв</label>
+        <div class="inline-row" style="margin-bottom:10px;">
+          <span style="font-size:14px;color:var(--muted);letter-spacing:2px;">★★★★★</span>
+        </div>
+        <textarea placeholder="Опишите впечатления..."></textarea>
+        <button type="button" class="btn btn-primary" style="margin-top:8px;">Отправить</button>
+      </div>
+
+      <div class="review-list">
+        <div class="review-item">
+          <div class="review-item__header">
+            <span class="review-item__author">Анна К.</span>
+            <span class="review-item__rating">★★★★★</span>
+          </div>
+          <p class="review-item__text">Перечитываю каждое лето. Как будто возвращаюсь домой.</p>
+          <div class="review-item__meta">2 дня назад · Полезно (8)</div>
+        </div>
+        <div class="review-item">
+          <div class="review-item__header">
+            <span class="review-item__author">Михаил Р.</span>
+            <span class="review-item__rating">★★★★☆</span>
+          </div>
+          <p class="review-item__text">Короткие главы, но каждая — как полноценная картина. После тяжёлой недели именно то, что нужно.</p>
+          <div class="review-item__meta">5 дней назад · Полезно (4)</div>
+        </div>
+        <div class="review-item">
+          <div class="review-item__header">
+            <span class="review-item__author">Ольга В.</span>
+            <span class="review-item__rating">★★★★★</span>
+          </div>
+          <p class="review-item__text">Подарила трём подругам. Все плакали.</p>
+          <div class="review-item__meta">неделю назад · Полезно (12)</div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Рецензии tab content ── #}
+    <hr class="divider" style="margin-top:42px;">
+    <div style="padding-top:24px;">
+      <div class="section-head">
+        <span class="section-title">Рецензии</span>
+        <span class="section-meta">3 рецензии</span>
+      </div>
+      <div style="margin-bottom:16px;">
+        <button type="button" class="btn btn-primary">Написать рецензию</button>
+      </div>
+      <div class="review-list">
+        <div class="review-item">
+          <div class="review-item__header">
+            <span class="review-item__author">Дарья Л. · «Воздух между строк»</span>
+            <span class="review-item__rating">★★★★★</span>
+          </div>
+          <p class="review-item__text">
+            Янссон не рассказывает историю — она строит атмосферу. Каждый абзац здесь дышит,
+            и дышит ровно теми интонациями, которые нужны читателю в момент усталости.
+          </p>
+          <div class="review-item__meta">3 дня назад · 4 комментария · Полезно (15)</div>
+        </div>
+        <div class="review-item">
+          <div class="review-item__header">
+            <span class="review-item__author">Игорь С. · «Море как персонаж»</span>
+            <span class="review-item__rating">★★★★☆</span>
+          </div>
+          <p class="review-item__text">
+            Вода в этой книге — не фон. Она реагирует, мстит, успокаивает.
+            Сравнение с «Морем, море» Мёрдок напрашивается, но у Янссон всё тише.
+          </p>
+          <div class="review-item__meta">неделю назад · 1 комментарий · Полезно (6)</div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Издательства tab content ── #}
+    <hr class="divider" style="margin-top:42px;">
+    <div style="padding-top:24px;">
+      <div class="section-head">
+        <span class="section-title">Издательства</span>
+        <span class="section-meta">2 издания</span>
+      </div>
+      <p class="form-hint">Это произведение выходило в разных издательствах. Нажмите на карточку, чтобы переключить издание.</p>
+      <div class="editions-grid">
+        <button type="button" class="edition-card edition-card--active">
+          <div class="edition-card__no-cover">АСТ</div>
+          <div class="edition-card__publisher">АСТ</div>
+          <div class="edition-card__meta">2021 · 192 стр.</div>
+          <div class="edition-card__isbn">ISBN 978-5-17-098123-4</div>
+          <div class="edition-card__badge">Текущее</div>
+        </button>
+        <button type="button" class="edition-card">
+          <div class="edition-card__no-cover">Сов. писатель</div>
+          <div class="edition-card__publisher">Советский писатель</div>
+          <div class="edition-card__meta">1989 · 176 стр.</div>
+          <div class="edition-card__isbn">ISBN 5-265-00987-1</div>
+        </button>
+      </div>
+    </div>
+
+    {# ── Магазины tab content ── #}
+    <hr class="divider" style="margin-top:42px;">
+    <div style="padding-top:24px;">
+      <div class="section-head">
+        <span class="section-title">Магазины</span>
+        <span class="section-meta">актуальные цены</span>
+      </div>
+      <div class="store-list">
+        <div class="store-row">
+          <span class="store-row__name">Лабиринт</span>
+          <span class="store-row__price">340 ₽</span>
+          <a href="#" class="store-row__link">Купить →</a>
+        </div>
+        <div class="store-row">
+          <span class="store-row__name">Читай-город</span>
+          <span class="store-row__price">380 ₽</span>
+          <a href="#" class="store-row__link">Купить →</a>
+        </div>
+        <div class="store-row">
+          <span class="store-row__name">Буквоед</span>
+          <span class="store-row__price">310 ₽</span>
+          <a href="#" class="store-row__link">Купить →</a>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <button type="button" class="btn btn-sm">📊 График цен</button>
+      </div>
+    </div>
+
+    {# ── Теги читателей tab content ── #}
+    <hr class="divider" style="margin-top:42px;">
+    <div style="padding-top:24px;">
+      <div class="section-head">
+        <span class="section-title">Теги читателей</span>
+        <span class="section-meta">AI извлечённые + голосования</span>
+      </div>
+      <div class="tag-cloud">
+        <span class="tag">лето (24)</span>
+        <span class="tag">остров (18)</span>
+        <span class="tag">спокойствие (31)</span>
+        <span class="tag">после работы (12)</span>
+        <span class="tag">семья (9)</span>
+        <span class="tag">море (15)</span>
+        <span class="tag">короткие главы (8)</span>
+      </div>
+      <div class="tag-vote-bar">
+        <input type="text" placeholder="Добавить тег...">
+        <button type="button" class="btn btn-sm">+</button>
+      </div>
+    </div>
+
+    {# ── Цитаты tab content ── #}
+    <hr class="divider" style="margin-top:42px;">
+    <div style="padding-top:24px;">
+      <div class="section-head">
+        <span class="section-title">Цитаты</span>
+        <span class="section-meta">7 цитат</span>
+      </div>
+      <div class="quote-list">
+        <div class="quote-item">
+          <blockquote>«Всё, что случилось, было только потому, что они оказались рядом.»</blockquote>
+          <footer>стр. 47 · Анна К. · AI-генерация</footer>
+        </div>
+        <div class="quote-item">
+          <blockquote>«Море не прощает долгого отсутствия, но всегда радуется возвращению.»</blockquote>
+          <footer>стр. 112 · Михаил Р.</footer>
+        </div>
+        <div class="quote-item">
+          <blockquote>«Она рисовала не то, что видела, а то, что помнила о ветре.»</blockquote>
+          <footer>стр. 89 · Ольга В.</footer>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <button type="button" class="btn btn-sm">Добавить цитату</button>
+        <button type="button" class="btn btn-sm">✨ AI-цитаты из текста</button>
+      </div>
+    </div>
+
+    {# ── Похожие книги ── #}
+    <section style="margin-top:40px;padding-top:32px;border-top:1px solid var(--line);">
+      <div class="section-head">
+        <span class="section-title">Похожие книги</span>
+        <span class="section-meta">по жанрам и содержанию</span>
+      </div>
+      <div class="shelf">
+        <div class="shelf__track">
+          <a href="#" class="book-tile">
+            <div class="book-tile__cover--empty">Море, море</div>
+            <div class="book-tile__title">Море, море</div>
+            <div class="book-tile__authors">Ирис Мёрдок</div>
+            <div class="book-tile__rating">★ 4.2</div>
+          </a>
+          <a href="#" class="book-tile">
+            <div class="book-tile__cover--empty">Одинокий город</div>
+            <div class="book-tile__title">Одинокий город</div>
+            <div class="book-tile__authors">Оливия Лэнг</div>
+            <div class="book-tile__rating">★ 4.5</div>
+          </a>
+          <a href="#" class="book-tile">
+            <div class="book-tile__cover--empty">Лето перед сном</div>
+            <div class="book-tile__title">Лето перед сном</div>
+            <div class="book-tile__authors">Туве Янссон</div>
+          </a>
+          <a href="#" class="book-tile">
+            <div class="book-tile__cover--empty">Письмо в лето</div>
+            <div class="book-tile__title">Письмо в лето</div>
+            <div class="book-tile__authors">Андрей Платонов</div>
+            <div class="book-tile__rating">★ 4.0</div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    {# ── Тоже читают ── #}
+    <section style="margin-top:32px;padding-top:32px;border-top:1px solid var(--line);">
+      <div class="section-head">
+        <span class="section-title">Тоже читают</span>
+        <span class="section-meta">по поведению читателей</span>
+      </div>
+      <div class="shelf">
+        <div class="shelf__track">
+          <a href="#" class="book-tile">
+            <div class="book-tile__cover--empty">Вторая жизнь Уве</div>
+            <div class="book-tile__title">Вторая жизнь Уве</div>
+            <div class="book-tile__authors">Фредрик Бакман</div>
+            <div class="book-tile__rating">★ 4.6</div>
+          </a>
+          <a href="#" class="book-tile">
+            <div class="book-tile__cover--empty">Элеонор Олифант</div>
+            <div class="book-tile__title">Элеонор Олифант всё в порядке</div>
+            <div class="book-tile__authors">Гейл Ханиман</div>
+            <div class="book-tile__rating">★ 4.4</div>
+          </a>
+          <a href="#" class="book-tile">
+            <div class="book-tile__cover--empty">Маленький принц</div>
+            <div class="book-tile__title">Маленький принц</div>
+            <div class="book-tile__authors">А. де Сент-Экзюпери</div>
+            <div class="book-tile__rating">★ 4.7</div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    {# ── Medal accent sections ── #}
+    <section class="accent-section" style="margin-top:48px;">
+      <h3>Почему золото</h3>
+      <p>Больше всего добавлений в списки за неделю. Читатели возвращаются к ней в моменты усталости и выгорания — как к старому другу, который не задаёт лишних вопросов.</p>
+    </section>
+
+    <section class="accent-section">
+      <h3>Похожее настроение</h3>
+      <p>«Одинокий город» Оливии Лэнг, «Вторая жизнь Уве» Фредрика Бакмана, «Море, море» Ирис Мёрдок.</p>
+    </section>
+
+  </main>
+
+  {# ── Price modal (simplified) ── #}
+  <div class="price-modal-overlay" id="price-modal">
+    <div class="price-modal">
+      <div class="price-modal__head">
+        <div>
+          <h3>Летняя книга</h3>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">История цен по магазинам</div>
+        </div>
+        <button type="button" onclick="document.getElementById('price-modal').classList.remove('is-open')">x</button>
+      </div>
+      <div class="price-modal__body">
+        <div style="display:flex;gap:4px;margin-bottom:14px;">
+          <button type="button" class="period-btn period-btn--active">Месяц</button>
+          <button type="button" class="period-btn">3 месяца</button>
+          <button type="button" class="period-btn">6 месяцев</button>
+          <button type="button" class="period-btn">Всё время</button>
+        </div>
+        <div style="padding:40px 0;text-align:center;color:var(--muted);font-size:14px;">
+          [График цен — демо]
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Демо: Книги недели — Строка</title>
+  <link rel="stylesheet" href="{% static 'css/week_books_demo.css' %}?v={% now 'U' %}">
+</head>
+<body>
+  <nav class="typewriter-nav typewriter-nav--solid" aria-label="Основная навигация">
+    <div class="typewriter-nav__inner">
+      <div class="typewriter-nav__center">
+        <a class="typewriter-nav__link" href="{% url 'typewriter_community_demo' %}">Сообщество</a>
+        <a class="typewriter-nav__logo is-visible" href="{% url 'typewriter_home_demo' %}" aria-label="На главную">
+          <img src="{% static 'img/design/icon.svg' %}" alt="Строка">
+        </a>
+        <a class="typewriter-nav__link" href="/books/">Каталог</a>
+      </div>
+      <div class="typewriter-nav__auth" aria-label="Аккаунт">
+        <a href="#">Войти</a>
+        <a href="#">Регистрация</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="demo-main">
+    <div class="demo-hero">
+      <h1>Книги недели</h1>
+      <p>Три книги, которые больше всего добавляли в списки за последние семь дней. Золотая — первая, серебряная — вторая, медная — третья. Кликните, чтобы увидеть, как меняется оформление внутри.</p>
+    </div>
+
+    <section class="podium" aria-labelledby="week-books-title">
+      <h2 id="week-books-title" class="visually-hidden">Подиум книг недели</h2>
+
+      <a class="podium-slot podium-slot--silver" href="{% url 'week_book_silver_demo' %}">
+        <span class="medal-mark medal-mark--silver">Серебро</span>
+        <div class="podium-cover"><span>Обложка</span></div>
+        <strong class="podium-title">Одинокий город</strong>
+        <em class="podium-author">Оливия Лэнг</em>
+        <span class="podium-reason">Городская тоска, честный голос, тихое восстановление после потери.</span>
+      </a>
+
+      <a class="podium-slot podium-slot--gold" href="{% url 'week_book_gold_demo' %}">
+        <span class="medal-mark medal-mark--gold">Золото</span>
+        <div class="podium-cover"><span>Обложка</span></div>
+        <strong class="podium-title">Летняя книга</strong>
+        <em class="podium-author">Туве Янссон</em>
+        <span class="podium-reason">Много воздуха, короткие сцены, спокойный ритм. Книга, которую читают после тяжёлой недели.</span>
+      </a>
+
+      <a class="podium-slot podium-slot--bronze" href="{% url 'week_book_bronze_demo' %}">
+        <span class="medal-mark medal-mark--bronze">Медь</span>
+        <div class="podium-cover"><span>Обложка</span></div>
+        <strong class="podium-title">Вторая жизнь Уве</strong>
+        <em class="podium-author">Фредрик Бакман</em>
+        <span class="podium-reason">Жёсткая внешность, мягкое сердце. Юмор сквозь слёзы и долгие дружбы.</span>
+      </a>
+    </section>
+
+    <section style="border-top:1px solid var(--line); padding-top:32px;">
+      <h2 style="font-size:22px; font-weight:400; margin:0 0 14px;">Концепция</h2>
+      <p style="color:var(--muted); font-size:15px; line-height:1.55; max-width:640px; margin:0;">
+        На главной — подиум из трёх позиций. Золотая книга шире и выше, с золотистой рамкой и тёплым градиентом на обложке-заглушке. Серебряная и медная — симметрично по бокам, со своими акцентами. При переходе на страницу книги оформление меняется: левая рамка, бейдж медали и фоновые оттенки подстраиваются под цвет награды.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

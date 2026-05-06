@@ -304,6 +304,22 @@ def typewriter_community_demo(request):
     return render(request, "core/typewriter_community_demo.html")
 
 
+def week_books_demo(request):
+    return render(request, "core/week_books_demo.html")
+
+
+def week_book_gold_demo(request):
+    return render(request, "core/week_book_gold.html")
+
+
+def week_book_silver_demo(request):
+    return render(request, "core/week_book_silver.html")
+
+
+def week_book_bronze_demo(request):
+    return render(request, "core/week_book_bronze.html")
+
+
 def custom_404(request, exception):
     return render(request, "404.html", status=404)
 

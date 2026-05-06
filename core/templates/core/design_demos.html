@@ -238,6 +238,38 @@
       </div>
     </section>
 
+    <section class="variant variant--week" id="variant-week" aria-labelledby="variant-week-title">
+      <div class="variant__head">
+        <span>Демо</span>
+        <h2 id="variant-week-title">Книги недели — подиум</h2>
+      </div>
+      <div style="margin-bottom: 18px; color: #55544d; font-size: 15px; line-height: 1.55;">
+        <p>
+          Три книги на главной в формате медального подиума: золото по центру и выше,
+          серебро и медь по бокам. При переходе на страницу каждой книги оформление
+          меняется — акцентный цвет рамки, бейдж медали и фоновые оттенки.
+        </p>
+      </div>
+      <div style="display: grid; gap: 10px; margin-bottom: 48px;">
+        <a href="{% url 'week_books_demo' %}" style="display: block; padding: 14px 0; border-bottom: 1px solid rgba(41,41,32,.2); color: var(--ink); font-size: 18px;">
+          <strong style="font-weight: 400;">Главная: подиум из трёх книг</strong>
+          <span style="display: block; margin-top: 4px; color: #686760; font-size: 14px;">/week-books-demo/</span>
+        </a>
+        <a href="{% url 'week_book_gold_demo' %}" style="display: block; padding: 14px 0; border-bottom: 1px solid rgba(41,41,32,.2); color: var(--ink); font-size: 18px;">
+          <strong style="font-weight: 400;">Золотая книга</strong>
+          <span style="display: block; margin-top: 4px; color: #686760; font-size: 14px;">/week-books-demo/gold/</span>
+        </a>
+        <a href="{% url 'week_book_silver_demo' %}" style="display: block; padding: 14px 0; border-bottom: 1px solid rgba(41,41,32,.2); color: var(--ink); font-size: 18px;">
+          <strong style="font-weight: 400;">Серебряная книга</strong>
+          <span style="display: block; margin-top: 4px; color: #686760; font-size: 14px;">/week-books-demo/silver/</span>
+        </a>
+        <a href="{% url 'week_book_bronze_demo' %}" style="display: block; padding: 14px 0; border-bottom: 1px solid rgba(41,41,32,.2); color: var(--ink); font-size: 18px;">
+          <strong style="font-weight: 400;">Медная книга</strong>
+          <span style="display: block; margin-top: 4px; color: #686760; font-size: 14px;">/week-books-demo/bronze/</span>
+        </a>
+      </div>
+    </section>
+
     <section class="variant variant--three" id="variant-3" aria-labelledby="variant-3-title">
       <div class="variant__head">
         <span>Вариант 3</span>

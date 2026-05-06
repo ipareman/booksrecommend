@@ -18,6 +18,8 @@
   --accent:  #111111;
   --err:     #dc2626;
   --radius:  6px;
+  --cover-paper: #d8d4c9;
+  --cover-cloth: #9d9d99;
   --on-accent: #ffffff;  /* контрастный текст на --accent (для светлой темы — белый) */
 }
 
@@ -35,12 +37,111 @@
   --ghost:   #6b7280;
   --accent:  #e8eaed;
   --err:     #f87171;
+  --cover-paper: #33332f;
+  --cover-cloth: #5c5b55;
   --on-accent: #0f1115; /* в тёмной теме --accent светлый, поэтому контрастный текст — тёмный */
   color-scheme: dark;
 }
 :root[data-theme="dark"] .bg-blob { background: #fff; opacity: .04; }
 :root[data-theme="dark"] .ink-spot {
   background: radial-gradient(ellipse, rgba(255,255,255,.05) 0%, rgba(255,255,255,.02) 50%, transparent 75%);
+}
+
+:where(
+  .book-detail-cover__frame--empty,
+  .book-tile__cover--empty,
+  .hero__cover-placeholder,
+  .reading-now__cover-empty,
+  .series-card__cover-empty,
+  .club-home-card__book-cover-empty,
+  .edition-card__no-cover,
+  .edition-book-row__no-cover,
+  .series-node__cover--empty,
+  .pp-reading-card__cover--empty,
+  .pp-common__cover-empty,
+  .pp-critique-card__cover-empty
+) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255,255,255,.34) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 76% 64%, rgba(0,0,0,.06) 0 1px, transparent 1.5px),
+    linear-gradient(135deg, var(--cover-paper), var(--surface) 58%, var(--cover-cloth)) !important;
+  background-size: 18px 18px, 22px 22px, 100% 100%;
+  border: 1px solid var(--border) !important;
+  color: color-mix(in srgb, var(--ink) 48%, transparent) !important;
+  padding: 8px 8px 34% !important;
+}
+
+:where(
+  .book-detail-cover__frame--empty,
+  .book-tile__cover--empty,
+  .hero__cover-placeholder,
+  .reading-now__cover-empty,
+  .series-card__cover-empty,
+  .club-home-card__book-cover-empty,
+  .edition-card__no-cover,
+  .edition-book-row__no-cover,
+  .series-node__cover--empty,
+  .pp-reading-card__cover--empty,
+  .pp-common__cover-empty,
+  .pp-critique-card__cover-empty
+)::before {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 66%;
+  height: 1px;
+  z-index: 0;
+  background: color-mix(in srgb, var(--ink) 22%, transparent);
+}
+
+:where(
+  .book-detail-cover__frame--empty,
+  .book-tile__cover--empty,
+  .hero__cover-placeholder,
+  .reading-now__cover-empty,
+  .series-card__cover-empty,
+  .club-home-card__book-cover-empty,
+  .edition-card__no-cover,
+  .edition-book-row__no-cover,
+  .series-node__cover--empty,
+  .pp-reading-card__cover--empty,
+  .pp-common__cover-empty,
+  .pp-critique-card__cover-empty
+) > * {
+  position: relative;
+  z-index: 1;
+}
+
+.book-row__cover:not(:has(img)) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255,255,255,.34) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 76% 64%, rgba(0,0,0,.06) 0 1px, transparent 1.5px),
+    linear-gradient(135deg, var(--cover-paper), var(--surface) 58%, var(--cover-cloth));
+  background-size: 18px 18px, 22px 22px, 100% 100%;
+}
+
+.book-row__cover:not(:has(img))::before {
+  content: "";
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  top: 50%;
+  height: 1px;
+  z-index: 0;
+  background: color-mix(in srgb, var(--ink) 22%, transparent);
+}
+
+.book-row__cover > span {
+  position: relative;
+  z-index: 1;
+  margin-top: -12px;
 }
 
 html, body { min-height: 100%; }

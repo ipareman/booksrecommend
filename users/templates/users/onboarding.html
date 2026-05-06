@@ -185,15 +185,32 @@
     display: block;
   }
   .onb-book-tile__cover--empty {
-    background: var(--surface, #f3f3f3);
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 18% 22%, rgba(255,255,255,.34) 0 1px, transparent 1.5px),
+      radial-gradient(circle at 76% 64%, rgba(0,0,0,.06) 0 1px, transparent 1.5px),
+      linear-gradient(135deg, var(--cover-paper, #d8d4c9), var(--surface, #f3f3f3) 58%, var(--cover-cloth, #9d9d99));
+    background-size: 18px 18px, 22px 22px, 100% 100%;
     color: var(--muted);
     font-size: 11px;
-    padding: 8px;
+    padding: 8px 8px 34%;
     line-height: 1.3;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
+  }
+  .onb-book-tile__cover--empty::before {
+    content: "";
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    top: 66%;
+    height: 1px;
+    z-index: 0;
+    background: color-mix(in srgb, var(--ink, #111) 22%, transparent);
   }
   .onb-book-tile__check {
     position: absolute;

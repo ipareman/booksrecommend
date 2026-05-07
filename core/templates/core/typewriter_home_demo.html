@@ -92,7 +92,19 @@
           <div class="search-actions__left">
             <button type="button" id="settings-trigger" data-open-modal="settings-modal" aria-expanded="false">Настройки</button>
           </div>
-          <button type="button" id="history-trigger" data-open-modal="history-modal" aria-expanded="false">История запросов</button>
+          <details class="desktop-history-details" id="desktop-history-details">
+            <summary id="history-trigger" aria-controls="desktop-history-details-panel">История запросов</summary>
+            <div class="desktop-history-details__panel" id="desktop-history-details-panel">
+              <button type="button" data-typewrite="книга после тяжёлой недели"><span>книга после тяжёлой недели</span></button>
+              <button type="button" data-typewrite="роман о выборе и памяти"><span>роман о выборе и памяти</span></button>
+              <button type="button" data-typewrite="закрытый мир и длинный сюжет"><span>закрытый мир и длинный сюжет</span></button>
+              <button type="button" data-typewrite="что читать после выгорания"><span>что читать после выгорания</span></button>
+              <button type="button" data-typewrite="короткая проза с тихим светом"><span>короткая проза с тихим светом</span></button>
+              <button type="button" data-typewrite="детектив без жестокости"><span>детектив без жестокости</span></button>
+              <button type="button" data-typewrite="семейная сага на зиму"><span>семейная сага на зиму</span></button>
+            </div>
+          </details>
+          <button type="button" class="history-mobile-trigger" data-open-modal="history-modal" aria-expanded="false">История запросов</button>
         </div>
 
         <div class="desktop-text-panels" aria-label="Быстрые панели поиска">
@@ -103,23 +115,6 @@
             <button type="button" class="desktop-mode" id="desktop-dialog-mode" data-typewrite="Диалог">
               <span></span>
             </button>
-          </div>
-          <div class="desktop-text-panel desktop-text-panel--history" id="desktop-history-panel" aria-hidden="true">
-            <button type="button" data-typewrite="книга после тяжёлой недели"><span></span></button>
-            <button type="button" data-typewrite="роман о выборе и памяти"><span></span></button>
-            <button type="button" data-typewrite="закрытый мир и длинный сюжет"><span></span></button>
-            <button type="button" data-typewrite="что читать после выгорания"><span></span></button>
-            <button type="button" data-typewrite="короткая проза с тихим светом"><span></span></button>
-            <button type="button" data-typewrite="детектив без жестокости"><span></span></button>
-            <button type="button" data-typewrite="семейная сага на зиму"><span></span></button>
-            <button type="button" data-typewrite="книги о городе и одиночестве"><span></span></button>
-            <button type="button" data-typewrite="умная любовь без мелодрамы"><span></span></button>
-            <button type="button" data-typewrite="магический реализм"><span></span></button>
-            <button type="button" data-typewrite="что почитать после Дюны"><span></span></button>
-            <button type="button" data-typewrite="романы с сильным голосом"><span></span></button>
-            <button type="button" data-typewrite="спокойная книга перед сном"><span></span></button>
-            <button type="button" data-typewrite="современная русская проза"><span></span></button>
-            <button type="button" data-typewrite="эссе о чтении"><span></span></button>
           </div>
         </div>
       </div>

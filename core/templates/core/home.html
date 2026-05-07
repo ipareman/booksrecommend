@@ -151,7 +151,20 @@
         <div class="search-actions__left">
           <button type="button" id="settings-trigger" data-open-modal="settings-modal" aria-expanded="false">Настройки</button>
         </div>
-        <button type="button" id="history-trigger" data-open-modal="history-modal" aria-expanded="false">История запросов</button>
+        <details class="desktop-history-details" id="desktop-history-details">
+          <summary id="history-trigger" aria-controls="desktop-history-details-panel">История запросов</summary>
+          <div class="desktop-history-details__panel" id="desktop-history-details-panel">
+            {% if search_history %}
+              {% for item in search_history %}
+                <button type="button" data-typewrite="{{ item }}" title="{{ item }}"><span>{{ item }}</span></button>
+              {% endfor %}
+            {% else %}
+              <button type="button" data-local-history-empty data-typewrite="История появится после первых запросов"><span>История появится после первых запросов</span></button>
+            {% endif %}
+            <div data-local-history></div>
+          </div>
+        </details>
+        <button type="button" class="history-mobile-trigger" data-open-modal="history-modal" aria-expanded="false">История запросов</button>
 
         <div class="desktop-text-panels" aria-hidden="true">
           <div class="desktop-text-panel desktop-text-panel--settings" id="desktop-settings-panel" aria-hidden="true">
@@ -161,16 +174,6 @@
             <button type="button" class="desktop-mode" id="desktop-dialog-mode" data-typewrite="Диалог">
               <span>Диалог</span>
             </button>
-          </div>
-          <div class="desktop-text-panel desktop-text-panel--history" id="desktop-history-panel" aria-hidden="true">
-            {% if search_history %}
-              {% for item in search_history %}
-                <button type="button" data-typewrite="{{ item }}"><span>{{ item }}</span></button>
-              {% endfor %}
-            {% else %}
-              <button type="button" data-local-history-empty data-typewrite="История появится после первых запросов"><span>История появится после первых запросов</span></button>
-            {% endif %}
-            <div data-local-history></div>
           </div>
         </div>
       </div>

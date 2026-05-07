@@ -3,12 +3,16 @@ from django.db.models import Count, Q
 from books.models import Book, Genre, Author, MoodTag, Quote, Series
 
 
+def _history_query_key(value):
+    return " ".join((value or "").split()).lower()
+
+
 def _unique_recent_queries(queryset, limit=15):
     seen = set()
     out = []
     for item in queryset:
         query = (getattr(item, "query", "") or "").strip()
-        key = query.lower()
+        key = _history_query_key(query)
         if not query or key in seen:
             continue
         seen.add(key)
@@ -41,6 +45,25 @@ def _discovery_messages_for_home(user):
             "books": _hydrate_persisted_message(msg) if msg.role == "assistant" else [],
         })
     return messages
+
+
+def _discovery_user_query_keys(user):
+    if not user.is_authenticated:
+        return set()
+    try:
+        from ai_chat.models import DiscoveryChat
+    except Exception:
+        return set()
+
+    chat = DiscoveryChat.objects.filter(user=user).first()
+    if not chat:
+        return set()
+
+    return {
+        _history_query_key(content)
+        for content in chat.messages.filter(role="user").values_list("content", flat=True)
+        if (content or "").strip()
+    }
 
 
 def _book_of_the_week():
@@ -192,9 +215,16 @@ def home(request):
         except Exception:
             ctx["personal_recs"] = []
 
-        ctx["search_history"] = _unique_recent_queries(
+        search_history = _unique_recent_queries(
             SearchHistory.objects.filter(user=request.user).only("query").order_by("-created_at")[:60]
         )
+        discovery_query_keys = _discovery_user_query_keys(request.user)
+        if discovery_query_keys:
+            search_history = [
+                query for query in search_history
+                if _history_query_key(query) not in discovery_query_keys
+            ]
+        ctx["search_history"] = search_history
         ctx["discovery_messages"] = _discovery_messages_for_home(request.user)
 
         # Лента активности (последние 10 событий для главной)

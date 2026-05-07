@@ -70,6 +70,53 @@
     return mobileDialogQuery && mobileDialogQuery.matches;
   }
 
+  function compactHistoryText(text) {
+    text = text || "";
+    if (text.length <= 72) return text;
+    return text.slice(0, 72).trim() + "...";
+  }
+
+  function prepareHistoryPanelText() {
+    if (!desktopHistoryPanel) return;
+    Array.prototype.slice.call(desktopHistoryPanel.querySelectorAll("[data-typewrite]")).forEach(function (button) {
+      var fullText = button.getAttribute("data-typewrite") || "";
+      var displayText = compactHistoryText(fullText);
+      var textNode = button.querySelector("span") || button;
+      textNode.textContent = displayText;
+      if (fullText && !button.getAttribute("title")) button.setAttribute("title", fullText);
+    });
+  }
+
+  function setHistoryPanelOpen(open) {
+    if (!desktopHistoryPanel) return;
+    prepareHistoryPanelText();
+    desktopHistoryPanel.classList.toggle("is-open", open);
+    desktopHistoryPanel.setAttribute("aria-hidden", open ? "false" : "true");
+    if (historyTrigger) historyTrigger.setAttribute("aria-expanded", open ? "true" : "false");
+    if (typedPanels && typedPanels.history) {
+      typedPanels.history.token += 1;
+      typedPanels.history.isOpen = open;
+    }
+  }
+
+  function toggleHistoryPanel() {
+    setHistoryPanelOpen(!(desktopHistoryPanel && desktopHistoryPanel.classList.contains("is-open")));
+  }
+
+  if (historyTrigger && desktopHistoryPanel) {
+    historyTrigger.addEventListener("click", function (event) {
+      if (!isDesktopInline() || historyTrigger.getAttribute("data-open-modal") !== "history-modal") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (searchShell && searchShell.classList.contains("is-dialog")) {
+        setDialog(false);
+        window.setTimeout(function () { setHistoryPanelOpen(true); }, 360);
+        return;
+      }
+      toggleHistoryPanel();
+    });
+  }
+
   function activeInput() {
     return searchShell && searchShell.classList.contains("is-ai") ? aiSearchInput : searchInput;
   }
@@ -130,22 +177,54 @@
     text = (text || "").trim();
     if (!text) return;
     try {
-      var key = "stroka.localSearchHistory";
-      var existing = JSON.parse(localStorage.getItem(key) || "[]");
+      var storageKey = "stroka.localSearchHistory";
+      var queryKey = historyKey(text);
+      var existing = getLocalHistory();
       var next = [text].concat(existing.filter(function (item) {
-        return String(item).toLowerCase() !== text.toLowerCase();
+        return historyKey(item) !== queryKey;
       })).slice(0, 15);
-      localStorage.setItem(key, JSON.stringify(next));
+      localStorage.setItem(storageKey, JSON.stringify(next));
       renderLocalHistory();
     } catch (e) {}
   }
 
+  function historyKey(text) {
+    return String(text || "").trim().replace(/\s+/g, " ").toLowerCase();
+  }
+
   function getLocalHistory() {
     try {
-      return JSON.parse(localStorage.getItem("stroka.localSearchHistory") || "[]").filter(Boolean).slice(0, 15);
+      return JSON.parse(localStorage.getItem("stroka.localSearchHistory") || "[]").map(function (item) {
+        if (typeof item === "string") return item;
+        return item && item.query;
+      }).filter(Boolean).slice(0, 15);
     } catch (e) {
       return [];
     }
+  }
+
+  function forgetLocalQueries(queries, shouldRender) {
+    if (!queries || !queries.length) return;
+    try {
+      var remove = {};
+      queries.forEach(function (query) {
+        query = historyKey(query);
+        if (query) remove[query] = true;
+      });
+      var existing = getLocalHistory();
+      var next = existing.filter(function (item) {
+        return !remove[historyKey(item)];
+      });
+      localStorage.setItem("stroka.localSearchHistory", JSON.stringify(next));
+      if (shouldRender) renderLocalHistory();
+    } catch (e) {}
+  }
+
+  function dialogHistoryQueries() {
+    var nodes = document.querySelectorAll("#discovery-messages .message-row--user .message, #dialog-thread .message-row--user .message");
+    return Array.prototype.slice.call(nodes).map(function (node) {
+      return (node.textContent || "").trim();
+    }).filter(Boolean);
   }
 
   function fillSearchFromHistory(query) {
@@ -160,17 +239,22 @@
   }
 
   function renderLocalHistory() {
+    forgetLocalQueries(dialogHistoryQueries(), false);
     var history = getLocalHistory();
     [
       document.querySelector("[data-local-history]"),
       document.querySelector("[data-local-history-mobile]")
     ].forEach(function (host) {
-      if (!host || !history.length) return;
+      if (!host) return;
       host.innerHTML = "";
+      var empty = (host.closest(".desktop-history-details__panel, .history-list, #desktop-history-panel") || document).querySelector("[data-local-history-empty], .history-empty");
+      if (empty) empty.hidden = history.length > 0;
+      if (!history.length) return;
       history.forEach(function (query) {
         var btn = document.createElement("button");
         btn.type = "button";
         btn.textContent = query;
+        btn.setAttribute("title", query);
         btn.setAttribute("data-history-query", query);
         if (host.hasAttribute("data-local-history")) {
           btn.setAttribute("data-typewrite", query);
@@ -321,14 +405,30 @@
       window.setTimeout(function () { chip.classList.remove("active"); }, 900);
       var form = document.getElementById("discovery-form");
       if (form) {
-        rememberQuery(prompt);
+        forgetLocalQueries([prompt], true);
         if (window.htmx) window.htmx.trigger(form, "submit");
         else form.requestSubmit();
       }
     }
   });
 
-  function makeTypedPanel(element, trigger, speed, eraseSpeed, lineDelay) {
+  function typedPanelText(button, maxChars) {
+    var text = button.getAttribute("data-typewrite") || "";
+    if (!maxChars) return text;
+    return compactHistoryText(text);
+  }
+
+  function collectTypedPanelLines(element, maxChars) {
+    return Array.prototype.slice.call(element.querySelectorAll("[data-typewrite]")).map(function (button) {
+      return {
+        button: button,
+        span: button.querySelector("span") || button,
+        text: typedPanelText(button, maxChars)
+      };
+    });
+  }
+
+  function makeTypedPanel(element, trigger, speed, eraseSpeed, lineDelay, maxChars) {
     if (!element) return null;
     return {
       element: element,
@@ -336,21 +436,16 @@
       speed: speed,
       eraseSpeed: eraseSpeed,
       lineDelay: lineDelay,
+      maxChars: maxChars || 0,
       isOpen: false,
       token: 0,
-      lines: Array.prototype.slice.call(element.querySelectorAll("[data-typewrite]")).map(function (button) {
-        return {
-          button: button,
-          span: button.querySelector("span") || button,
-          text: button.getAttribute("data-typewrite") || ""
-        };
-      })
+      lines: collectTypedPanelLines(element, maxChars)
     };
   }
 
   var typedPanels = {
     settings: makeTypedPanel(desktopSettingsPanel, settingsTrigger, 28, 15, 80),
-    history: makeTypedPanel(desktopHistoryPanel, historyTrigger, 8, 5, 18)
+    history: makeTypedPanel(desktopHistoryPanel, historyTrigger, 8, 5, 18, 72)
   };
 
   function typedWait(ms) {
@@ -373,9 +468,7 @@
     setTriggerExpanded(panel.trigger, open);
 
     if (open) {
-      panel.lines = Array.prototype.slice.call(panel.element.querySelectorAll("[data-typewrite]")).map(function (button) {
-        return { button: button, span: button.querySelector("span") || button, text: button.getAttribute("data-typewrite") || "" };
-      });
+      panel.lines = collectTypedPanelLines(panel.element, panel.maxChars);
       panel.element.classList.add("is-open");
       panel.element.setAttribute("aria-hidden", "false");
       panel.lines.forEach(function (line) { line.span.textContent = ""; });
@@ -577,10 +670,10 @@
       if (isDesktopInline() && modalId === "history-modal") {
         if (searchShell && searchShell.classList.contains("is-dialog")) {
           setDialog(false);
-          window.setTimeout(function () { animateTypedPanel("history", true); }, 360);
+          window.setTimeout(function () { setHistoryPanelOpen(true); }, 360);
           return;
         }
-        toggleTypedPanel("history");
+        toggleHistoryPanel();
         return;
       }
       var modal = document.getElementById(modalId);

@@ -117,7 +117,70 @@
     return desktopInlineQuery && desktopInlineQuery.matches;
   }
 
-  function makeTypedPanel(element, trigger, speed, eraseSpeed, lineDelay) {
+  function compactHistoryText(text) {
+    text = text || "";
+    if (text.length <= 72) return text;
+    return text.slice(0, 72).trim() + "...";
+  }
+
+  function prepareHistoryPanelText() {
+    if (!desktopHistoryPanel) return;
+    Array.prototype.slice.call(desktopHistoryPanel.querySelectorAll("[data-typewrite]")).forEach(function (button) {
+      var fullText = button.getAttribute("data-typewrite") || "";
+      var displayText = compactHistoryText(fullText);
+      var textNode = button.querySelector("span") || button;
+      textNode.textContent = displayText;
+      if (fullText && !button.getAttribute("title")) button.setAttribute("title", fullText);
+    });
+  }
+
+  function setHistoryPanelOpen(open) {
+    if (!desktopHistoryPanel) return;
+    prepareHistoryPanelText();
+    desktopHistoryPanel.classList.toggle("is-open", open);
+    desktopHistoryPanel.setAttribute("aria-hidden", open ? "false" : "true");
+    if (historyTrigger) historyTrigger.setAttribute("aria-expanded", open ? "true" : "false");
+    if (typedPanels && typedPanels.history) {
+      typedPanels.history.token += 1;
+      typedPanels.history.isOpen = open;
+    }
+  }
+
+  function toggleHistoryPanel() {
+    setHistoryPanelOpen(!(desktopHistoryPanel && desktopHistoryPanel.classList.contains("is-open")));
+  }
+
+  if (historyTrigger && desktopHistoryPanel) {
+    historyTrigger.addEventListener("click", function (event) {
+      if (!isDesktopInline() || historyTrigger.getAttribute("data-open-modal") !== "history-modal") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (searchShell && searchShell.classList.contains("is-dialog")) {
+        setDialog(false);
+        window.setTimeout(function () { setHistoryPanelOpen(true); }, 360);
+        return;
+      }
+      toggleHistoryPanel();
+    });
+  }
+
+  function typedPanelText(button, maxChars) {
+    var text = button.getAttribute("data-typewrite") || "";
+    if (!maxChars) return text;
+    return compactHistoryText(text);
+  }
+
+  function collectTypedPanelLines(element, maxChars) {
+    return Array.prototype.slice.call(element.querySelectorAll("[data-typewrite]")).map(function (button) {
+      return {
+        button: button,
+        span: button.querySelector("span") || button,
+        text: typedPanelText(button, maxChars)
+      };
+    });
+  }
+
+  function makeTypedPanel(element, trigger, speed, eraseSpeed, lineDelay, maxChars) {
     if (!element) return null;
     return {
       element: element,
@@ -125,21 +188,16 @@
       speed: speed,
       eraseSpeed: eraseSpeed,
       lineDelay: lineDelay,
+      maxChars: maxChars || 0,
       isOpen: false,
       token: 0,
-      lines: Array.prototype.slice.call(element.querySelectorAll("[data-typewrite]")).map(function (button) {
-        return {
-          button: button,
-          span: button.querySelector("span") || button,
-          text: button.getAttribute("data-typewrite") || ""
-        };
-      })
+      lines: collectTypedPanelLines(element, maxChars)
     };
   }
 
   var typedPanels = {
     settings: makeTypedPanel(desktopSettingsPanel, settingsTrigger, 28, 15, 80),
-    history: makeTypedPanel(desktopHistoryPanel, historyTrigger, 8, 5, 18)
+    history: makeTypedPanel(desktopHistoryPanel, historyTrigger, 8, 5, 18, 72)
   };
 
   function typedWait(ms) {
@@ -162,6 +220,7 @@
     setTriggerExpanded(panel.trigger, open);
 
     if (open) {
+      panel.lines = collectTypedPanelLines(panel.element, panel.maxChars);
       panel.element.classList.add("is-open");
       panel.element.setAttribute("aria-hidden", "false");
       panel.lines.forEach(function (line) {
@@ -545,11 +604,11 @@
           setDialog(false);
           window.setTimeout(function () {
             if (!typedPanels.history || typedPanels.history.isOpen) return;
-            animateTypedPanel("history", true);
+            setHistoryPanelOpen(true);
           }, 360);
           return;
         }
-        toggleTypedPanel("history");
+        toggleHistoryPanel();
         return;
       }
 

@@ -661,6 +661,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 }
 
 .search-actions button,
+.search-actions summary,
 .dialog-panel button,
 .modal button,
 .section-title-row a {
@@ -673,10 +674,83 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 }
 
 .search-actions button:hover,
+.search-actions summary:hover,
 .dialog-panel button:hover,
 .modal button:hover,
 .section-title-row a:hover {
   color: var(--ink);
+}
+
+.desktop-history-details {
+  position: relative;
+  margin: 0;
+}
+
+.desktop-history-details summary {
+  display: block;
+  list-style: none;
+  cursor: pointer;
+}
+
+.desktop-history-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.history-mobile-trigger {
+  display: none;
+}
+
+.desktop-history-details__panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 12;
+  width: min(430px, 72vw);
+  display: none;
+  align-content: start;
+  gap: 1px;
+  text-align: right;
+}
+
+.desktop-history-details[open] .desktop-history-details__panel {
+  display: grid;
+}
+
+.desktop-history-details__panel button {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 22px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  background: transparent;
+  color: #8f8e87;
+  font-size: 14px;
+  line-height: 1.25;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktop-history-details__panel button:hover,
+.desktop-history-details__panel button:focus-visible {
+  color: var(--ink);
+}
+
+.desktop-history-details__panel button span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktop-history-details__panel [data-local-history] {
+  display: grid;
+  align-content: start;
+  gap: 1px;
 }
 
 .search-actions span {
@@ -1416,6 +1490,24 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
     pointer-events: auto;
   }
 
+  .desktop-history-details[open] ~ .desktop-text-panels .desktop-text-panel--history {
+    max-height: 440px;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .first-screen__center:has(.desktop-history-details[open]) .desktop-text-panel--history {
+    max-height: 440px;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .desktop-history-details[open] summary {
+    color: var(--ink);
+  }
+
   .desktop-text-panel--settings {
     justify-self: start;
     min-width: 230px;
@@ -1459,8 +1551,21 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
 
   .desktop-text-panel--history button {
     justify-self: end;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
     color: #8f8e87;
     font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .desktop-text-panel--history button span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -1699,6 +1804,15 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
     flex: 0 0 auto;
   }
 
+  .desktop-history-details {
+    display: none;
+  }
+
+  .history-mobile-trigger {
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+
   .dialog-panel__form {
     grid-template-columns: minmax(0, 1fr) 34px 34px;
     gap: 10px;
@@ -1853,7 +1967,7 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   }
 
   .attached-books {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .attached-books a {

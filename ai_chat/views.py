@@ -135,6 +135,12 @@ def discovery_send(request):
     if not user_message:
         return HttpResponse("")
 
+    try:
+        from search.models import SearchHistory
+        SearchHistory.objects.filter(user=request.user, query__iexact=user_message).delete()
+    except Exception:
+        pass
+
     # exclude_ids может приходить как строка "1,2,3" (из скрытого поля)
     exclude_raw = request.POST.get("exclude_ids", "")
     exclude_ids = []

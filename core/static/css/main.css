@@ -3293,6 +3293,17 @@ main { flex: 1 0 auto; }
     width: 100%;
     order: 2;
   }
+  .club-chat-widget .chat-input-bar {
+    flex-wrap: nowrap;
+  }
+  .club-chat-widget .chat-input-bar > .btn {
+    flex: 0 0 auto;
+  }
+  .club-chat-widget .chat-input-bar .form-input {
+    flex: 1 1 0;
+    order: 0;
+    width: auto;
+  }
 }
 
 /* ── CRITIQUE HOME CARDS ───────────────────────────────────────────────────── */

@@ -208,6 +208,12 @@ SCRAPER_TIMEOUT = 15
 
 SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
 
+# YooKassa subscription demo. Use test shop credentials for demos.
+YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID", "")
+YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY", "")
+YOOKASSA_SUBSCRIPTION_AMOUNT = os.getenv("YOOKASSA_SUBSCRIPTION_AMOUNT", "199.00")
+YOOKASSA_CAPTURE = os.getenv("YOOKASSA_CAPTURE", "False") == "True"
+
 # Telegram Bot
 TELEGRAM_BOT_TOKEN    = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "")  # без @

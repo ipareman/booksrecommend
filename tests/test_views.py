@@ -77,6 +77,36 @@ class TestDesignDemos:
         response = client.get("/typewriter-community-demo/")
         assert response.status_code == 200
 
+    def test_subscription_demo_loads(self, client):
+        """Test that subscription demo page loads."""
+        response = client.get("/subscription/")
+        assert response.status_code == 200
+
+    def test_subscription_yookassa_demo_redirects(self, client, settings, monkeypatch):
+        """Test that YooKassa action redirects to hosted payment page."""
+        class YooKassaResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"confirmation": {"confirmation_url": "https://yoomoney.ru/demo-payment"}}
+
+        settings.YOOKASSA_SHOP_ID = ""
+        settings.YOOKASSA_SECRET_KEY = ""
+        response = client.post("/subscription/yookassa/")
+        assert response.status_code == 302
+        assert response["Location"] == "/subscription/"
+
+        settings.YOOKASSA_SHOP_ID = "test-shop"
+        settings.YOOKASSA_SECRET_KEY = "test-secret"
+
+        import core.views
+        monkeypatch.setattr(core.views.requests, "post", lambda *args, **kwargs: YooKassaResponse())
+        response = client.post("/subscription/yookassa/")
+
+        assert response.status_code == 302
+        assert response["Location"] == "https://yoomoney.ru/demo-payment"
+
 
 @pytest.mark.django_db
 class TestErrorPages:

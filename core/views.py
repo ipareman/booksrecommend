@@ -1,5 +1,12 @@
-from django.shortcuts import render
+import uuid
+
+from django.contrib import messages
+from django.conf import settings
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_POST
 from django.db.models import Count, Q
+import requests
 from books.models import Book, Genre, Author, MoodTag, Quote, Series
 
 
@@ -284,6 +291,58 @@ def community(request):
             stats = {}
 
     return render(request, "core/community.html", {"community_stats": stats})
+
+
+def subscription_demo(request):
+    return render(request, "core/subscription.html")
+
+
+@require_POST
+def subscription_yookassa_demo(request):
+    shop_id = getattr(settings, "YOOKASSA_SHOP_ID", "")
+    secret_key = getattr(settings, "YOOKASSA_SECRET_KEY", "")
+    if not shop_id or not secret_key:
+        messages.error(request, "Добавьте YOOKASSA_SHOP_ID и YOOKASSA_SECRET_KEY, чтобы открыть страницу оплаты ЮKassa.")
+        return redirect("subscription_demo")
+
+    return_url = request.build_absolute_uri(reverse("subscription_demo"))
+    payload = {
+        "amount": {
+            "value": getattr(settings, "YOOKASSA_SUBSCRIPTION_AMOUNT", "199.00"),
+            "currency": "RUB",
+        },
+        "capture": bool(getattr(settings, "YOOKASSA_CAPTURE", False)),
+        "confirmation": {
+            "type": "redirect",
+            "return_url": return_url,
+        },
+        "description": "Демо-подписка Строка Pro",
+        "metadata": {
+            "demo": "subscription",
+            "user_id": str(request.user.pk) if request.user.is_authenticated else "",
+        },
+    }
+
+    try:
+        response = requests.post(
+            "https://api.yookassa.ru/v3/payments",
+            auth=(shop_id, secret_key),
+            headers={"Idempotence-Key": str(uuid.uuid4())},
+            json=payload,
+            timeout=15,
+        )
+        response.raise_for_status()
+        payment = response.json()
+    except (requests.RequestException, ValueError):
+        messages.error(request, "Не удалось создать платёж ЮKassa. Проверьте тестовые ключи и доступ к API.")
+        return redirect("subscription_demo")
+
+    confirmation_url = (payment.get("confirmation") or {}).get("confirmation_url")
+    if not confirmation_url:
+        messages.error(request, "ЮKassa создала платёж без ссылки на оплату.")
+        return redirect("subscription_demo")
+
+    return redirect(confirmation_url)
 
 
 def lucky(request):

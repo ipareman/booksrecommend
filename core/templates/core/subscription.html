@@ -1,0 +1,49 @@
+{% extends "core/base.html" %}
+{% block title %}Подписка — Строка{% endblock %}
+
+{% block content %}
+<div class="subscription-demo">
+  <section class="subscription-hero" aria-labelledby="subscription-title">
+    <h1 id="subscription-title">Подписка</h1>
+    <p>Тестовая страница: оплату через ЮKassa пока не подключаем, а доступ к Про-версии считаем открытым для каждого пользователя.</p>
+  </section>
+
+  <section class="subscription-plans" aria-label="Варианты подписки">
+    <article class="subscription-card subscription-card--free">
+      <div class="subscription-card__top">
+        <span>Текущая подписка</span>
+        <h2>Бесплатная версия</h2>
+      </div>
+      <ul>
+        <li>3 AI-диалога в день</li>
+        <li>5 персональных подборок</li>
+        <li>Базовые книжные клубы</li>
+        <li>Обычные уведомления</li>
+        <li>Стандартная история поиска</li>
+      </ul>
+      <p>Демо-режим оставляет этот план как точку сравнения.</p>
+    </article>
+
+    <article class="subscription-card subscription-card--pro">
+      <div class="subscription-card__top">
+        <span>Про-версия</span>
+        <h2>Строка Pro</h2>
+      </div>
+      <ul>
+        <li>Безлимитный режим «Диалог»</li>
+        <li>Глубокие AI-рекомендации по полкам</li>
+        <li>Расширенные совместные подборки</li>
+        <li>Приоритетные книжные клубы</li>
+        <li>Больше истории, заметок и сравнений</li>
+      </ul>
+      <div class="subscription-card__actions">
+        <button type="button" class="subscription-card__button" aria-disabled="true">Доступно в демо</button>
+        <form method="post" action="{% url 'subscription_yookassa_demo' %}">
+          {% csrf_token %}
+          <button type="submit" class="subscription-card__button subscription-card__button--yookassa">Оплатить через ЮKassa</button>
+        </form>
+      </div>
+    </article>
+  </section>
+</div>
+{% endblock %}

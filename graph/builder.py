@@ -4,15 +4,15 @@ from .models import BookRelation
 
 
 RELATION_COLORS = {
-    "same_author": "#6366f1",
-    "same_genre": "#10b981",
-    "same_series": "#f59e0b",
-    "also_read": "#8b5cf6",
-    "influenced_by": "#ef4444",
-    "response_to": "#ec4899",
-    "similar_theme": "#06b6d4",
-    "sequel": "#f97316",
-    "prequel": "#84cc16",
+    "same_author": "#6f7690",
+    "same_genre": "#6f8a78",
+    "same_series": "#9a8662",
+    "also_read": "#81728e",
+    "influenced_by": "#9a6f69",
+    "response_to": "#927080",
+    "similar_theme": "#6d8790",
+    "sequel": "#9a7a63",
+    "prequel": "#7f8a68",
 }
 
 RELATION_LABELS = dict(BookRelation.RELATION_TYPES)

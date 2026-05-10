@@ -2682,6 +2682,35 @@ main { flex: 1 0 auto; }
   flex: 1;
 }
 
+.club-chat-widget {
+  display: flex;
+  flex-direction: column;
+  height: min(620px, calc(100vh - 180px));
+  min-height: 420px;
+  margin-top: 12px;
+  overflow: visible;
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.club-chat-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.club-chat-input-bar {
+  flex-shrink: 0;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 6px;
+  position: relative;
+  background: var(--bg);
+}
+
 /* ── CHAT LIST ──────────────────────────────────────────────────────────── */
 .chat-room-item {
   display: flex; align-items: center; gap: 12px;
@@ -3303,6 +3332,13 @@ main { flex: 1 0 auto; }
     flex: 1 1 0;
     order: 0;
     width: auto;
+  }
+  .club-chat-widget {
+    height: calc(100vh - 150px);
+    min-height: 360px;
+  }
+  .club-chat-body {
+    padding: 10px;
   }
 }
 

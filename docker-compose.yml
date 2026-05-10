@@ -55,12 +55,33 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     depends_on: [web, redis]
 
+  telegram-bot:
+    build: .
+    restart: unless-stopped
+    command: python telegram_bot.py
+    volumes:
+      - media_data:/app/media
+    env_file: .env
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+      web: {condition: service_started}
+
   vk-bot:
     build: .
     restart: unless-stopped
     command: python vk_bot.py
+    volumes:
+      - media_data:/app/media
     env_file: .env
-    depends_on: [web]
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+      web: {condition: service_started}
 
   nginx:
     image: nginx:alpine

@@ -14,6 +14,7 @@ Telegram-бот для Строкаа.
 import asyncio
 import logging
 import os
+import sys
 import django
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
@@ -29,7 +30,7 @@ from django.conf import settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+bot: Bot | None = None
 dp  = Dispatcher(storage=MemoryStorage())
 
 
@@ -150,6 +151,13 @@ async def cmd_me(message: types.Message):
 # ── main ──────────────────────────────────────────────────────────────────────
 
 async def main():
+    global bot
+
+    if not getattr(settings, "TELEGRAM_BOT_TOKEN", ""):
+        logger.error("TELEGRAM_BOT_TOKEN is not set. Define it in .env and restart.")
+        sys.exit(1)
+
+    bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
     logger.info("Бот запущен")
     await dp.start_polling(bot)
 

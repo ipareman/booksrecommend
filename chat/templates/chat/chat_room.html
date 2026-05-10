@@ -779,13 +779,57 @@ function _setVoiceStatus(msg, isErr) {
   el.style.color = isErr ? 'var(--err)' : 'var(--muted)';
 }
 
+function _isVoiceSecureContext() {
+  return window.isSecureContext ||
+         location.hostname === 'localhost' ||
+         location.hostname === '127.0.0.1';
+}
+
+function _voiceErrorMessage(err) {
+  if (!_isVoiceSecureContext()) {
+    return 'Микрофон доступен только на HTTPS или localhost';
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return 'Браузер не поддерживает запись голоса';
+  }
+  if (typeof MediaRecorder === 'undefined') {
+    return 'Браузер не поддерживает голосовые сообщения';
+  }
+  if (!err) return 'Нет доступа к микрофону';
+
+  if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
+    return 'Разрешите микрофон в настройках сайта';
+  }
+  if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+    return 'Микрофон не найден';
+  }
+  if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+    return 'Микрофон занят другим приложением';
+  }
+  return 'Не удалось включить микрофон';
+}
+
+function _voiceMimeType() {
+  if (typeof MediaRecorder === 'undefined') return '';
+  const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'];
+  return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
+}
+
 async function voiceStart(e) {
   e.preventDefault();
   if (_mediaRec) return;
+
+  const unavailable = _voiceErrorMessage(null);
+  if (unavailable !== 'Нет доступа к микрофону') {
+    _setVoiceStatus(unavailable, true);
+    setTimeout(() => _setVoiceStatus(''), 5000);
+    return;
+  }
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
-    _mediaRec = new MediaRecorder(stream, { mimeType });
+    const mimeType = _voiceMimeType();
+    _mediaRec = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
     _recChunks = [];
     _recSecs = 0;
     _mediaRec.ondataavailable = (ev) => { if (ev.data.size > 0) _recChunks.push(ev.data); };
@@ -801,8 +845,8 @@ async function voiceStart(e) {
     }, 1000);
     _setVoiceStatus('Запись 0:00');
   } catch(err) {
-    _setVoiceStatus('Нет доступа к микрофону', true);
-    setTimeout(() => _setVoiceStatus(''), 3000);
+    _setVoiceStatus(_voiceErrorMessage(err), true);
+    setTimeout(() => _setVoiceStatus(''), 5000);
   }
 }
 

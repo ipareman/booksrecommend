@@ -75,7 +75,7 @@
     {% if user.is_staff %}
     <div x-show="editing" x-cloak>
       <div class="book-edit-bar">
-        <span>✏ Режим редактирования</span>
+        <span>Режим редактирования</span>
         <div class="book-edit-bar__actions">
           <button type="submit" form="book-edit-form" class="btn btn-primary btn-sm">Сохранить</button>
           <button type="button" @click="editing=false" class="btn btn-secondary btn-sm">Отмена</button>
@@ -138,7 +138,12 @@
                       font-weight:400;flex:1;min-width:0;margin-bottom:6px">
         <div x-show="!editing" class="book-staff-actions">
           <button type="button" @click="editing=true"
-                  class="btn btn-secondary btn-sm" title="Редактировать книгу">✏</button>
+                  class="btn btn-secondary btn-sm book-icon-btn" title="Редактировать книгу" aria-label="Редактировать книгу">
+            <svg class="book-icon-btn__svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+              <path d="M4 14.5V16h1.5L15 6.5 13.5 5 4 14.5Z" />
+              <path d="M12.5 6 14 4.5 15.5 6 14 7.5" />
+            </svg>
+          </button>
           <a href="{% url 'book_add' %}?copy_from={{ book.pk }}"
              class="btn btn-secondary btn-sm" title="Добавить копированием">⧉</a>
         </div>
@@ -203,8 +208,8 @@
         <div x-show="recOpen" x-cloak @click.outside="recOpen = false"
              class="book-recommend__menu"
              style="position:absolute;top:calc(100% + 4px);right:0;z-index:200;width:300px;
-                    background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
-                    box-shadow:0 4px 16px rgba(0,0,0,.08);padding:16px"
+                    background:var(--bg);border:1px solid var(--border);border-radius:0;
+                    box-shadow:none;padding:16px"
              hx-get="{% url 'recommend_friends_partial' book.pk %}"
              hx-trigger="intersect once"
              hx-swap="innerHTML">
@@ -228,7 +233,7 @@
   {# ── Блок «полный текст книги» ──────────────────────────────────────────── #}
   {% if book.text and book.text.is_ready %}
     <div class="book-reader-panel">
-      <span class="book-reader-panel__icon">📖</span>
+      <span class="book-reader-panel__mark" aria-hidden="true">TXT</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600">Полный текст доступен</div>
         <div style="font-size:12px;color:var(--muted)">
@@ -237,7 +242,7 @@
             · {{ book.text.word_count|floatformat:0 }} слов
           {% endif %}
           {% if book.text.humanize_reading_time %}
-            · ⏱ {{ book.text.humanize_reading_time }}
+            · {{ book.text.humanize_reading_time }}
           {% endif %}
         </div>
       </div>
@@ -251,23 +256,23 @@
           <button type="button" class="btn btn-ghost btn-sm" @click="open = !open" title="Действия staff">⋯</button>
           <div x-show="open" x-cloak @click.outside="open = false"
                style="position:absolute;top:calc(100% + 4px);right:0;z-index:100;min-width:220px;
-                      background:var(--bg);border:1px solid var(--border);border-radius:8px;
-                      box-shadow:0 4px 16px rgba(0,0,0,.12);padding:6px;display:flex;flex-direction:column;gap:2px">
+                      background:var(--bg);border:1px solid var(--border);border-radius:0;
+                      box-shadow:none;padding:6px;display:flex;flex-direction:column;gap:2px">
             <form method="post" action="{% url 'book_ai_summaries' book.id %}" style="margin:0">
               {% csrf_token %}
-              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">📝 Саммари глав</button>
+              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">Саммари глав</button>
             </form>
             <form method="post" action="{% url 'book_ai_quotes_extract' book.id %}" style="margin:0">
               {% csrf_token %}
-              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">💬 AI-цитаты из текста</button>
+              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">AI-цитаты из текста</button>
             </form>
             <form method="post" action="{% url 'book_ai_themes' book.id %}" style="margin:0">
               {% csrf_token %}
-              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">🎭 Темы и мотивы</button>
+              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">Темы и мотивы</button>
             </form>
             <form method="post" action="{% url 'book_ai_style' book.id %}" style="margin:0">
               {% csrf_token %}
-              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">✒ Профиль стиля</button>
+              <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;text-align:left">Профиль стиля</button>
             </form>
             <hr style="margin:4px 0;border:0;border-top:1px solid var(--border)">
             <form method="post" action="{% url 'book_text_delete' book.id %}"
@@ -282,7 +287,7 @@
   {% elif user.is_staff %}
     <details class="book-upload-panel">
       <summary style="cursor:pointer;font-size:13px">
-        📤 Загрузить полный текст книги (EPUB / FB2, только админ)
+        Загрузить полный текст книги (EPUB / FB2, только админ)
       </summary>
       <form method="post" action="{% url 'book_text_upload' book.id %}"
             enctype="multipart/form-data"
@@ -299,7 +304,7 @@
   {% if reading_prediction and reading_prediction.confidence != "low" %}
   <div class="book-reading-forecast"
        title="На основе вашей скорости: {{ reading_prediction.pace_pages_per_day }} стр/день (по {{ reading_prediction.based_on_books }} книгам)">
-    ⏱ Вы прочтёте за ~<b style="color:var(--ink)">{{ reading_prediction.days }}</b> дн.
+    Вы прочтёте за ~<b style="color:var(--ink)">{{ reading_prediction.days }}</b> дн.
   </div>
   {% endif %}
 
@@ -620,8 +625,8 @@
      onclick="if(event.target===this)closePriceChart()"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
             z-index:1000;align-items:center;justify-content:center;padding:20px">
-  <div style="background:#fff;border-radius:12px;width:100%;max-width:640px;
-              box-shadow:0 24px 64px rgba(0,0,0,.18);overflow:hidden">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:0;width:100%;max-width:640px;
+              box-shadow:none;overflow:hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;
                 padding:18px 22px;border-bottom:1px solid var(--border)">
       <div>

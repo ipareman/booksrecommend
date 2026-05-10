@@ -538,6 +538,7 @@ resend==2.4.0
 - **Сетки:** CSS Grid (`repeat()`, `minmax()`), не Bootstrap
 - **Обложки книг:** `aspect-ratio: 2 / 3`, `object-fit: cover`, бордер `1px solid var(--line)`
 - **Модальные окна:** `border: 1px solid var(--line-strong)`, фон с paper-texture
+- **Страница книги (`/books/<pk>/`):** сохраняет функциональные формы/HTMX/Alpine, но визуально держится на линиях, прямых углах и монохромных текстовых маркерах вместо цветных emoji.
 - **AI-generated marker:** для явно сгенерированного AI-контента допустима тонкая градиентная рамка с умеренным `border-radius` как осознанное исключение; пример — `/ai-generated-demo/`.
 
 ### Ключевые CSS-файлы

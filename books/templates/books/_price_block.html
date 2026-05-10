@@ -29,7 +29,13 @@
     </div>
     <button class="book-price-control__icon"
             onclick="openPriceChart({{ book.id }}, '{{ book.title|escapejs }}')"
-            title="История цен">📈</button>
+            title="История цен" aria-label="История цен">
+      <svg class="book-price-control__svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <path d="M3 15.5h14" />
+        <path d="M4.5 13l3.5-4 3 2.5 4.5-6" />
+        <path d="M13 5.5h2.5V8" />
+      </svg>
+    </button>
     {% if user.is_authenticated %}
     <button class="book-price-control__icon"
             onclick="document.getElementById('price-captcha-modal-{{ book.id }}').style.display='flex'"

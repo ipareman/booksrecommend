@@ -13,6 +13,12 @@ register = template.Library()
 
 # Ищем маркер "[Глава N]" или "[Глава N.]" или "[Глава N-M]"
 _CHAPTER_MARKER = re.compile(r"\[\s*Глав[ауеы]?\s+(\d+)\s*\]", re.IGNORECASE)
+_BOLD_MARKER = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*", re.DOTALL)
+
+
+def _apply_basic_markdown(text: str) -> str:
+    """Разрешает минимальную markdown-разметку поверх уже экранированного текста."""
+    return _BOLD_MARKER.sub(r"<strong>\1</strong>", text)
 
 
 @register.filter(name="link_chapters")
@@ -26,7 +32,7 @@ def link_chapters(value, book):
     if not value or not book:
         return value
 
-    text = html.escape(str(value))
+    text = _apply_basic_markdown(html.escape(str(value)))
 
     def repl(m):
         try:
@@ -45,3 +51,18 @@ def link_chapters(value, book):
         )
 
     return mark_safe(_CHAPTER_MARKER.sub(repl, text))
+
+
+@register.filter(name="ai_markdown")
+def ai_markdown(value):
+    """Безопасно рендерит минимальную markdown-разметку AI-ответов.
+
+    Сейчас поддерживается только `**жирный текст**`; остальной HTML
+    экранируется, переносы строк сохраняются.
+    """
+    if not value:
+        return ""
+
+    text = _apply_basic_markdown(html.escape(str(value)))
+    text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>")
+    return mark_safe(text)

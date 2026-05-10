@@ -984,11 +984,22 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   display: none;
 }
 
+.dialog-panel__clear--desktop {
+  display: none;
+}
+
 .search-shell.is-dialog .dialog-panel {
   max-height: 346px;
   opacity: 1;
   transform: none;
   pointer-events: auto;
+}
+
+.search-shell.is-dialog .dialog-panel__clear--desktop {
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  margin-bottom: 6px !important;
 }
 
 .dialog-panel__thread {
@@ -2108,6 +2119,10 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
     flex: 0 0 auto;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--line);
+  }
+
+  .search-shell.is-dialog .dialog-panel__clear--desktop {
+    display: none;
   }
 
   body.dialog-entering .dialog-panel__head {

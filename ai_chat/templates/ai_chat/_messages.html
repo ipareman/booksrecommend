@@ -6,6 +6,8 @@
   {% else %}
     <span class="user-avatar ai-chat-avatar ai-chat-avatar--ai"><span>AI</span></span>
   {% endif %}
-  <div class="ai-chat-msg ai-chat-msg--{{ msg.role }}">{{ msg.content|link_chapters:book }}</div>
+  <div class="ai-chat-msg ai-chat-msg--{{ msg.role }}">
+    {% if msg.role == "assistant" %}{{ msg.content|link_chapters:book }}{% else %}{{ msg.content|linebreaksbr }}{% endif %}
+  </div>
 </div>
 {% endfor %}

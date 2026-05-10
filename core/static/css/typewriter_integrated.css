@@ -571,12 +571,14 @@ html.theme-fade-from-dark:has(body.typewriter-reader-page)::before {
 }
 
 .dialog-panel .user-avatar.message-avatar,
-.dialog-panel .message-avatar {
+.dialog-panel .message-avatar,
+.dialog-panel .ai-chat-avatar {
   overflow: hidden;
   border-radius: 0;
 }
 
-.dialog-panel .user-avatar.message-avatar img {
+.dialog-panel .user-avatar.message-avatar img,
+.dialog-panel .ai-chat-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;

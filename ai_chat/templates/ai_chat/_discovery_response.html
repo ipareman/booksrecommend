@@ -1,3 +1,4 @@
+{% load chat_extras %}
 {# Отклик discovery-чата (HTMX-partial, рендерится после POST /discovery/send/). #}
 
 {% if user_message %}
@@ -16,7 +17,7 @@
   <div style="flex:1;min-width:0">
   <div style="padding:12px 16px;background:var(--surface);border-radius:8px;
               font-size:13px;line-height:1.6;margin-bottom:12px">
-    {{ text|linebreaksbr }}
+    {{ text|ai_markdown }}
     {% if from_cache %}
       <span style="font-size:10px;color:var(--ghost);margin-left:8px">⚡ из кеша</span>
     {% endif %}

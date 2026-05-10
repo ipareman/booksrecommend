@@ -68,6 +68,17 @@
             {% endif %}
           </div>
 
+          {% if user.is_authenticated %}
+            <button type="button"
+                    class="dialog-panel__clear dialog-panel__clear--desktop"
+                    hx-post="{% url 'discovery_clear' %}"
+                    hx-target="#discovery-messages"
+                    hx-swap="innerHTML"
+                    hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+              очистить
+            </button>
+          {% endif %}
+
           <div class="dialog-panel__thread" id="discovery-messages">
             {% if user.is_authenticated %}
               {% if discovery_messages %}

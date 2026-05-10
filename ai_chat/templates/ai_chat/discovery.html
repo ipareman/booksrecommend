@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load chat_extras %}
 {% block title %}Найти книгу — Строка{% endblock %}
 
 {% block content %}
@@ -55,7 +56,7 @@
         <div style="display:inline-block;max-width:100%;padding:10px 14px;border-radius:12px;
                     font-size:13px;line-height:1.5;text-align:left;
                     {% if msg.role == 'user' %}background:var(--accent);color:#fff{% else %}background:var(--surface){% endif %}">
-          {{ msg.content|linebreaksbr }}
+          {% if msg.role == 'assistant' %}{{ msg.content|ai_markdown }}{% else %}{{ msg.content|linebreaksbr }}{% endif %}
         </div>
         {% if msg.role == 'assistant' %}
           {% if msg.books %}

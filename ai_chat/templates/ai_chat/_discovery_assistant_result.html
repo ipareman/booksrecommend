@@ -1,9 +1,10 @@
+{% load chat_extras %}
 <div class="ai-chat-row ai-chat-row--assistant" style="margin-bottom:16px">
   <span class="user-avatar ai-chat-avatar ai-chat-avatar--ai"><span>AI</span></span>
   <div style="flex:1;min-width:0">
   <div style="padding:12px 16px;background:var(--surface);border-radius:8px;
               font-size:13px;line-height:1.6;margin-bottom:12px">
-    {{ text|linebreaksbr }}
+    {{ text|ai_markdown }}
     {% if from_cache %}
       <span style="font-size:10px;color:var(--ghost);margin-left:8px">⚡ из кеша</span>
     {% endif %}

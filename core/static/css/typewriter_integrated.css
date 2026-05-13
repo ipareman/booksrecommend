@@ -977,8 +977,106 @@ body.typewriter-reader-page {
   padding-bottom: 14px;
 }
 
+.cookie-notice {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 80;
+  width: min(420px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px 16px;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background:
+    linear-gradient(rgba(250, 250, 247, .94), rgba(250, 250, 247, .96)),
+    url("../img/design/paper-soft.jpg") center / cover;
+  color: var(--ink);
+  font-family: "Mltsvfont", monospace;
+  transform: translateY(12px);
+  opacity: 0;
+  transition: opacity .24s ease, transform .24s ease;
+}
+
+.cookie-notice:not([hidden]) {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.cookie-notice__mark {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.cookie-notice__body {
+  min-width: 0;
+}
+
+.cookie-notice__title {
+  margin: 0 0 6px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.cookie-notice__text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.cookie-notice__button {
+  grid-column: 2;
+  justify-self: start;
+  padding: 0 0 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cookie-notice__button:hover {
+  border-color: currentColor;
+}
+
 :root[data-theme="dark"] .typewriter-reader-page .typewriter-nav {
   background: transparent;
+}
+
+:root[data-theme="dark"] .cookie-notice {
+  background:
+    linear-gradient(rgba(32, 32, 29, .94), rgba(32, 32, 29, .96)),
+    url("../img/design/paper-soft.jpg") center / cover;
+}
+
+@media (max-width: 680px) {
+  .cookie-notice {
+    right: 14px;
+    bottom: 14px;
+    width: calc(100vw - 28px);
+    grid-template-columns: 1fr;
+  }
+
+  .cookie-notice__mark {
+    display: none;
+  }
+
+  .cookie-notice__button {
+    grid-column: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

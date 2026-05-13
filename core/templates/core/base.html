@@ -190,6 +190,30 @@
 
 <main>{% block content %}{% endblock %}</main>
 
+<section class="cookie-notice" id="cookie-notice" aria-labelledby="cookie-notice-title" hidden>
+  <div class="cookie-notice__mark" aria-hidden="true">!</div>
+  <div class="cookie-notice__body">
+    <h2 class="cookie-notice__title" id="cookie-notice-title">Cookies и память браузера</h2>
+    <p class="cookie-notice__text">Сайт использует технические cookies для входа и защиты форм, а также localStorage для темы и истории поиска. Продолжая пользоваться сайтом, вы соглашаетесь с этим.</p>
+  </div>
+  <button class="cookie-notice__button" type="button" id="cookie-notice-accept">Понятно</button>
+</section>
+<script>
+  (function () {
+    var notice = document.getElementById("cookie-notice");
+    var accept = document.getElementById("cookie-notice-accept");
+    if (!notice || !accept) return;
+    try {
+      if (localStorage.getItem("stroka.cookieNoticeAccepted") === "1") return;
+    } catch (e) {}
+    notice.hidden = false;
+    accept.addEventListener("click", function () {
+      try { localStorage.setItem("stroka.cookieNoticeAccepted", "1"); } catch (e) {}
+      notice.hidden = true;
+    });
+  })();
+</script>
+
 {% if current_url == 'home' %}
 <footer class="site-footer typewriter-footer">
   <div class="site-footer__inner">

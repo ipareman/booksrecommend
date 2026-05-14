@@ -34,7 +34,9 @@
                  required
                  {% if consent_checked %}checked{% endif %}
                  style="margin-top:3px">
-          <span>Согласие на обработку персональных данных</span>
+          <span>
+            Я даю <a href="{% url 'personal_data_consent' %}" class="lnk-muted" target="_blank" rel="noopener">согласие на обработку персональных данных</a>
+          </span>
         </label>
         {% if consent_error %}
           <p class="form-error">Для регистрации нужно согласие на обработку персональных данных.</p>

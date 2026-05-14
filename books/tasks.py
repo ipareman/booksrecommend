@@ -21,7 +21,12 @@ def _parse_price(text: str):
         return Decimal(m.group().replace(",", "."))
     except InvalidOperation:
         return None
-
+    
+import requests
+from bs4 import BeautifulSoup
+from django.conf import settings
+from django.utils import timezone
+from books.models import Book, BookStore, BookPrice
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=30)
 def scrape_book_prices(self, book_id: int):
@@ -31,11 +36,7 @@ def scrape_book_prices(self, book_id: int):
     Обновляет текущие цены в BookStore, пишет историю BookPrice
     и пересчитывает среднюю цену книги.
     """
-    import requests
-    from bs4 import BeautifulSoup
-    from django.conf import settings
-    from django.utils import timezone
-    from books.models import Book, BookStore, BookPrice
+
 
     try:
         book = Book.objects.get(pk=book_id)

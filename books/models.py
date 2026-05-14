@@ -54,31 +54,6 @@ class Series(models.Model):
         return self.name
 
 
-class BookEdition(models.Model):
-    """Группа изданий одного произведения: объединяет разные `Book`
-    (с разными издателями/ISBN/обложками), относящиеся к одной книге."""
-
-    name = models.CharField(
-        max_length=250,
-        help_text="Каноническое название произведения (для админа)",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["name"]
-
-    def __str__(self) -> str:
-        return self.name
-
-
-class Language(models.Model):
-    """Язык оригинала или издания книги."""
-
-    name = models.CharField(max_length=100, unique=True)
-
-    def __str__(self) -> str:
-        return self.name
-
 
 class Book(models.Model):
     """Книга в каталоге с денормализованными полями рейтинга и цены."""
@@ -191,6 +166,32 @@ class UserList(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.username} / {self.name}"
+
+
+class BookEdition(models.Model):
+    """Группа изданий одного произведения: объединяет разные `Book`
+    (с разными издателями/ISBN/обложками), относящиеся к одной книге."""
+
+    name = models.CharField(
+        max_length=250,
+        help_text="Каноническое название произведения (для админа)",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Language(models.Model):
+    """Язык оригинала или издания книги."""
+
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class Store(models.Model):

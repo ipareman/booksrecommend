@@ -1,0 +1,65 @@
+{% extends "core/base.html" %}
+{% block title %}Согласие на обработку персональных данных — Строка{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-box" style="max-width:760px">
+    <div class="auth-box__title">
+      <h1 class="auth-box__h">Согласие на обработку персональных данных</h1>
+      <p class="auth-box__sub">Информация для регистрации в сервисе «Строка»</p>
+    </div>
+    <hr class="divider" style="margin-bottom:24px">
+
+    <div style="display:grid;gap:18px;font-size:14px;line-height:1.65;color:var(--ink)">
+      <section>
+        <h2 style="font-size:16px;margin:0 0 8px">1. Правовое основание</h2>
+        <p style="margin:0;color:var(--muted)">
+          Настоящее согласие даётся в соответствии с Федеральным законом РФ от 27.07.2006 № 152-ФЗ
+          «О персональных данных» и действует с момента регистрации пользователя в сервисе.
+        </p>
+      </section>
+
+      <section>
+        <h2 style="font-size:16px;margin:0 0 8px">2. Какие данные обрабатываются</h2>
+        <p style="margin:0;color:var(--muted)">
+          При регистрации и использовании сервиса могут обрабатываться имя пользователя, адрес электронной почты,
+          пароль в защищённом виде, данные профиля, пользовательские настройки, списки книг, отзывы, рецензии,
+          сообщения и технические данные, необходимые для работы сайта.
+        </p>
+      </section>
+
+      <section>
+        <h2 style="font-size:16px;margin:0 0 8px">3. Цели обработки</h2>
+        <p style="margin:0;color:var(--muted)">
+          Данные используются для создания и защиты аккаунта, входа в сервис, подтверждения email,
+          сохранения пользовательских списков и настроек, работы рекомендаций, уведомлений, поддержки
+          пользователей и соблюдения требований законодательства.
+        </p>
+      </section>
+
+      <section>
+        <h2 style="font-size:16px;margin:0 0 8px">4. Действия с данными</h2>
+        <p style="margin:0;color:var(--muted)">
+          Пользователь соглашается на сбор, запись, систематизацию, накопление, хранение, уточнение,
+          использование, передачу в случаях, необходимых для работы сервиса, обезличивание, блокирование,
+          удаление и уничтожение персональных данных.
+        </p>
+      </section>
+
+      <section>
+        <h2 style="font-size:16px;margin:0 0 8px">5. Отзыв согласия</h2>
+        <p style="margin:0;color:var(--muted)">
+          Пользователь может отозвать согласие, направив запрос администрации сервиса. После отзыва согласия
+          часть функций аккаунта может стать недоступной, если обработка данных необходима для их работы.
+        </p>
+      </section>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:28px;gap:16px">
+      <a href="{% url 'register' %}" class="btn btn-primary">Вернуться к регистрации</a>
+      <a href="https://www.consultant.ru/document/cons_doc_LAW_61801/" class="lnk-muted" target="_blank" rel="noopener" style="font-size:13px">
+        Читать 152-ФЗ
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -138,6 +138,11 @@ def register(request):
     })
 
 
+@require_GET
+def personal_data_consent(request):
+    return render(request, "users/personal_data_consent.html")
+
+
 # def _send_verification_email(user, request):
 #     uid = urlsafe_base64_encode(force_bytes(user.pk))
 #     token = default_token_generator.make_token(user)

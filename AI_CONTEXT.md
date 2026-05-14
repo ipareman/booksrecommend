@@ -312,6 +312,7 @@
 
 ```
 /users/register/                           register
+/users/personal-data-consent/              personal_data_consent
 /users/login/                              user_login
 /users/logout/                             user_logout
 /users/password-reset/ ...               стандартные Django auth views

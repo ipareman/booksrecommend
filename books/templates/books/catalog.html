@@ -77,6 +77,10 @@
         {% if all_genres %}
         <div style="margin-bottom:18px">
           <p class="filter-label">Жанр</p>
+          <input type="text" class="form-input" style="font-size:12px;padding:5px 8px;margin-bottom:6px"
+                 placeholder="Поиск жанра..."
+                 oninput="this.nextElementSibling.querySelectorAll('label').forEach(l=>
+                   l.style.display=l.textContent.toLowerCase().includes(this.value.toLowerCase())?'flex':'none')">
           <div style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:5px">
             {% for genre in all_genres %}
             <label class="form-check">

@@ -1132,6 +1132,7 @@ def _build_notif_settings_matrix():
             "label":    label,
             "telegram": setting.channel_telegram,
             "max":      setting.channel_max,
+            "vk":       setting.channel_vk,
             "email":    setting.channel_email,
         })
     return rows
@@ -1241,6 +1242,7 @@ def admin_notif_toggle(request):
         "label":    dict(NotificationSetting.EVENT_CHOICES).get(event, event),
         "telegram": setting.channel_telegram,
         "max":      setting.channel_max,
+        "vk":       setting.channel_vk,
         "email":    setting.channel_email,
     }
     return render(request, "users/_admin_notif_row.html", {"row": row})

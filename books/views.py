@@ -434,8 +434,13 @@ def book_detail(request, pk):
     )
     ctx = _get_book_detail_context(book, request)
 
-    # Запуск генерации AI-цитат, если их ещё нет
-    if not book.quotes.filter(is_ai_generated=True).exists():
+    # Запуск генерации AI-цитат, если их ещё нет и загружен полный текст книги
+    try:
+        text = book.text
+    except Exception:
+        text = None
+
+    if text and text.is_ready and not book.quotes.filter(is_ai_generated=True).exists():
         generate_smart_quotes.delay(book.pk)
 
     return render(request, "books/book_detail.html", ctx)

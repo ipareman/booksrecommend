@@ -294,7 +294,43 @@ def community(request):
 
 
 def subscription_demo(request):
-    return render(request, "core/subscription.html")
+    yookassa_configured = bool(getattr(settings, "YOOKASSA_SHOP_ID", "") and getattr(settings, "YOOKASSA_SECRET_KEY", ""))
+    yoomoney_configured = bool(getattr(settings, "YOOMONEY_RECEIVER", ""))
+    
+    context = {
+        "yookassa_configured": yookassa_configured,
+        "yoomoney_configured": yoomoney_configured,
+        "yookassa_amount": getattr(settings, "YOOKASSA_SUBSCRIPTION_AMOUNT", "199.00"),
+        "yoomoney_amount": getattr(settings, "YOOMONEY_SUBSCRIPTION_AMOUNT", "199.00"),
+    }
+    return render(request, "core/subscription.html", context)
+
+
+@require_POST
+def subscription_yoomoney_demo(request):
+    receiver = getattr(settings, "YOOMONEY_RECEIVER", "")
+    if not receiver:
+        messages.error(request, "Добавьте YOOMONEY_RECEIVER, чтобы открыть страницу оплаты ЮMoney.")
+        return redirect("subscription_demo")
+
+    amount = getattr(settings, "YOOMONEY_SUBSCRIPTION_AMOUNT", "199.00")
+    return_url = request.build_absolute_uri(reverse("subscription_demo"))
+    
+    label = f"sub_{request.user.pk}_{uuid.uuid4().hex[:8]}" if request.user.is_authenticated else f"sub_anon_{uuid.uuid4().hex[:8]}"
+    
+    params = {
+        "receiver": receiver,
+        "quickpay-form": "shop",
+        "targets": "Подписка Строка Pro",
+        "paymentType": "",  # let user choose (card or wallet)
+        "sum": amount,
+        "successURL": return_url,
+        "label": label,
+    }
+    
+    from urllib.parse import urlencode
+    yoomoney_url = f"https://yoomoney.ru/quickpay/confirm.xml?{urlencode(params)}"
+    return redirect(yoomoney_url)
 
 
 @require_POST

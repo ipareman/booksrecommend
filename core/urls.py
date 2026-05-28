@@ -13,6 +13,7 @@ urlpatterns = [
     path("community/", views.community, name="community"),
     path("subscription/", views.subscription_demo, name="subscription_demo"),
     path("subscription/yookassa/", views.subscription_yookassa_demo, name="subscription_yookassa_demo"),
+    path("subscription/yoomoney/", views.subscription_yoomoney_demo, name="subscription_yoomoney_demo"),
     path("lucky/", views.lucky, name="lucky"),
     path("lucky/spin/", views.lucky_spin, name="lucky_spin"),
     path("", views.home, name="home"),

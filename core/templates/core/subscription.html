@@ -5,7 +5,7 @@
 <div class="subscription-demo">
   <section class="subscription-hero" aria-labelledby="subscription-title">
     <h1 id="subscription-title">Подписка</h1>
-    <p>Тестовая страница: оплату через ЮKassa пока не подключаем, а доступ к Про-версии считаем открытым для каждого пользователя.</p>
+    <p>Тестовая страница: для демонстрации оплаты используется ЮMoney QuickPay. Доступ к Про-версии открыт для каждого пользователя.</p>
   </section>
 
   <section class="subscription-plans" aria-label="Варианты подписки">
@@ -37,11 +37,17 @@
         <li>Больше истории, заметок и сравнений</li>
       </ul>
       <div class="subscription-card__actions">
-        <button type="button" class="subscription-card__button" aria-disabled="true">Доступно в демо</button>
-        <form method="post" action="{% url 'subscription_yookassa_demo' %}">
-          {% csrf_token %}
-          <button type="submit" class="subscription-card__button subscription-card__button--yookassa">Оплатить через ЮKassa</button>
-        </form>
+        {% if yoomoney_configured %}
+          <form method="post" action="{% url 'subscription_yoomoney_demo' %}">
+            {% csrf_token %}
+            <button type="submit" class="subscription-card__button subscription-card__button--yoomoney">Оплатить {{ yoomoney_amount }} ₽ через ЮMoney</button>
+          </form>
+        {% else %}
+          <button type="button" class="subscription-card__button" aria-disabled="true">Доступно в демо</button>
+          <div class="subscription-demo-info">
+            <p>Укажите <code>YOOMONEY_RECEIVER</code> в файле <code>.env</code> для тестирования оплаты через ЮMoney QuickPay.</p>
+          </div>
+        {% endif %}
       </div>
     </article>
   </section>

@@ -107,6 +107,19 @@ class TestDesignDemos:
         assert response.status_code == 302
         assert response["Location"] == "https://yoomoney.ru/demo-payment"
 
+    def test_subscription_yoomoney_demo_redirects(self, client, settings):
+        """Test that YooMoney action redirects to hosted payment page."""
+        settings.YOOMONEY_RECEIVER = ""
+        response = client.post("/subscription/yoomoney/")
+        assert response.status_code == 302
+        assert response["Location"] == "/subscription/"
+
+        settings.YOOMONEY_RECEIVER = "410011234567890"
+        response = client.post("/subscription/yoomoney/")
+        assert response.status_code == 302
+        assert "https://yoomoney.ru/quickpay/confirm.xml" in response["Location"]
+        assert "receiver=410011234567890" in response["Location"]
+
 
 @pytest.mark.django_db
 class TestErrorPages:

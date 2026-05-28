@@ -608,6 +608,34 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   color: #fff;
 }
 
+.subscription-card__button--yoomoney {
+  background: #8b3ffd;
+  color: #fff;
+  border-color: #8b3ffd;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.subscription-card__button--yoomoney:hover {
+  background: #722ee6;
+  border-color: #722ee6;
+}
+
+.subscription-demo-info {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
+  line-height: 1.4;
+  width: 100%;
+}
+
+.subscription-demo-info code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 12px;
+}
+
 .community-admin {
   padding-top: 86px;
   animation: communityCopyAssemble .5s cubic-bezier(.2, .72, .18, 1) .68s both;

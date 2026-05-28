@@ -28,29 +28,23 @@
   <div class="collection-grid" id="collections-results">
     {% for col in collections %}
     <a href="{% url 'collection_detail' col.pk %}" class="collection-card">
-      <div class="collection-card__covers">
-        {% for item in col.items.all|slice:":4" %}
-          {% if item.book.cover_image %}
-            <img src="{{ item.book.cover_image.url }}" alt="" loading="lazy">
-          {% else %}
-            <div class="collection-card__placeholder">{{ item.book.title|truncatechars:20 }}</div>
-          {% endif %}
-        {% endfor %}
-      </div>
-      <div class="collection-card__info">
+      <div class="collection-card__left">
         <div class="collection-card__title">{{ col.title }}</div>
-        <div class="collection-card__count">
-          {{ col.num_books }} {{ col.num_books|pluralize:"книга,книги,книг" }}
-          {% if col.num_likes %}
-            <span style="margin-left:8px;color:{% if col.pk in liked_ids %}var(--err){% else %}var(--ghost){% endif %}">
-              {% if col.pk in liked_ids %}♥{% else %}♡{% endif %} {{ col.num_likes }}
-            </span>
-          {% endif %}
+        {% if col.description %}
+          <div class="collection-card__desc">{{ col.description }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="collection-card__right">
+        <div class="collection-card__creator">@{{ col.created_by.username }}</div>
+        <div class="collection-card__stats">
+          <div>Книг: {{ col.num_books }}</div>
+          <div>Понравилось: {{ col.num_likes|default:0 }}</div>
         </div>
       </div>
     </a>
     {% empty %}
-    <p class="empty" style="grid-column:1/-1;text-align:center;padding:48px 0">
+    <p class="empty" style="grid-column:1/-1;text-align:center;padding:48px 0;font-size:12px;text-transform:uppercase">
       Подборок пока нет
     </p>
     {% endfor %}

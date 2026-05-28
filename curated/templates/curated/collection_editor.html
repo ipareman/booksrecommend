@@ -10,6 +10,34 @@
     {% include "curated/_editor_header.html" %}
   </div>
 
+  {# ── РЕДАКТИРОВАНИЕ ОПИСАНИЯ И НАЗВАНИЯ ────────────────────────────────────── #}
+  <div style="border: 1px dashed var(--border); padding: 20px; margin-bottom: 24px;">
+    <form hx-post="{% url 'collection_edit' collection.pk %}"
+          hx-target="#editor-header"
+          hx-swap="innerHTML"
+          hx-indicator="#save-indicator"
+          style="display: flex; flex-direction: column; gap: 14px;">
+      {% csrf_token %}
+      
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label class="form-label" style="font-size: 11px; text-transform: uppercase; font-family: 'Mltsvfont', monospace; color: var(--muted); margin: 0;">Название подборки</label>
+        <input class="form-input" type="text" name="title" value="{{ collection.title }}" required style="width: 100%;">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label class="form-label" style="font-size: 11px; text-transform: uppercase; font-family: 'Mltsvfont', monospace; color: var(--muted); margin: 0;">Описание подборки</label>
+        <textarea class="form-input" name="description" rows="3" style="width: 100%; font-family: inherit; font-size: 13px;" placeholder="Введите описание подборки...">{{ collection.description }}</textarea>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px;">
+        <button type="submit" class="btn btn-secondary btn-sm">Сохранить описание</button>
+        <span id="save-indicator" class="htmx-indicator" style="font-size: 11px; color: var(--muted); font-family: 'Mltsvfont', monospace; text-transform: uppercase;">
+          Сохранение...
+        </span>
+      </div>
+    </form>
+  </div>
+
   {# ── ВЫБРАННЫЕ КНИГИ (desktop: видна, mobile: в FAB) ──────────────────── #}
   <div class="selected-strip" id="selected-books">
     {% include "curated/_selected_books.html" %}

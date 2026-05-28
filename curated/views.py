@@ -25,6 +25,7 @@ def _owner_or_staff(view_func):
 
 # ─── ПУБЛИЧНЫЕ ─────────────────────────────────────────────────────────────────
 
+
 def collections_list(request):
     sort = request.GET.get("sort", "fresh").strip()
     q = request.GET.get("q", "").strip()
@@ -301,6 +302,17 @@ def collection_create(request):
 @_owner_or_staff
 def collection_edit(request, pk):
     col = get_object_or_404(Collection, pk=pk)
+    if request.method == "POST":
+        title = request.POST.get("title", col.title).strip()
+        description = request.POST.get("description", "").strip()
+        if title:
+            col.title = title
+        col.description = description
+        col.save()
+        if request.headers.get("HX-Request"):
+            return render(request, "curated/_editor_header.html", {"collection": col})
+        return redirect("collection_edit", pk=col.pk)
+
     selected = (
         col.items
         .select_related("book")

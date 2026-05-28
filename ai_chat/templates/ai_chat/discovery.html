@@ -5,7 +5,13 @@
 {% block content %}
 <div class="wrap page" style="max-width:760px;padding-top:32px">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-    <h1 style="font-size:22px;margin:0">Найти книгу с AI</h1>
+    <div style="display:flex;gap:16px;align-items:baseline;">
+      <h1 style="font-size:22px;margin:0">Найти книгу с AI</h1>
+      <div class="dialog-modes" style="display:flex;gap:12px;font-size:13px;">
+        <button type="button" class="dialog-mode-btn" data-mode="faster" style="border:0;background:transparent;color:#a5a49d;cursor:pointer;padding:0;font-family:inherit;">быстрее</button>
+        <button type="button" class="dialog-mode-btn" data-mode="smarter" style="border:0;background:transparent;color:#a5a49d;cursor:pointer;padding:0;font-family:inherit;">умнее</button>
+      </div>
+    </div>
     {% if chat %}
     <button class="btn btn-ghost btn-sm"
             hx-post="{% url 'discovery_clear' %}"
@@ -93,6 +99,7 @@
         hx-indicator="#disc-spinner"
         hx-on::after-request="this.querySelector('input[name=message]').value=''; document.getElementById('discovery-messages').scrollIntoView({block:'end',behavior:'smooth'});"
         style="display:flex;gap:6px;align-items:center">
+    <input type="hidden" name="mode" class="dialog-mode-hidden" value="standard">
     <input id="disc-input" class="form-input" type="text" name="message"
            placeholder="Опишите, какую книгу ищете..."
            autocomplete="off" required style="flex:1">
@@ -167,6 +174,33 @@
       }
     };
     try { rec.start(); } catch(e) { /* already started */ }
+  });
+  // ─── Синхронизация режимов ──────────────────────────────────────────
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.dialog-mode-btn');
+    if (!btn) return;
+    
+    const wasActive = btn.classList.contains('is-active');
+    const targetMode = btn.dataset.mode;
+    
+    let activeMode = "standard";
+    if (!wasActive) {
+      activeMode = targetMode;
+    }
+    
+    document.querySelectorAll('.dialog-mode-btn').forEach(b => {
+      if (b.dataset.mode === activeMode) {
+        b.classList.add('is-active');
+        b.style.color = 'var(--ink)';
+      } else {
+        b.classList.remove('is-active');
+        b.style.color = '#a5a49d';
+      }
+    });
+    
+    document.querySelectorAll('.dialog-mode-hidden').forEach(input => {
+      input.value = activeMode;
+    });
   });
 })();
 </script>

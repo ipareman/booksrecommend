@@ -191,7 +191,7 @@ def _understand_query(user, message: str, history: list[DiscoveryChatMessage]) -
 
 
 def _search_catalog(query: str, query_plan: dict | None = None, exclude_ids: set[int] | None = None,
-                    limit: int = 30) -> list[Book]:
+                    limit: int = 12) -> list[Book]:
     """FTS + fallback на топ по рейтингу. Исключает книги из exclude_ids."""
     exclude_ids = exclude_ids or set()
     query_plan = query_plan or {}
@@ -357,7 +357,8 @@ RECOMMEND_TOOL = {
 # ─────────────────────────────────────────────────────────────────────────────
 
 def ask_discovery(user, message: str, chat: DiscoveryChat,
-                  extra_exclude_ids: Optional[list[int]] = None) -> dict:
+                  extra_exclude_ids: Optional[list[int]] = None,
+                  mode: str = "standard") -> dict:
     """
     Главный вход. Возвращает:
       {
@@ -378,7 +379,7 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
     # История чата
     history = list(chat.messages.order_by("-created_at")[:10])
     history.reverse()
-    cache_query = _contextual_cache_query(message, history)
+    cache_query = _contextual_cache_query(message, history) + f"\nmode: {mode}"
 
     # ── КЕШ ───────────────────────────────────────────────────────────────
     cached = cache_get(user.pk, cache_query, exclude_set)
@@ -417,8 +418,16 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
         }
 
     # ── ПОНИМАНИЕ ЗАПРОСА + ПОИСК КАНДИДАТОВ ──────────────────────────────
-    query_plan = _understand_query(user, message, history)
-    candidates = _search_catalog(message, query_plan=query_plan, exclude_ids=exclude_set, limit=30)
+    if mode == "smarter":
+        query_plan = _understand_query(user, message, history)
+        candidates = _search_catalog(message, query_plan=query_plan, exclude_ids=exclude_set, limit=35)
+    elif mode == "standard":
+        query_plan = _understand_query(user, message, history)
+        candidates = _search_catalog(message, query_plan=query_plan, exclude_ids=exclude_set, limit=15)
+    else:  # mode == "faster"
+        query_plan = None
+        candidates = _search_catalog(message, query_plan=None, exclude_ids=exclude_set, limit=12)
+
     candidates_text = _build_candidates_text(candidates)
     user_profile = build_user_profile_text(user)
 
@@ -442,6 +451,15 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
             "они уже исключены из каталога. Учти его вкус и предложи ДРУГОЕ."
         )
 
+    plan_to_serialize = query_plan or {
+        "interpreted_request": message,
+        "search_queries": [message],
+        "candidate_titles": [],
+        "candidate_authors": [],
+        "themes": [],
+        "needs_followup": False,
+    }
+
     messages = [{
         "role": "system",
         "content": (
@@ -460,7 +478,7 @@ def ask_discovery(user, message: str, chat: DiscoveryChat,
             "• Используй номера (поле index) из каталога, не придумывай книги.\n\n"
             f"Профиль пользователя:\n{user_profile}"
             f"{already_hint}{dislike_hint}\n\n"
-            f"Понимание запроса:\n{json.dumps(query_plan, ensure_ascii=False)}\n\n"
+            f"Понимание запроса:\n{json.dumps(plan_to_serialize, ensure_ascii=False)}\n\n"
             f"Каталог (1-{len(candidates)}):\n{candidates_text}"
         ),
     }]

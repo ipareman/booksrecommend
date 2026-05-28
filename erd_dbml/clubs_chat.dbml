@@ -1,0 +1,161 @@
+Table auth_user {
+  id int [pk]
+  username varchar(150)
+}
+
+Table books_book {
+  id int [pk]
+  title varchar(250)
+}
+
+Table clubs_bookclub {
+  id int [pk]
+  name varchar(200)
+  description text
+  cover_image varchar(100)
+  created_by_id int [not null]
+  is_public boolean
+  max_members int
+  invite_token varchar(40) [unique]
+  created_at datetime
+}
+
+Table clubs_clubmembership {
+  id int [pk]
+  club_id int [not null]
+  user_id int [not null]
+  role varchar(10)
+  joined_at datetime
+
+  indexes {
+    (club_id, user_id) [unique]
+  }
+}
+
+Table clubs_clubbook {
+  id int [pk]
+  club_id int [not null]
+  book_id int [not null]
+  start_date date
+  end_date date
+  is_current boolean
+  order int
+
+  indexes {
+    (club_id, book_id) [unique]
+  }
+}
+
+Table clubs_clubbookvote {
+  id int [pk]
+  club_id int [not null]
+  club_book_id int [not null]
+  user_id int [not null]
+  created_at datetime
+
+  indexes {
+    (club_id, user_id) [unique]
+    (club_book_id, user_id) [unique]
+  }
+}
+
+Table clubs_clubpoll {
+  id int [pk]
+  club_id int [not null]
+  question varchar(240)
+  created_by_id int [not null]
+  is_closed boolean
+  created_at datetime
+}
+
+Table clubs_clubpolloption {
+  id int [pk]
+  poll_id int [not null]
+  text varchar(160)
+  order int
+}
+
+Table clubs_clubpollvote {
+  id int [pk]
+  poll_id int [not null]
+  option_id int [not null]
+  user_id int [not null]
+  created_at datetime
+
+  indexes {
+    (poll_id, user_id) [unique]
+    (option_id, user_id) [unique]
+  }
+}
+
+Table chat_chatroom {
+  id int [pk]
+  room_type varchar(16)
+  club_id int [unique]
+  created_at datetime
+}
+
+Table chat_clubbookthread {
+  id int [pk]
+  club_book_id int [unique, not null]
+  room_id int [unique, not null]
+}
+
+Table chat_chatparticipant {
+  id int [pk]
+  room_id int [not null]
+  user_id int [not null]
+  joined_at datetime
+  last_read_at datetime
+
+  indexes {
+    (room_id, user_id) [unique]
+  }
+}
+
+Table chat_chatmessage {
+  id int [pk]
+  room_id int [not null]
+  user_id int [not null]
+  body text
+  attached_book_id int
+  voice_message varchar(100)
+  created_at datetime
+}
+
+Table chat_chatmessagereaction {
+  id int [pk]
+  message_id int [not null]
+  user_id int [not null]
+  emoji varchar(8)
+  created_at datetime
+
+  indexes {
+    (message_id, user_id, emoji) [unique]
+  }
+}
+
+Ref: clubs_bookclub.created_by_id > auth_user.id
+Ref: clubs_clubmembership.club_id > clubs_bookclub.id
+Ref: clubs_clubmembership.user_id > auth_user.id
+Ref: clubs_clubbook.club_id > clubs_bookclub.id
+Ref: clubs_clubbook.book_id > books_book.id
+Ref: clubs_clubbookvote.club_id > clubs_bookclub.id
+Ref: clubs_clubbookvote.club_book_id > clubs_clubbook.id
+Ref: clubs_clubbookvote.user_id > auth_user.id
+Ref: clubs_clubpoll.club_id > clubs_bookclub.id
+Ref: clubs_clubpoll.created_by_id > auth_user.id
+Ref: clubs_clubpolloption.poll_id > clubs_clubpoll.id
+Ref: clubs_clubpollvote.poll_id > clubs_clubpoll.id
+Ref: clubs_clubpollvote.option_id > clubs_clubpolloption.id
+Ref: clubs_clubpollvote.user_id > auth_user.id
+Ref: chat_chatroom.club_id > clubs_bookclub.id
+Ref: chat_clubbookthread.club_book_id > clubs_clubbook.id
+Ref: chat_clubbookthread.room_id > chat_chatroom.id
+Ref: chat_chatparticipant.room_id > chat_chatroom.id
+Ref: chat_chatparticipant.user_id > auth_user.id
+Ref: chat_chatmessage.room_id > chat_chatroom.id
+Ref: chat_chatmessage.user_id > auth_user.id
+Ref: chat_chatmessage.attached_book_id > books_book.id
+Ref: chat_chatmessagereaction.message_id > chat_chatmessage.id
+Ref: chat_chatmessagereaction.user_id > auth_user.id

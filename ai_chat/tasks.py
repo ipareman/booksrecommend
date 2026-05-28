@@ -16,10 +16,10 @@ AI_TASK_LIMITS = {
 
 
 @shared_task(**AI_TASK_LIMITS)
-def discovery_send_task(user_id, message, exclude_ids=None):
+def discovery_send_task(user_id, message, exclude_ids=None, mode="standard"):
     user = get_user_model().objects.get(pk=user_id)
     chat, _ = DiscoveryChat.objects.get_or_create(user=user)
-    result = ask_discovery(user, message, chat, extra_exclude_ids=exclude_ids or [])
+    result = ask_discovery(user, message, chat, extra_exclude_ids=exclude_ids or [], mode=mode)
     return {
         "ok": True,
         "chat_id": chat.pk,

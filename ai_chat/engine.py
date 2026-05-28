@@ -180,6 +180,38 @@ def ask_about_book(chat, user_message):
             + "\n\n".join(lines)
         )
 
+    # Выявление намерения порекомендовать похожие книги
+    recs_keywords = ["похож", "порекоменд", "посовет", "рекоменд", "что почитать", "что-то вроде", "подобие", "подборк", "аналог"]
+    is_rec_request = any(kw in user_message.lower() for kw in recs_keywords)
+    recs_block = ""
+    if is_rec_request:
+        try:
+            from books.recommendations import similar_books
+            # Получаем 10 кандидатов (1 запрос в бд с TF-IDF расчетом и префетчем)
+            similar = similar_books(chat.book, limit=10)
+            if similar:
+                lines = []
+                for b in similar:
+                    genres_str = ", ".join(g.name for g in b.genres.all())
+                    authors_str = ", ".join(a.name for a in b.authors.all())
+                    desc = (b.description or "")[:150]
+                    if len(b.description or "") > 150:
+                        desc += "..."
+                    lines.append(
+                        f"- [book:{b.pk}|{b.title}] от {authors_str} (Жанры: {genres_str}). Описание: {desc}"
+                    )
+                recs_block = (
+                    "\n\nСПИСОК ПОХОЖИХ КНИГ ИЗ КАТАЛОГА ДЛЯ РЕКОМЕНДАЦИИ:\n"
+                    + "\n".join(lines)
+                    + "\n\nИнструкция по рекомендациям:\n"
+                    f"Пользователь попросил порекомендовать похожие книги на «{chat.book.title}».\n"
+                    "1. Выбери из предложенного списка выше от 3 до 5 наиболее подходящих книг и кратко порекомендуй их (по 1-2 предложения на каждую, объяснив почему они похожи).\n"
+                    "2. ВАЖНО: При упоминании любой книги из списка ты ОБЯЗАН использовать её точный маркер-ссылку `[book:ID|Название]`! Например: «Также советую обратить внимание на [book:12|Книга Х], так как...». Не меняй маркеры местами и не удаляй их, иначе ссылки сломаются.\n"
+                    "3. Пиши дружелюбно, как книжный эксперт."
+                )
+        except Exception:
+            pass
+
     # История (последние 20 сообщений)
     history = list(
         chat.messages.order_by("-created_at")[:20]
@@ -208,6 +240,7 @@ def ask_about_book(chat, user_message):
                 f'Если не знаешь — так и скажи.\n\n'
                 f'Информация о книге:\n{book_context}'
                 f'{rag_block}'
+                f'{recs_block}'
             ),
         }
     ]

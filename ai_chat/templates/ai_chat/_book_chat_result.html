@@ -1,5 +1,65 @@
 {% load chat_extras %}
+<style>
+.typewriter-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background-color: currentColor;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: tw-blink 0.8s infinite;
+}
+@keyframes tw-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+</style>
+
 <div class="ai-chat-row ai-chat-row--assistant fade-up">
   <span class="user-avatar ai-chat-avatar ai-chat-avatar--ai"><span>AI</span></span>
-  <div class="ai-chat-msg ai-chat-msg--assistant">{{ text|link_chapters:book }}</div>
+  <div class="ai-chat-msg ai-chat-msg--assistant" id="ai-text-{{ task_id }}">{{ text|link_chapters:book }}</div>
 </div>
+
+<script>
+(function() {
+  const element = document.getElementById("ai-text-{{ task_id }}");
+  if (!element) return;
+
+  const html = element.innerHTML;
+  element.innerHTML = "";
+  let index = 0;
+
+  function type() {
+    if (index >= html.length) {
+      element.innerHTML = html;
+      const container = document.getElementById("chat-messages");
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+      return;
+    }
+
+    if (html[index] === '<') {
+      const endTagIndex = html.indexOf('>', index);
+      if (endTagIndex !== -1) {
+        index = endTagIndex + 1;
+      } else {
+        index++;
+      }
+    } else {
+      index++;
+    }
+
+    element.innerHTML = html.slice(0, index) + '<span class="typewriter-cursor"></span>';
+
+    const container = document.getElementById("chat-messages");
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+
+    setTimeout(type, 8);
+  }
+
+  type();
+})();
+</script>

@@ -52,32 +52,66 @@
           <div class="dialog-panel__head">
             <button type="button" class="dialog-panel__back" id="dialog-close" aria-label="Закрыть диалог">←</button>
             <div class="dialog-panel__ai-avatar">AI</div>
-            <div>
+            <div style="display:flex;flex-direction:column;min-width:0;">
               <strong>Диалог</strong>
-              <span>персональный подбор книг</span>
+              <span style="font-size:11px;color:var(--muted);white-space:nowrap;">поиск книг</span>
             </div>
+            
+            <!-- Режимы посередине -->
+            <div class="dialog-modes" style="display:flex;gap:8px;font-size:12px;margin:0 auto;padding:0 6px;">
+              <button type="button" class="dialog-mode-btn" data-mode="faster" style="border:0;background:transparent;color:#a5a49d;cursor:pointer;padding:0;font-family:inherit;">быстрее</button>
+              <button type="button" class="dialog-mode-btn" data-mode="smarter" style="border:0;background:transparent;color:#a5a49d;cursor:pointer;padding:0;font-family:inherit;">умнее</button>
+            </div>
+
             {% if user.is_authenticated %}
               <button type="button"
                       class="dialog-panel__clear"
                       hx-post="{% url 'discovery_clear' %}"
                       hx-target="#discovery-messages"
                       hx-swap="innerHTML"
-                      hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+                      hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+                      style="flex: 0 0 auto;">
                 очистить
               </button>
             {% endif %}
           </div>
 
-          {% if user.is_authenticated %}
-            <button type="button"
-                    class="dialog-panel__clear dialog-panel__clear--desktop"
-                    hx-post="{% url 'discovery_clear' %}"
-                    hx-target="#discovery-messages"
-                    hx-swap="innerHTML"
-                    hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
-              очистить
-            </button>
-          {% endif %}
+          <style>
+            .dialog-panel__head-desktop {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 6px;
+              width: 100%;
+            }
+            @media (max-width: 680px) {
+              .dialog-panel__head-desktop {
+                display: none !important;
+              }
+            }
+          </style>
+
+          <div class="dialog-panel__head-desktop">
+            <div class="dialog-modes" style="display:flex;gap:12px;font-size:13px;">
+              <button type="button" class="dialog-mode-btn" data-mode="faster" style="min-height:22px;padding:0;border:0;background:transparent;color:#a5a49d;cursor:pointer;font-family:inherit;">
+                быстрее
+              </button>
+              <button type="button" class="dialog-mode-btn" data-mode="smarter" style="min-height:22px;padding:0;border:0;background:transparent;color:#a5a49d;cursor:pointer;font-family:inherit;">
+                умнее
+              </button>
+            </div>
+            {% if user.is_authenticated %}
+              <button type="button"
+                      class="dialog-panel__clear dialog-panel__clear--desktop"
+                      hx-post="{% url 'discovery_clear' %}"
+                      hx-target="#discovery-messages"
+                      hx-swap="innerHTML"
+                      hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+                      style="margin-bottom:0 !important; cursor:pointer;">
+                очистить
+              </button>
+            {% endif %}
+          </div>
 
           <div class="dialog-panel__thread" id="discovery-messages">
             {% if user.is_authenticated %}
@@ -141,6 +175,7 @@
                 hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
                 hx-indicator="#disc-spinner"
                 hx-on::after-request="this.querySelector('input[name=message]').value=''; document.getElementById('discovery-messages').scrollTop = document.getElementById('discovery-messages').scrollHeight;">
+            <input type="hidden" name="mode" class="dialog-mode-hidden" value="standard">
             <input id="dialog-input" type="text" name="message" autocomplete="off" placeholder="А если хочется чуть больше сюжета?" required>
             <button type="button" class="dialog-voice" id="dialog-voice" aria-label="Голосовой ввод">◦</button>
             <button type="submit" class="dialog-send" id="dialog-send" aria-label="Отправить">→</button>
@@ -243,4 +278,38 @@
 {% if user.is_authenticated and not user.profile.onboarding_done and show_home_onboarding_modal %}
 {% include "core/_onboarding_modal.html" %}
 {% endif %}
+
+<script>
+(function() {
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.dialog-mode-btn');
+    if (!btn) return;
+    
+    const wasActive = btn.classList.contains('is-active');
+    const targetMode = btn.dataset.mode;
+    
+    // Если кнопка уже была активна, сбрасываем в стандартный режим ("standard")
+    let activeMode = "standard";
+    if (!wasActive) {
+      activeMode = targetMode;
+    }
+    
+    // Синхронизируем визуальное состояние кнопок режима
+    document.querySelectorAll('.dialog-mode-btn').forEach(b => {
+      if (b.dataset.mode === activeMode) {
+        b.classList.add('is-active');
+        b.style.color = 'var(--ink)';
+      } else {
+        b.classList.remove('is-active');
+        b.style.color = '#a5a49d';
+      }
+    });
+    
+    // Синхронизируем значение во всех скрытых полях форм
+    document.querySelectorAll('.dialog-mode-hidden').forEach(input => {
+      input.value = activeMode;
+    });
+  });
+})();
+</script>
 {% endblock %}

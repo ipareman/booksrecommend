@@ -1,0 +1,118 @@
+Table auth_user {
+  id int [pk]
+  username varchar(150)
+}
+
+Table books_book {
+  id int [pk]
+  title varchar(250)
+}
+
+Table social_friendship {
+  id int [pk]
+  from_user_id int [not null]
+  to_user_id int [not null]
+  status varchar(10)
+  created_at datetime
+
+  indexes {
+    (from_user_id, to_user_id) [unique]
+  }
+}
+
+Table social_activityevent {
+  id int [pk]
+  user_id int [not null]
+  event_type varchar(20)
+  book_id int
+  target_user_id int
+  metadata json
+  created_at datetime
+}
+
+Table social_bookrecommendation {
+  id int [pk]
+  from_user_id int [not null]
+  to_user_id int [not null]
+  book_id int [not null]
+  message text
+  created_at datetime
+  is_read boolean
+
+  indexes {
+    (from_user_id, to_user_id, book_id) [unique]
+  }
+}
+
+Table curated_collection {
+  id int [pk]
+  title varchar(200)
+  description text
+  cover_image varchar(100)
+  created_by_id int [not null]
+  is_published boolean
+  order int
+  created_at datetime
+}
+
+Table curated_collectionbook {
+  id int [pk]
+  collection_id int [not null]
+  book_id int [not null]
+  order int
+
+  indexes {
+    (collection_id, book_id) [unique]
+  }
+}
+
+Table curated_collectionlike {
+  id int [pk]
+  collection_id int [not null]
+  user_id int [not null]
+  created_at datetime
+
+  indexes {
+    (collection_id, user_id) [unique]
+  }
+}
+
+Table curated_collectioncomment {
+  id int [pk]
+  collection_id int [not null]
+  user_id int [not null]
+  parent_id int
+  text text
+  created_at datetime
+  updated_at datetime
+}
+
+Table curated_collectioncommentvote {
+  id int [pk]
+  user_id int [not null]
+  comment_id int [not null]
+  value int
+
+  indexes {
+    (user_id, comment_id) [unique]
+  }
+}
+
+Ref: social_friendship.from_user_id > auth_user.id
+Ref: social_friendship.to_user_id > auth_user.id
+Ref: social_activityevent.user_id > auth_user.id
+Ref: social_activityevent.book_id > books_book.id
+Ref: social_activityevent.target_user_id > auth_user.id
+Ref: social_bookrecommendation.from_user_id > auth_user.id
+Ref: social_bookrecommendation.to_user_id > auth_user.id
+Ref: social_bookrecommendation.book_id > books_book.id
+Ref: curated_collection.created_by_id > auth_user.id
+Ref: curated_collectionbook.collection_id > curated_collection.id
+Ref: curated_collectionbook.book_id > books_book.id
+Ref: curated_collectionlike.collection_id > curated_collection.id
+Ref: curated_collectionlike.user_id > auth_user.id
+Ref: curated_collectioncomment.collection_id > curated_collection.id
+Ref: curated_collectioncomment.user_id > auth_user.id
+Ref: curated_collectioncomment.parent_id > curated_collectioncomment.id
+Ref: curated_collectioncommentvote.user_id > auth_user.id
+Ref: curated_collectioncommentvote.comment_id > curated_collectioncomment.id

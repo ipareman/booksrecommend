@@ -1,0 +1,148 @@
+Table auth_user {
+  id int [pk]
+  username varchar(150)
+  email varchar(254)
+}
+
+Table books_book {
+  id int [pk]
+  title varchar(250)
+}
+
+Table books_genre {
+  id int [pk]
+  name varchar(100)
+}
+
+Table books_author {
+  id int [pk]
+  name varchar(250)
+}
+
+Table users_userprofile {
+  id int [pk]
+  user_id int [unique, not null]
+  avatar varchar(100)
+  avatar_gradient varchar(20)
+  bio text
+  telegram_username varchar(100)
+  telegram_chat_id varchar(50)
+  max_username varchar(100)
+  max_user_id varchar(50)
+  vk_username varchar(100)
+  vk_user_id varchar(50)
+  email_verified boolean
+  is_blocked boolean
+  blocked_until datetime
+  onboarding_done boolean
+}
+
+Table users_userprofile_favorite_genres {
+  id int [pk]
+  userprofile_id int [not null]
+  genre_id int [not null]
+
+  indexes {
+    (userprofile_id, genre_id) [unique]
+  }
+}
+
+Table users_userprofile_favorite_authors {
+  id int [pk]
+  userprofile_id int [not null]
+  author_id int [not null]
+
+  indexes {
+    (userprofile_id, author_id) [unique]
+  }
+}
+
+Table books_userlist {
+  id int [pk]
+  user_id int [not null]
+  name varchar(100) [not null]
+  is_default boolean
+  is_public boolean
+  sentiment_tag varchar(20)
+  created_at datetime
+
+  indexes {
+    (user_id, name) [unique]
+  }
+}
+
+Table books_userlist_books {
+  id int [pk]
+  userlist_id int [not null]
+  book_id int [not null]
+
+  indexes {
+    (userlist_id, book_id) [unique]
+  }
+}
+
+Table books_readingprogress {
+  id int [pk]
+  user_id int [not null]
+  book_id int [not null]
+  current_page int
+  current_chapter_id int
+  scroll_offset float
+  mode varchar(10)
+  updated_at datetime
+
+  indexes {
+    (user_id, book_id) [unique]
+  }
+}
+
+Table users_authorsubscription {
+  id int [pk]
+  user_id int [not null]
+  author_id int [not null]
+  created_at datetime
+
+  indexes {
+    (user_id, author_id) [unique]
+  }
+}
+
+Table users_achievement {
+  id int [pk]
+  user_id int [not null]
+  achievement_type varchar(30)
+  earned_at datetime
+
+  indexes {
+    (user_id, achievement_type) [unique]
+  }
+}
+
+Table users_userblockhistory {
+  id int [pk]
+  user_id int [not null]
+  blocked_by_id int
+  reason text
+  blocked_at datetime
+  blocked_until datetime
+  unblocked_at datetime
+  unblocked_by_id int
+  unblock_reason text
+}
+
+Ref: users_userprofile.user_id > auth_user.id
+Ref: users_userprofile_favorite_genres.userprofile_id > users_userprofile.id
+Ref: users_userprofile_favorite_genres.genre_id > books_genre.id
+Ref: users_userprofile_favorite_authors.userprofile_id > users_userprofile.id
+Ref: users_userprofile_favorite_authors.author_id > books_author.id
+Ref: books_userlist.user_id > auth_user.id
+Ref: books_userlist_books.userlist_id > books_userlist.id
+Ref: books_userlist_books.book_id > books_book.id
+Ref: books_readingprogress.user_id > auth_user.id
+Ref: books_readingprogress.book_id > books_book.id
+Ref: users_authorsubscription.user_id > auth_user.id
+Ref: users_authorsubscription.author_id > books_author.id
+Ref: users_achievement.user_id > auth_user.id
+Ref: users_userblockhistory.user_id > auth_user.id
+Ref: users_userblockhistory.blocked_by_id > auth_user.id
+Ref: users_userblockhistory.unblocked_by_id > auth_user.id

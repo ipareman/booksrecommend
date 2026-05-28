@@ -3,10 +3,84 @@
 {% block title %}AI-чат: {{ book.title }} — Строка{% endblock %}
 
 {% block content %}
-<div class="wrap page ai-chat-page" style="padding-top:32px;max-width:700px;margin:0 auto">
+<style>
+/* Полный контейнер чата на всю высоту экрана */
+.ai-chat-page {
+  display: flex !important;
+  flex-direction: column !important;
+  height: calc(100vh - 130px) !important;
+  height: calc(100dvh - 130px) !important;
+  min-height: 400px !important;
+  margin: 0 auto !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box;
+}
+
+/* Шапка чата - фиксированная высота */
+.ai-chat-header {
+  flex: 0 0 auto !important;
+  margin-bottom: 16px !important;
+}
+
+/* Лента сообщений - занимает все оставшееся пространство и скроллится */
+.ai-chat-messages {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  max-height: none !important; /* Убираем жесткое ограничение 55vh */
+  overflow-y: auto !important;
+  padding: 12px 4px !important;
+  margin-bottom: 12px !important;
+}
+
+/* Панель ввода внизу - привязана к нижней части flex-контейнера */
+.chat-input-bar {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  flex-wrap: nowrap !important; /* предотвращает перенос кнопки на новую строку */
+  gap: 8px !important;
+  padding: 12px 0 !important;
+  border-top: 1px solid var(--border) !important;
+  background: transparent !important;
+  position: relative !important;
+  z-index: 1000 !important;
+  pointer-events: auto !important;
+}
+
+.chat-input-bar .form-input {
+  flex: 1 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  order: 1 !important; /* возвращает на первое место (слева) */
+  pointer-events: auto !important;
+}
+
+.chat-input-bar #ai-send-btn {
+  flex: 0 0 auto !important;
+  order: 2 !important; /* возвращает на второе место (справа) */
+  pointer-events: auto !important;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 680px) {
+  .ai-chat-page {
+    height: calc(100vh - 90px) !important;
+    height: calc(100dvh - 90px) !important;
+    padding: 0 8px !important;
+  }
+  
+  .chat-input-bar {
+    padding: 12px 8px !important;
+    margin: 0 -8px !important; /* расширяем на всю ширину на мобилках */
+    border-top: 1px solid var(--border) !important;
+    background: var(--paper) !important; /* сохраняет ретро-бумажную тему */
+  }
+}
+</style>
+
+<div class="wrap page ai-chat-page" style="padding-top:16px;max-width:700px;margin:0 auto">
 
   {# ── ШАПКА ────────────────────────────────────────────────────────────────── #}
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap">
+  <div class="ai-chat-header" style="display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap">
     {% if book.cover_image %}
       <img src="{{ book.cover_image.url }}" alt=""
            style="width:40px;height:60px;object-fit:cover;border-radius:4px">

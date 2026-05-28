@@ -1,8 +1,24 @@
 {% load chat_extras %}
+<style>
+.typewriter-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background-color: currentColor;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: tw-blink 0.8s infinite;
+}
+@keyframes tw-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+</style>
+
 <div class="ai-chat-row ai-chat-row--assistant" style="margin-bottom:16px">
   <span class="user-avatar ai-chat-avatar ai-chat-avatar--ai"><span>AI</span></span>
   <div style="flex:1;min-width:0">
-  <div style="padding:12px 16px;background:var(--surface);border-radius:8px;
+  <div id="discovery-text-{{ message_id }}" style="padding:12px 16px;background:var(--surface);border-radius:8px;
               font-size:13px;line-height:1.6;margin-bottom:12px">
     {{ text|ai_markdown }}
     {% if from_cache %}
@@ -10,53 +26,109 @@
     {% endif %}
   </div>
 
-  {% if books %}
-  <div class="attached-books" style="display:grid;gap:10px">
-    {% for item in books %}
-      {% include "ai_chat/_book_card.html" with book=item.book reason=item.reason price=item.price message_id=message_id %}
-    {% endfor %}
-  </div>
-
-  <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <button class="btn btn-secondary btn-sm"
-            hx-post="{% url 'discovery_save_list' %}"
-            hx-target="#save-list-feedback"
-            hx-swap="innerHTML"
-            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
-      💾 Сохранить эту подборку как список
-    </button>
-    <span id="save-list-feedback"></span>
-  </div>
-  {% endif %}
-
-  {% if followup_options %}
-  <div style="margin-top:12px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Что тебе ближе?</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px">
-      {% for opt in followup_options %}
-        <button type="button" class="disc-chip" data-prompt="{{ opt.prompt }}">{{ opt.label }}</button>
+  <div id="discovery-extra-{{ message_id }}" style="opacity: 0; max-height: 0; overflow: hidden; transition: opacity 0.4s ease, max-height 0.4s ease;">
+    {% if books %}
+    <div class="attached-books" style="display:grid;gap:10px">
+      {% for item in books %}
+        {% include "ai_chat/_book_card.html" with book=item.book reason=item.reason price=item.price message_id=message_id %}
       {% endfor %}
     </div>
-  </div>
-  {% endif %}
 
-  {% if public_lists %}
-  <div style="margin-top:16px;padding:12px;background:var(--surface);border-radius:8px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
-      💡 Похожее читают и собирают другие:
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm"
+              hx-post="{% url 'discovery_save_list' %}"
+              hx-target="#save-list-feedback"
+              hx-swap="innerHTML"
+              hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+        💾 Сохранить эту подборку как список
+      </button>
+      <span id="save-list-feedback"></span>
     </div>
-    {% for pl in public_lists %}
-    <div style="font-size:13px;margin-bottom:4px">
-      <a href="{% url 'user_profile_public' pl.user.username %}" class="lnk">
-        @{{ pl.user.username }}
-      </a>
-      — список «<b>{{ pl.list.name }}</b>»
-      <span style="color:var(--ghost);font-size:11px">
-        ({{ pl.overlap }} пересечений)
-      </span>
+    {% endif %}
+
+    {% if followup_options %}
+    <div style="margin-top:12px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Что тебе ближе?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        {% for opt in followup_options %}
+          <button type="button" class="disc-chip" data-prompt="{{ opt.prompt }}">{{ opt.label }}</button>
+        {% endfor %}
+      </div>
     </div>
-    {% endfor %}
+    {% endif %}
+
+    {% if public_lists %}
+    <div style="margin-top:16px;padding:12px;background:var(--surface);border-radius:8px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
+        💡 Похожее читают и собирают другие:
+      </div>
+      {% for pl in public_lists %}
+      <div style="font-size:13px;margin-bottom:4px">
+        <a href="{% url 'user_profile_public' pl.user.username %}" class="lnk">
+          @{{ pl.user.username }}
+        </a>
+        — список «<b>{{ pl.list.name }}</b>»
+        <span style="color:var(--ghost);font-size:11px">
+          ({{ pl.overlap }} пересечений)
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
-  {% endif %}
   </div>
 </div>
+
+<script>
+(function() {
+  const element = document.getElementById("discovery-text-{{ message_id }}");
+  if (!element) return;
+
+  const html = element.innerHTML;
+  element.innerHTML = "";
+  let index = 0;
+  const speed = {% if from_cache %}3{% else %}8{% endif %};
+
+  function type() {
+    if (index >= html.length) {
+      element.innerHTML = html;
+      
+      // Reveal extra content smoothly
+      const extra = document.getElementById("discovery-extra-{{ message_id }}");
+      if (extra) {
+        extra.style.maxHeight = "2000px";
+        extra.style.opacity = "1";
+      }
+
+      const thread = document.getElementById("discovery-messages") || document.getElementById("dialog-thread");
+      if (thread) {
+        thread.scrollTop = thread.scrollHeight;
+      }
+      return;
+    }
+
+    if (html[index] === '<') {
+      const endTagIndex = html.indexOf('>', index);
+      if (endTagIndex !== -1) {
+        index = endTagIndex + 1;
+      } else {
+        index++;
+      }
+    } else {
+      index++;
+    }
+
+    element.innerHTML = html.slice(0, index) + '<span class="typewriter-cursor"></span>';
+
+    const thread = document.getElementById("discovery-messages") || document.getElementById("dialog-thread");
+    if (thread) {
+      thread.scrollTop = thread.scrollHeight;
+    }
+
+    setTimeout(type, speed);
+  }
+
+  type();
+})();
+</script>
+

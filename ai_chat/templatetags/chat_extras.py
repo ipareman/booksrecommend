@@ -14,6 +14,7 @@ register = template.Library()
 # Ищем маркер "[Глава N]" или "[Глава N.]" или "[Глава N-M]"
 _CHAPTER_MARKER = re.compile(r"\[\s*Глав[ауеы]?\s+(\d+)\s*\]", re.IGNORECASE)
 _BOLD_MARKER = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*", re.DOTALL)
+_BOOK_LINK_MARKER = re.compile(r"\[\s*book:(\d+)\|([^\]]+)\s*\]", re.IGNORECASE)
 
 
 def _apply_basic_markdown(text: str) -> str:
@@ -24,7 +25,8 @@ def _apply_basic_markdown(text: str) -> str:
 @register.filter(name="link_chapters")
 def link_chapters(value, book):
     """Превращает упоминания [Глава N] в тексте в кликабельные ссылки
-    на соответствующую главу читалки.
+    на соответствующую главу читалки, а также ссылки [book:ID|Название]
+    в кликабельные ссылки на карточки книги.
 
     Использование:
         {{ msg.content|link_chapters:book }}
@@ -50,7 +52,20 @@ def link_chapters(value, book):
             f'title="Перейти к главе {ch_num}">[Глава {ch_num}]</a>'
         )
 
-    return mark_safe(_CHAPTER_MARKER.sub(repl, text))
+    def repl_book(m):
+        try:
+            b_id = int(m.group(1))
+            b_title = m.group(2).strip()
+            url = reverse("book_detail", args=[b_id])
+            return f'<a href="{url}" class="lnk" style="font-weight:600;">{b_title}</a>'
+        except Exception:
+            return m.group(0)
+
+    # Заменяем главы, затем книги
+    text_processed = _CHAPTER_MARKER.sub(repl, text)
+    text_processed = _BOOK_LINK_MARKER.sub(repl_book, text_processed)
+
+    return mark_safe(text_processed)
 
 
 @register.filter(name="ai_markdown")

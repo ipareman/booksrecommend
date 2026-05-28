@@ -74,10 +74,12 @@ def book_chat_status(request, book_id):
             return render(request, "ai_chat/_book_chat_result.html", {
                 "book": book,
                 "text": payload.get("text", ""),
+                "task_id": task_id,
             })
         return render(request, "ai_chat/_book_chat_result.html", {
             "book": book,
             "text": "Извините, не удалось получить ответ AI. Попробуйте ещё раз.",
+            "task_id": task_id,
         })
 
     return render(request, "ai_chat/_book_chat_status.html", {
@@ -135,6 +137,8 @@ def discovery_send(request):
     if not user_message:
         return HttpResponse("")
 
+    mode = request.POST.get("mode", "standard").strip()
+
     try:
         from search.models import SearchHistory
         SearchHistory.objects.filter(user=request.user, query__iexact=user_message).delete()
@@ -150,7 +154,7 @@ def discovery_send(request):
             exclude_ids.append(int(x))
 
     try:
-        task = discovery_send_task.delay(request.user.pk, user_message, exclude_ids)
+        task = discovery_send_task.delay(request.user.pk, user_message, exclude_ids, mode=mode)
     except Exception:
         return render(request, "ai_chat/_discovery_error.html")
 

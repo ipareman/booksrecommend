@@ -71,13 +71,72 @@ def link_chapters(value, book):
 @register.filter(name="ai_markdown")
 def ai_markdown(value):
     """Безопасно рендерит минимальную markdown-разметку AI-ответов.
-
-    Сейчас поддерживается только `**жирный текст**`; остальной HTML
-    экранируется, переносы строк сохраняются.
+    Также превращает ссылки [book:ID|Название] в кликабельные ссылки,
+    и пытается найти в базе книги, упомянутые в кавычках «Название»
+    или "Название", делая их кликабельными.
     """
     if not value:
         return ""
 
-    text = _apply_basic_markdown(html.escape(str(value)))
+    text = html.escape(str(value))
+    text = _apply_basic_markdown(text)
+
+    # 1. Обрабатываем ссылки формата [book:ID|Название]
+    def repl_book(m):
+        try:
+            b_id = int(m.group(1))
+            b_title = m.group(2).strip()
+            url = reverse("book_detail", args=[b_id])
+            return f'<a href="{url}" class="lnk" style="font-weight:600;">{b_title}</a>'
+        except Exception:
+            return m.group(0)
+
+    text = _BOOK_LINK_MARKER.sub(repl_book, text)
+
+    # 2. Находим упоминания книг в кавычках «...», “...” или "..."
+    QUOTED_RE = re.compile(r'(?:«([^»]+)»|“([^”]+)”|(?:\b|\s)"([^"]+)"(?:\b|\s))')
+
+    try:
+        from books.models import Book
+        from django.core.cache import cache
+
+        def repl_quoted(m):
+            title = m.group(1) or m.group(2) or m.group(3)
+            if not title:
+                return m.group(0)
+            
+            title_stripped = title.strip()
+            cache_key = f"book_title_id_{title_stripped.lower()}"
+            book_id = cache.get(cache_key)
+            
+            if book_id is None:
+                book = Book.objects.filter(title__iexact=title_stripped).first()
+                if not book:
+                    # Попробуем убрать знак вопроса или точку на конце
+                    clean_title = title_stripped.rstrip("?.! ")
+                    if clean_title != title_stripped:
+                        book = Book.objects.filter(title__iexact=clean_title).first()
+                
+                if book:
+                    book_id = book.id
+                    cache.set(cache_key, book_id, 3600)
+                else:
+                    cache.set(cache_key, -1, 3600)
+            
+            if book_id and book_id != -1:
+                try:
+                    url = reverse("book_detail", args=[book_id])
+                    quote_start = "«" if m.group(1) else ("“" if m.group(2) else '"')
+                    quote_end = "»" if m.group(1) else ("”" if m.group(2) else '"')
+                    # Возвращаем красивую ссылку, сохраняя кавычки
+                    return f'<a href="{url}" class="lnk" style="font-weight:600;">{quote_start}{title}{quote_end}</a>'
+                except Exception:
+                    pass
+            return m.group(0)
+
+        text = QUOTED_RE.sub(repl_quoted, text)
+    except Exception:
+        pass
+
     text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>")
     return mark_safe(text)

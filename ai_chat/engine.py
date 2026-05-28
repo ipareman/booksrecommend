@@ -187,8 +187,53 @@ def ask_about_book(chat, user_message):
     if is_rec_request:
         try:
             from books.recommendations import similar_books
-            # Получаем 10 кандидатов (1 запрос в бд с TF-IDF расчетом и префетчем)
+            from books.models import Book
+            # Получаем 10 базовых кандидатов (1 запрос в бд с TF-IDF расчетом и префетчем)
             similar = similar_books(chat.book, limit=10)
+
+            # Пытаемся найти книги с конкретными признаками из сообщения пользователя через полнотекстовый поиск
+            search_candidates = []
+            clean_words = user_message.lower()
+            for kw in recs_keywords:
+                clean_words = clean_words.replace(kw, "")
+            # Оставляем буквы, цифры и пробелы
+            clean_words = re.sub(r"[^\w\s]", " ", clean_words)
+            words = [
+                w for w in clean_words.split() 
+                if len(w) > 2 and w not in [
+                    "книга", "книги", "книгу", "книжки", "похожие", "посоветуй", "порекомендуй",
+                    "что", "это", "для", "подборка", "список", "уклон", "уклоном", "пожалуйста",
+                    "мне", "со", "подскажи"
+                ]
+            ]
+            if words:
+                search_query_str = " ".join(words)
+                try:
+                    from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+                    search_query = SearchQuery(search_query_str, config="russian", search_type="websearch")
+                    vector = SearchVector("title", weight="A", config="russian") + SearchVector("description", weight="B", config="russian")
+                    qs = (
+                        Book.objects
+                        .annotate(rank=SearchRank(vector, search_query))
+                        .filter(rank__gte=0.05)
+                        .exclude(pk=chat.book.pk)
+                        .order_by("-rank")
+                        .prefetch_related("authors", "genres")
+                        [:5]
+                    )
+                    search_candidates = list(qs)
+                except Exception:
+                    pass
+
+            # Объединяем списки без дубликатов (сначала результаты поиска по теме, потом похожие)
+            seen_ids = set()
+            combined_similar = []
+            for b in search_candidates + similar:
+                if b.pk not in seen_ids:
+                    seen_ids.add(b.pk)
+                    combined_similar.append(b)
+            similar = combined_similar[:10]
+
             if similar:
                 lines = []
                 for b in similar:
@@ -205,9 +250,11 @@ def ask_about_book(chat, user_message):
                     + "\n".join(lines)
                     + "\n\nИнструкция по рекомендациям:\n"
                     f"Пользователь попросил порекомендовать похожие книги на «{chat.book.title}».\n"
-                    "1. Выбери из предложенного списка выше от 3 до 5 наиболее подходящих книг и кратко порекомендуй их (по 1-2 предложения на каждую, объяснив почему они похожи).\n"
-                    "2. ВАЖНО: При упоминании любой книги из списка ты ОБЯЗАН использовать её точный маркер-ссылку `[book:ID|Название]`! Например: «Также советую обратить внимание на [book:12|Книга Х], так как...». Не меняй маркеры местами и не удаляй их, иначе ссылки сломаются.\n"
-                    "3. Пиши дружелюбно, как книжный эксперт."
+                    "1. ВНИМАНИЕ: Тебе КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО рекомендовать книги, которых нет в предоставленном выше списке! Ни при каких условиях не придумывай сторонние произведения и не предлагай книги вне этого списка, так как это сломает ссылки на сайте.\n"
+                    "2. Выбери из предложенного списка выше от 3 до 5 наиболее подходящих книг под конкретный запрос пользователя и кратко порекомендуй их (по 1-2 предложения на каждую, объяснив почему они подходят).\n"
+                    "3. Если пользователь просит специфическую тематику (например, «с социальным уклоном»), а подходящих книг в списке нет, прямо и честно скажи об этом пользователю (например: «К сожалению, в нашем каталоге нет похожих книг с выраженным социальным уклоном, но я могу предложить следующие варианты из каталога...») и порекомендуй лучшие из списка. Никогда не выходи за рамки каталога!\n"
+                    "4. ВАЖНО: При упоминании любой книги из списка ты ОБЯЗАН использовать её точный маркер-ссылку `[book:ID|Название]`! Например: «Также советую обратить внимание на [book:12|Книга Х], так как...». Не меняй маркеры местами и не удаляй их, иначе ссылки сломаются.\n"
+                    "5. Пиши дружелюбно, как книжный эксперт."
                 )
         except Exception:
             pass

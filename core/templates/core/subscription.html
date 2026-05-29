@@ -37,16 +37,20 @@
         <li>Больше истории, заметок и сравнений</li>
       </ul>
       <div class="subscription-card__actions">
-        {% if yoomoney_configured %}
-          <form method="post" action="{% url 'subscription_yoomoney_demo' %}">
-            {% csrf_token %}
-            <button type="button" onclick="this.form.submit()" class="subscription-card__button subscription-card__button--yoomoney">Оплатить {{ yoomoney_amount }} ₽ через ЮMoney</button>
-          </form>
+        {% if user.is_authenticated %}
+          {% if yoomoney_configured %}
+            <form method="post" action="{% url 'subscription_yoomoney_demo' %}">
+              {% csrf_token %}
+              <button type="button" onclick="this.form.submit()" class="subscription-card__button subscription-card__button--yoomoney">Оплатить {{ yoomoney_amount }} ₽ через ЮMoney</button>
+            </form>
+          {% else %}
+            <button type="button" class="subscription-card__button" aria-disabled="true">Доступно в демо</button>
+            <div class="subscription-demo-info">
+              <p>Укажите <code>YOOMONEY_RECEIVER</code> в файле <code>.env</code> для тестирования оплаты через ЮMoney QuickPay.</p>
+            </div>
+          {% endif %}
         {% else %}
-          <button type="button" class="subscription-card__button" aria-disabled="true">Доступно в демо</button>
-          <div class="subscription-demo-info">
-            <p>Укажите <code>YOOMONEY_RECEIVER</code> в файле <code>.env</code> для тестирования оплаты через ЮMoney QuickPay.</p>
-          </div>
+          <a href="{% url 'login' %}?next={{ request.path }}" class="subscription-card__button subscription-card__button--yoomoney" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">Войти</a>
         {% endif %}
       </div>
     </article>

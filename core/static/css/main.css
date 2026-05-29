@@ -4258,6 +4258,7 @@ main { flex: 1 0 auto; }
   .chat-bubble { max-width: 88%; font-size: 14px; }
   .tab { padding: 10px 12px; font-size: 12px; }
   .book-row { grid-template-columns: 24px 1fr; }
+  .book-row__cover { display: none; }
   .book-row__side { grid-column: 2; padding-top: 0; }
   .book-row__num { font-size: 10px; }
   .achievements-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }

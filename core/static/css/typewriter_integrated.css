@@ -998,6 +998,9 @@ body.typewriter-reader-page {
   opacity: 0;
   transition: opacity .24s ease, transform .24s ease;
 }
+.cookie-notice[hidden] {
+  display: none !important;
+}
 
 .cookie-notice:not([hidden]) {
   transform: translateY(0);

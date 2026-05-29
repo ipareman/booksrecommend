@@ -601,6 +601,8 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   border-radius: 8px;
   background: rgba(250, 250, 247, .56);
   color: #111;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .subscription-card__button--yookassa {

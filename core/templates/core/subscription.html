@@ -40,7 +40,7 @@
         {% if yoomoney_configured %}
           <form method="post" action="{% url 'subscription_yoomoney_demo' %}">
             {% csrf_token %}
-            <button type="submit" class="subscription-card__button subscription-card__button--yoomoney">Оплатить {{ yoomoney_amount }} ₽ через ЮMoney</button>
+            <button type="button" onclick="this.form.submit()" class="subscription-card__button subscription-card__button--yoomoney">Оплатить {{ yoomoney_amount }} ₽ через ЮMoney</button>
           </form>
         {% else %}
           <button type="button" class="subscription-card__button" aria-disabled="true">Доступно в демо</button>

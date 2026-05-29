@@ -577,6 +577,18 @@ body.nav-logo-flying .typewriter-nav--home .typewriter-nav__logo {
   color: #111;
 }
 
+:root[data-theme="dark"] .subscription-card--pro {
+  color: #fff;
+  border-color: rgba(255, 255, 255, .24);
+}
+:root[data-theme="dark"] .subscription-card--pro .subscription-card__top span {
+  color: rgba(255, 255, 255, .7);
+}
+:root[data-theme="dark"] .subscription-card--pro li {
+  border-bottom-color: rgba(255, 255, 255, .18);
+  color: #fff;
+}
+
 .subscription-card p {
   margin: 0;
   line-height: 1.45;

@@ -290,8 +290,7 @@
       {# Note state — textarea + save/cancel #}
       <template x-if="noteMode">
         <div style="display:flex;flex-direction:column;gap:6px;min-width:240px">
-          {# stop остановит всплытие mousedown к родителю с @mousedown.prevent —
-             иначе цурсор не позиционируется кликом и нельзя выделить текст внутри textarea #}
+
           <textarea x-model="noteText"
                     x-ref="noteInput"
                     @mousedown.stop
